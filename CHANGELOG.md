@@ -1,3 +1,6 @@
+# 0.4.0
+The family list is now no longer causing huge FPS drops. Small UI redesign.
+
 # 0.3.5
 Added family lists in the UI, with options for weight and checkbox for enabling/disabling as well as a button for expanding the family to view the mounts inside.
 

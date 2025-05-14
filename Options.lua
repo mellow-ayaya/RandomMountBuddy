@@ -1,145 +1,180 @@
--- Options.lua (Modify-in-Place strategy for FamilyManagement)
+-- Options.lua (Indented Submenu Structure - Final)
 
-local currentAddonName = ...
-print("RMB_OPTIONS: Options.lua START. Addon Name: " .. tostring(currentAddonName))
+local PARENT_ADDON_INTERNAL_NAME = "RandomMountBuddy"  -- Used as the key for the parent category
+local PARENT_ADDON_DISPLAY_NAME = "Random Mount Buddy" -- What the user sees for the top-level
+
+print("RMB_OPTIONS: Options.lua START. Root Addon Name: " .. PARENT_ADDON_INTERNAL_NAME)
 
 local addon = RandomMountBuddy
 if not addon then
-    print("RMB_OPTIONS: CRITICAL ERROR - RandomMountBuddy global is nil at Options.lua top!")
+    print("RMB_OPTIONS: CRITICAL ERROR - RandomMountBuddy global (addon object) is nil!")
     return
-end
-
--- Early check for functions that will be called by UI elements or the Populate function
-if type(addon.PopulateFamilyManagementUI) ~= "function" then
-    print(
-    "RMB_OPTIONS_WARN: Critical addon method 'PopulateFamilyManagementUI' is missing! Family Management page refresh will fail.")
-end
-if type(addon.GetFavoriteMountsForOptions) ~= "function" then
-    print("RMB_OPTIONS_WARN: Addon method 'GetFavoriteMountsForOptions' is missing! Mount Inspector page may fail.")
-    addon.GetFavoriteMountsForOptions = function() return { mi_error = { order = 1, type = "description", name = "Inspector Func Error" } } end
 end
 
 local LibAceConfig = LibStub("AceConfig-3.0")
 local LibAceConfigDialog = LibStub("AceConfigDialog-3.0")
 
 if not (LibAceConfig and LibAceConfigDialog) then
-    print("RMB_OPTIONS: CRITICAL ERROR - AceConfig or AceConfigDialog not found!")
+    print("RMB_OPTIONS: CRITICAL ERROR - AceConfig or AceConfigDialog libraries not found!")
     return
 end
 
--- For Mount Inspector (pre-generated)
-local favoriteMountsArgsTable = addon:GetFavoriteMountsForOptions()
-if type(favoriteMountsArgsTable) ~= "table" then
-    print("RMB_OPTIONS_ERROR: GetFavoriteMountsForOptions() did NOT return a table for Mount Inspector! Type: " ..
-    tostring(type(favoriteMountsArgsTable)))
-    favoriteMountsArgsTable = { inspector_data_error = { order = 1, type = "description", name = "Error generating Mount Inspector list." } }
+-- Ensure necessary functions exist on the addon object for various pages
+if type(addon.GetSetting) ~= "function" or type(addon.SetSetting) ~= "function" then print(
+    "RMB_OPTIONS_WARN: Core Get/SetSetting methods missing!") end
+if type(addon.BuildFamilyManagementArgs) ~= "function" then
+    print("RMB_OPTIONS_WARN: addon.BuildFamilyManagementArgs is missing!")
+    addon.BuildFamilyManagementArgs = function() return { err = { order = 1, type = "description", name = "Error: BuildFamilyManagementArgs missing!" } } end
 end
-print("RMB_OPTIONS: favoriteMountsArgsTable (for Mount Inspector) generated.")
-
--- KEY: Define familyManagement.args as an empty table initially.
--- Core.lua will get a reference to this table and populate it.
-local initialFamilyManagementArgs = {
-    -- This refresh button will call a function in Core.lua that repopulates this table
-    initial_refresh_button = {
-        order = 0, -- Show at the very top
-        type = "execute",
-        name = "Load / Refresh Mount Groups",
-        func = function()
-            print("RMB_OPTIONS_UI: Initial Refresh button clicked from Options.lua.")
-            if addon.PopulateFamilyManagementUI then
-                addon:PopulateFamilyManagementUI()
-            else
-                print("RMB_OPTIONS_UI_ERROR: PopulateFamilyManagementUI function missing on addon object.")
-            end
-        end,
-        width = "full"
-    },
-    initial_status_message = {
-        order = 1,
-        type = "description",
-        name = "Click 'Load / Refresh Mount Groups' to display the list once data is ready."
-    }
-}
--- Store this reference on the addon object so Core.lua can modify it.
-addon.fmArgsRef = initialFamilyManagementArgs
-print("RMB_OPTIONS: Stored reference to initialFamilyManagementArgs on addon.fmArgsRef.")
+if type(addon.GetFavoriteMountsForOptions) ~= "function" then
+    print("RMB_OPTIONS_WARN: addon.GetFavoriteMountsForOptions is missing!")
+    addon.GetFavoriteMountsForOptions = function() return { err = { order = 1, type = "description", name = "Error: GetFavoriteMountsForOptions missing!" } } end
+end
+if type(addon.PopulateFamilyManagementUI) ~= "function" then print(
+    "RMB_OPTIONS_WARN: addon.PopulateFamilyManagementUI is missing!") end
 
 
-local optionsTable = {
-    name = addon:GetName() and (addon:GetName() .. " Settings") or "Random Mount Buddy Settings",
-    handler = addon,
+-- 0. Create the Parent Category in Blizzard's Options
+-- We register a minimal options table for the parent itself. Its main purpose is to establish the category.
+-- The 'name' in this root table definition isn't critical if it doesn't show its own options,
+-- but appDisplayName is what users see in the list.
+local rootOptions_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_RootConfig" -- Unique name for AceConfig registration
+local rootOptionsTable = {
+    name = PARENT_ADDON_DISPLAY_NAME .. " (Root)",                           -- Name for AceConfig internals if needed
     type = "group",
     args = {
-        main = {
-            type = "group",
-            name = "Main Settings",
+        _placeholder_description = {
             order = 1,
-            args = { -- Condensed main args for brevity; ensure your full ones are here
-                generalHeader = { order = 1, type = "header", name = "General" },
-                overrideBlizzardButton = { order = 3, type = "toggle", name = "Override Blizzard", get = function() return
-                    addon:GetSetting("overrideBlizzardButton") end, set = function(i, v) addon:SetSetting(
-                    "overrideBlizzardButton", v) end },
-                useSuperGrouping = { order = 4, type = "toggle", name = "Use Super-Grouping", get = function() return
-                    addon:GetSetting("useSuperGrouping") end, set = function(i, v) addon:SetSetting("useSuperGrouping", v) end },
-                contextualSummoning = { order = 5, type = "toggle", name = "Contextual Summoning", get = function() return
-                    addon:GetSetting("contextualSummoning") end, set = function(i, v) addon:SetSetting(
-                    "contextualSummoning", v) end },
-                traitStrictnessHeader = { order = 10, type = "header", name = "Trait Strictness" },
-                treatMinorArmorAsDistinct = { order = 12, type = "toggle", name = "Minor Armor Distinct", get = function() return
-                    addon:GetSetting("treatMinorArmorAsDistinct") end, set = function(i, v) addon:SetSetting(
-                    "treatMinorArmorAsDistinct", v) end, disabled = function() return not addon:GetSetting(
-                    "useSuperGrouping") end },
-                treatMajorArmorAsDistinct = { order = 13, type = "toggle", name = "Major Armor Distinct", get = function() return
-                    addon:GetSetting("treatMajorArmorAsDistinct") end, set = function(i, v) addon:SetSetting(
-                    "treatMajorArmorAsDistinct", v) end, disabled = function() return not addon:GetSetting(
-                    "useSuperGrouping") end },
-                treatModelVariantsAsDistinct = { order = 14, type = "toggle", name = "Model Variants Distinct", get = function() return
-                    addon:GetSetting("treatModelVariantsAsDistinct") end, set = function(i, v) addon:SetSetting(
-                    "treatModelVariantsAsDistinct", v) end, disabled = function() return not addon:GetSetting(
-                    "useSuperGrouping") end },
-                treatUniqueEffectsAsDistinct = { order = 15, type = "toggle", name = "Unique Effects Distinct", get = function() return
-                    addon:GetSetting("treatUniqueEffectsAsDistinct") end, set = function(i, v) addon:SetSetting(
-                    "treatUniqueEffectsAsDistinct", v) end, disabled = function() return not addon:GetSetting(
-                    "useSuperGrouping") end },
-            }
-        },
-        familyManagement = {
-            type = "group",
-            name = "Family & Group Management",
-            order = 2,
-            args = initialFamilyManagementArgs, -- Assign the table directly
-        },
-        mountInspector = {
-            type = "group",
-            name = "Mount Inspector",
-            order = 3,
-            args = {
-                header_inspector = { order = 1, type = "header", name = "Favorite Mounts Overview" },
-                desc_inspector = { order = 2, type = "description", name = "Lists favorite mounts and their assigned family name.", fontSize = "medium" },
-                mount_list_container = { order = 3, type = "group", name = " ", inline = true, args = favoriteMountsArgsTable, },
-            },
-        },
-        groupWeights = {
-            type = "group",
-            name = "Group Weights",
-            order = 4,
-            args = { desc_weights = { order = 1, type = "description", name = "Assign weights to groups. (Placeholder)" } },
-        },
+            type = "description",
+            name = "Select a sub-category for " .. PARENT_ADDON_DISPLAY_NAME .. ".",
+        }
     }
 }
-print("RMB_OPTIONS: Full options table defined with initial static args for FamilyManagement.")
-
-LibAceConfig:RegisterOptionsTable(currentAddonName, optionsTable)
-print("RMB_OPTIONS: Options table registered with AceConfig.")
-
-local panel, categoryID = LibAceConfigDialog:AddToBlizOptions(currentAddonName,
-    addon:GetName() and addon:GetName() or currentAddonName)
-if panel then
-    addon.optionsPanelObject = { frame = panel, id = categoryID or panel.name }
-    print("RMB_OPTIONS: Added to Blizzard Interface Options. Panel Name/ID: " ..
-    tostring(addon.optionsPanelObject.id or addon.optionsPanelObject.frame.name))
+LibAceConfig:RegisterOptionsTable(rootOptions_InternalName, rootOptionsTable)
+local rootPanel, rootCategoryID = LibAceConfigDialog:AddToBlizOptions(rootOptions_InternalName, PARENT_ADDON_DISPLAY_NAME)
+if not rootPanel then
+    print("RMB_OPTIONS_ERROR: FAILED to create parent category '" ..
+    PARENT_ADDON_DISPLAY_NAME .. "' in Blizzard Options.")
+    return -- If parent can't be made, children will fail
 else
-    print("RMB_OPTIONS: FAILED to add to Blizzard Interface Options.")
+    print("RMB_OPTIONS: Parent category '" ..
+    PARENT_ADDON_DISPLAY_NAME ..
+    "' created/found. ID/Name: " .. tostring(rootCategoryID or (rootPanel and rootPanel.name)))
 end
+-- The key used by AddToBlizOptions for 'parent' is the *display name* if a specific ID isn't returned or known.
+-- Or, more robustly, the ID it returns.
+local actualParentCategoryKey = rootCategoryID or (rootPanel and rootPanel.name) or PARENT_ADDON_DISPLAY_NAME
 
-print("RMB_OPTIONS: Options.lua END.")
+
+--[[-----------------------------------------------------------------------------
+    1. Main Settings Page
+-------------------------------------------------------------------------------]]
+local mainSettings_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_MainSettings"
+local mainSettings_DisplayName = "Main Settings"
+
+local mainSettingsOptionsArgs = {
+    generalHeader = { order = 1, type = "header", name = "General Configuration" },
+    overrideBlizzardButton = { order = 3, type = "toggle", name = "Override Blizzard's Random Button", desc = "If checked, RMB will take over 'Summon Random Favorite Mount'.", get = function() return
+        addon:GetSetting("overrideBlizzardButton") end, set = function(i, v) addon:SetSetting("overrideBlizzardButton", v) end },
+    useSuperGrouping = { order = 4, type = "toggle", name = "Use Super-Grouping", desc = "Group mounts by 'superGroup' by default.", get = function() return
+        addon:GetSetting("useSuperGrouping") end, set = function(i, v) addon:SetSetting("useSuperGrouping", v) end },
+    contextualSummoning = { order = 5, type = "toggle", name = "Enable Contextual Summoning", desc = "Automatically filter mounts based on location/situation.", get = function() return
+        addon:GetSetting("contextualSummoning") end, set = function(i, v) addon:SetSetting("contextualSummoning", v) end },
+    traitStrictnessHeader = { order = 10, type = "header", name = "Trait-Based Strictness (if Super-Grouping is enabled)" },
+    treatMinorArmorAsDistinct = { order = 12, type = "toggle", name = "Minor Armor as Distinct", get = function() return
+        addon:GetSetting("treatMinorArmorAsDistinct") end, set = function(i, v) addon:SetSetting(
+        "treatMinorArmorAsDistinct", v) end, disabled = function() return not addon:GetSetting("useSuperGrouping") end },
+    treatMajorArmorAsDistinct = { order = 13, type = "toggle", name = "Major Armor as Distinct", get = function() return
+        addon:GetSetting("treatMajorArmorAsDistinct") end, set = function(i, v) addon:SetSetting(
+        "treatMajorArmorAsDistinct", v) end, disabled = function() return not addon:GetSetting("useSuperGrouping") end },
+    treatModelVariantsAsDistinct = { order = 14, type = "toggle", name = "Model Variants as Distinct", get = function() return
+        addon:GetSetting("treatModelVariantsAsDistinct") end, set = function(i, v) addon:SetSetting(
+        "treatModelVariantsAsDistinct", v) end, disabled = function() return not addon:GetSetting("useSuperGrouping") end },
+    treatUniqueEffectsAsDistinct = { order = 15, type = "toggle", name = "Unique Effects/Skins as Distinct", get = function() return
+        addon:GetSetting("treatUniqueEffectsAsDistinct") end, set = function(i, v) addon:SetSetting(
+        "treatUniqueEffectsAsDistinct", v) end, disabled = function() return not addon:GetSetting("useSuperGrouping") end },
+}
+local mainSettingsOptionsTable = { name = mainSettings_DisplayName, handler = addon, type = "group", order = 1, args =
+mainSettingsOptionsArgs }
+LibAceConfig:RegisterOptionsTable(mainSettings_InternalName, mainSettingsOptionsTable)
+local mainPanel, mainCatID = LibAceConfigDialog:AddToBlizOptions(mainSettings_InternalName, mainSettings_DisplayName,
+    actualParentCategoryKey)
+if mainPanel then
+    addon.optionsPanel_Main = { frame = mainPanel, id = mainCatID or mainPanel.name }; addon.optionsPanelObject = addon
+    .optionsPanel_Main; print("RMB_OPTIONS: Registered '" .. mainSettings_DisplayName .. "' page.")
+else print("RMB_OPTIONS_ERROR: FAILED Main Settings AddToBliz.") end
+
+
+--[[-----------------------------------------------------------------------------
+    2. Family & Group Management Page
+-------------------------------------------------------------------------------]]
+local familyManagement_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_FamilyManagement"
+local familyManagement_DisplayName = "Family & Groups"
+local initialFamilyManagementArgs = {
+    _placeholder_header_fmg = { order = 0, type = "header", name = "Family & Group Configuration" },
+    _placeholder_refresh_button_fmg = { order = 1, type = "execute", name = "Load / Refresh Mount Groups", func = function() if addon.PopulateFamilyManagementUI then
+            addon:PopulateFamilyManagementUI() else print("RMB_OPTIONS_ERROR: PopulateFamilyManagementUI missing!") end end, width = "full" },
+    _placeholder_status_fmg = { order = 2, type = "description", name = "Click 'Load / Refresh' or wait for data to auto-populate." }
+}
+addon.fmArgsRef = initialFamilyManagementArgs -- Core.lua will use this reference
+local familyManagementOptionsTable = { name = familyManagement_DisplayName, handler = addon, type = "group", order = 2, args =
+initialFamilyManagementArgs }
+LibAceConfig:RegisterOptionsTable(familyManagement_InternalName, familyManagementOptionsTable)
+local familyPanel, familyCatID = LibAceConfigDialog:AddToBlizOptions(familyManagement_InternalName,
+    familyManagement_DisplayName, actualParentCategoryKey)
+if familyPanel then
+    addon.optionsPanel_Family = { frame = familyPanel, id = familyCatID or familyPanel.name }; print(
+    "RMB_OPTIONS: Registered '" .. familyManagement_DisplayName .. "' page.")
+else print("RMB_OPTIONS_ERROR: FAILED Family & Groups AddToBliz.") end
+
+
+--[[-----------------------------------------------------------------------------
+    3. Mount Inspector Page
+-------------------------------------------------------------------------------]]
+local mountInspector_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_MountInspector"
+local mountInspector_DisplayName = "Mount Inspector"
+local favoriteMountsArgsTable = (addon.GetFavoriteMountsForOptions and addon:GetFavoriteMountsForOptions()) or
+{ err = { order = 1, type = "description", name = "Error." } }
+local mountInspectorOptionsTable = {
+    name = mountInspector_DisplayName,
+    handler = addon,
+    type = "group",
+    order = 3,
+    args = {
+        header_inspector = { order = 1, type = "header", name = "Favorite Mounts Overview" },
+        desc_inspector = { order = 2, type = "description", name = "Lists your favorite mounts and their assigned family name (placeholder).", fontSize = "medium" },
+        mount_list_container = { order = 3, type = "group", name = " ", inline = true, args = favoriteMountsArgsTable },
+    }
+}
+LibAceConfig:RegisterOptionsTable(mountInspector_InternalName, mountInspectorOptionsTable)
+local inspPanel, inspCatID = LibAceConfigDialog:AddToBlizOptions(mountInspector_InternalName, mountInspector_DisplayName,
+    actualParentCategoryKey)
+if inspPanel then
+    addon.optionsPanel_Inspector = { frame = inspPanel, id = inspCatID or inspPanel.name }; print(
+    "RMB_OPTIONS: Registered '" .. mountInspector_DisplayName .. "' page.")
+else print("RMB_OPTIONS_ERROR: FAILED Mount Inspector AddToBliz.") end
+
+
+--[[-----------------------------------------------------------------------------
+    4. Group Weights Page (Placeholder)
+-------------------------------------------------------------------------------]]
+local groupWeights_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_GroupWeights"
+local groupWeights_DisplayName = "Group Weights"
+local groupWeightsOptionsTable = {
+    name = groupWeights_DisplayName,
+    handler = addon,
+    type = "group",
+    order = 4,
+    args = {
+        desc_weights = { order = 1, type = "description", name = "Assign weights to groups. (Placeholder)" }
+    }
+}
+LibAceConfig:RegisterOptionsTable(groupWeights_InternalName, groupWeightsOptionsTable)
+local weightsPanel, weightsCatID = LibAceConfigDialog:AddToBlizOptions(groupWeights_InternalName,
+    groupWeights_DisplayName, actualParentCategoryKey)
+if weightsPanel then
+    addon.optionsPanel_Weights = { frame = weightsPanel, id = weightsCatID or weightsPanel.name }; print(
+    "RMB_OPTIONS: Registered '" .. groupWeights_DisplayName .. "' page.")
+else print("RMB_OPTIONS_ERROR: FAILED Group Weights AddToBliz.") end
+
+print("RMB_OPTIONS: Options.lua END - All sub-categories registration attempted.")

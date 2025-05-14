@@ -15,6 +15,7 @@ local dbDefaults = {
         groupWeights = {},
         groupEnabledStates = {},
         familyOverrides = {},
+        fmItemsPerPage = 5,
     }
 }
 
@@ -141,6 +142,35 @@ function addon:OnPlayerLoginAttemptProcessData(eventArg)
     self:UnregisterEvent("PLAYER_LOGIN"); print("RMB_EVENT_DEBUG: Unregistered PLAYER_LOGIN.")
 end
 
+function addon:SlashCommandHandler(input)
+    input = input and input:trim() or ""
+    print("RMB_DEBUG_SLASH: SlashCommandHandler EXECUTED. Input: [" .. input .. "]")
+
+    local panelToOpen = self.optionsPanel_Main -- From Options.lua, should be Main Settings panel by default
+
+    if panelToOpen and panelToOpen.id then
+        print("RMB_DEBUG_SLASH: Attempting to open options panel. Target ID: " .. tostring(panelToOpen.id))
+        local success, err = pcall(Settings.OpenToCategory, panelToOpen.id)
+        if success then
+            print("RMB_DEBUG_SLASH: Settings.OpenToCategory('" .. tostring(panelToOpen.id) .. "') called.")
+        else
+            print("RMB_DEBUG_SLASH: ERROR calling Settings.OpenToCategory: " .. tostring(err))
+            if panelToOpen.frame then
+                print("RMB_DEBUG_SLASH: Falling back to InterfaceOptionsFrame_OpenToCategory.")
+                InterfaceOptionsFrame_OpenToCategory(panelToOpen.frame)
+            else
+                print("RMB_DEBUG_SLASH: No frame object available for fallback.")
+            end
+        end
+    elseif self.optionsPanelObject and self.optionsPanelObject.id then -- Older fallback, less likely needed now
+        print("RMB_DEBUG_SLASH: Using fallback self.optionsPanelObject. Target ID: " ..
+            tostring(self.optionsPanelObject.id))
+        Settings.OpenToCategory(self.optionsPanelObject.id)
+    else
+        print("RMB_DEBUG_SLASH: No optionsPanel_Main or optionsPanelObject.id found to open.")
+    end
+end
+
 function addon:OnInitialize()
     print("RMB_DEBUG: OnInitialize CALLED.")
     if RandomMountBuddy_PreloadData then
@@ -158,7 +188,18 @@ function addon:OnInitialize()
     self.processedData = { superGroupMap = {}, standaloneFamilyNames = {}, familyToMountIDsMap = {}, superGroupToMountIDsMap = {}, allCollectedMountFamilyInfo = {} }
     print("RMB_DEBUG: OnInitialize - Initialized empty self.processedData.")
     self.RMB_DataReadyForUI = false
-
+    self.fmCurrentPage = 1 -- Initialize current page
+    -- Load itemsPerPage from DB or use default
+    if self.db and self.db.profile and self.db.profile.fmItemsPerPage then
+        self.fmItemsPerPage = self.db.profile.fmItemsPerPage
+    else
+        self.fmItemsPerPage = 5             -- Default value if not in DB
+        if self.db and self.db.profile then -- Save it if DB is ready
+            self.db.profile.fmItemsPerPage = self.fmItemsPerPage
+        end
+    end
+    print("RMB_DEBUG: Paging initialized. CurrentPage: " ..
+        self.fmCurrentPage .. ", ItemsPerPage: " .. self.fmItemsPerPage)
     if LibAceDB then
         self.db = LibAceDB:New("RandomMountBuddy_SavedVars", dbDefaults, true); print("RMB_DEBUG: AceDB:New done.");
         if self.db and self.db.profile then
@@ -170,12 +211,23 @@ function addon:OnInitialize()
     else
         print("RMB_DEBUG: LibAceDB missing.")
     end
+
+    -- Register Slash Command
     if LibAceConsole then
-        self:RegisterChatCommand("rmb", "SlashCommandHandler"); self:RegisterChatCommand("randommountbuddy",
-            "SlashCommandHandler"); print("RMB_DEBUG: Slash commands registered.")
+        -- NEW DEBUG: Check if the method exists before registering
+        if type(self.SlashCommandHandler) == "function" then
+            print("RMB_DEBUG: OnInitialize - self.SlashCommandHandler IS a function. Registering commands.")
+            self:RegisterChatCommand("rmb", "SlashCommandHandler")
+            self:RegisterChatCommand("randommountbuddy", "SlashCommandHandler")
+            print("RMB_DEBUG: OnInitialize - Slash commands registered.")
+        else
+            print("RMB_DEBUG_ERROR: OnInitialize - self.SlashCommandHandler is NOT a function! Type: " ..
+                tostring(type(self.SlashCommandHandler)) .. ". Cannot register slash commands.")
+        end
     else
-        print("RMB_DEBUG: LibAceConsole missing.")
+        print("RMB_DEBUG: OnInitialize - LibAceConsole not available, skipping slash command registration.")
     end
+
     if self.RegisterEvent then
         self:RegisterEvent("PLAYER_LOGIN", "OnPlayerLoginAttemptProcessData"); print(
             "RMB_DEBUG: Registered for PLAYER_LOGIN.")
@@ -185,90 +237,256 @@ function addon:OnInitialize()
     print("RMB_DEBUG: OnInitialize END.")
 end
 
+function addon:FMG_SetItemsPerPage(items)
+    local numItems = tonumber(items)
+    if numItems and numItems >= 5 and numItems <= 50 then
+        print("RMB_PAGING: Items per page changing to " .. numItems)
+        self.fmItemsPerPage = numItems
+        if self.db and self.db.profile then self.db.profile.fmItemsPerPage = numItems end
+        self.fmCurrentPage = 1
+        self:PopulateFamilyManagementUI() -- Repopulate and notify
+    else
+        print("RMB_PAGING: Invalid items per page: " .. tostring(items))
+    end
+end
+
+function addon:FMG_GetItemsPerPage()
+    return self.fmItemsPerPage or 15
+end
+
+function addon:FMG_GoToPage(pageNumber)
+    if not self.RMB_DataReadyForUI then
+        print("RMB_PAGING: Data not ready."); return
+    end
+    local allDisplayableGroups = self:GetDisplayableGroups()
+    if not allDisplayableGroups then allDisplayableGroups = {} end
+    local totalGroups = #allDisplayableGroups
+    local itemsPerPage = self:FMG_GetItemsPerPage()
+    local totalPages = math.max(1, math.ceil(totalGroups / itemsPerPage))
+    local targetPage = tonumber(pageNumber)
+
+    if targetPage and targetPage >= 1 and targetPage <= totalPages then
+        if self.fmCurrentPage ~= targetPage then
+            self.fmCurrentPage = targetPage
+            print("RMB_PAGING: Navigating to page " .. self.fmCurrentPage)
+            self:PopulateFamilyManagementUI() -- Repopulate and notify
+        else
+            print("RMB_PAGING: Already on page " .. targetPage .. ". Refreshing current page view.")
+            self:PopulateFamilyManagementUI() -- Still refresh even if page number is same, content might need update
+        end
+    else
+        print("RMB_PAGING: Invalid page number " .. tostring(pageNumber))
+    end
+end
+
+function addon:FMG_NextPage()
+    if not self.RMB_DataReadyForUI then return end
+    local allDisplayableGroups = self:GetDisplayableGroups()
+    if not allDisplayableGroups then allDisplayableGroups = {} end
+    local itemsPerPage = self:FMG_GetItemsPerPage()
+    local totalPages = math.max(1, math.ceil(#allDisplayableGroups / itemsPerPage))
+    if self.fmCurrentPage < totalPages then
+        self:FMG_GoToPage(self.fmCurrentPage + 1)
+    end
+end
+
+function addon:FMG_PrevPage()
+    if not self.RMB_DataReadyForUI then return end
+    if self.fmCurrentPage > 1 then
+        self:FMG_GoToPage(self.fmCurrentPage - 1)
+    end
+end
+
 function addon:BuildFamilyManagementArgs()
-    print("RMB_DEBUG_UI: BuildFamilyManagementArgs called. DataReadyForUI = " .. tostring(self.RMB_DataReadyForUI))
+    print("RMB_DEBUG_UI: BuildFamilyManagementArgs called. Page: " ..
+        tostring(self.fmCurrentPage) .. ", DataReady:" .. tostring(self.RMB_DataReadyForUI))
     local pageArgs = {}
     local displayOrder = 1
-    pageArgs["fmg_header"] = { order = displayOrder, type = "header", name = "Configure Group Weights & Enabled States" }; displayOrder =
-    displayOrder + 1
-    pageArgs["fmg_desc"] = { order = displayOrder, type = "description", name = "Weights (0-6). Expand [+] for details." }; displayOrder =
-    displayOrder + 1
+
+    pageArgs["fmg_header"] = { order = displayOrder, type = "header", name = "Family & Group Configuration" }; displayOrder =
+        displayOrder + 1
+
+    -- Manual Refresh Button (always present as part of the built args)
+    pageArgs["manual_refresh_button"] = {
+        order = displayOrder,
+        type = "execute",
+        name = "Refresh This List",
+        func = function() self:PopulateFamilyManagementUI() end, -- Re-call the population logic
+        width = "full"
+    }
+    displayOrder = displayOrder + 1
+
+    pageArgs["items_per_page_input"] = {
+        order = displayOrder,
+        type = "input",
+        name = "Items Per Page:",
+        get = function() return tostring(self:FMG_GetItemsPerPage()) end,
+        set = function(info, val) self:FMG_SetItemsPerPage(val) end,
+        width = "half"
+    }
+    displayOrder = displayOrder + 1
 
     if not self.RMB_DataReadyForUI then
-        pageArgs.loading_placeholder = { order = displayOrder, type = "description", name = "Mount data loading..." }
+        pageArgs.loading_placeholder = {
+            order = displayOrder,
+            type = "description",
+            name =
+            "Mount data is loading or not yet processed."
+        }
         return pageArgs
     end
 
-    local displayableGroups = self:GetDisplayableGroups()
-    if not displayableGroups or #displayableGroups == 0 then
-        pageArgs["no_groups_msg"] = { order = displayOrder, type = "description", name = "No mount groups found." }
+    local allDisplayableGroups = self:GetDisplayableGroups()
+    if not allDisplayableGroups or #allDisplayableGroups == 0 then
+        pageArgs["no_groups_msg"] = {
+            order = displayOrder,
+            type = "description",
+            name =
+            "No mount groups processed/found."
+        }
         return pageArgs
     end
 
-    local groupEntryOrder = displayOrder
-    for _, groupInfo in ipairs(displayableGroups) do
-        local groupKey = groupInfo.key; local isExpanded = self:IsGroupExpanded(groupKey)
-        local groupDisplayName = groupInfo.displayName .. " (" .. groupInfo.mountCount .. " mounts)"
+    local totalGroups = #allDisplayableGroups
+    local itemsPerPage = self:FMG_GetItemsPerPage()
+    local totalPages = math.max(1, math.ceil(totalGroups / itemsPerPage)) -- Ensure totalPages is at least 1
+    local currentPage = self.fmCurrentPage or 1
+    if currentPage > totalPages then
+        currentPage = totalPages; self.fmCurrentPage = totalPages;
+    end
+    if currentPage < 1 then
+        currentPage = 1; self.fmCurrentPage = currentPage;
+    end
 
-        local detailArgsForThisGroup = {} -- Default to empty
-        if isExpanded then
-            detailArgsForThisGroup = self:GetExpandedGroupDetailsArgs(groupKey, groupInfo.type)
-        end
+    pageArgs["fmg_page_info"] = {
+        order = displayOrder,
+        type = "description",
+        name = string.format("Page %d / %d (%d groups total)", currentPage, totalPages, totalGroups),
+        width = "full"
+    }
+    displayOrder = displayOrder + 1
 
-        pageArgs["entry_" .. groupKey] = {
-            order = groupEntryOrder,
-            type = "group",
-            name = groupDisplayName,
-            inline = true,
-            handler = self,
-            args = {
-                expandCollapse = { order = 1, type = "execute", name = isExpanded and "[-] Collapse" or "[+] Expand", func = function()
-                    self:ToggleExpansionState(groupKey) end, width = "normal" },
-                enabledToggle = { order = 2, type = "toggle", name = "Enabled", get = function() return self
-                    :IsGroupEnabled(groupKey) end, set = function(i, v) self:SetGroupEnabled(groupKey, v) end, width = "normal" },
-                weightControl = { order = 3, type = "range", name = "Weight", min = 0, max = 6, step = 1, get = function() return
-                    self:GetGroupWeight(groupKey) end, set = function(i, v) self:SetGroupWeight(groupKey, v) end, width = "normal" },
-                detailsContainer = {
-                    order = 100,
-                    type = "group",
-                    name = " ",
-                    inline = true,
-                    hidden = not isExpanded,
-                    width = "full",
-                    args = detailArgsForThisGroup -- Assign the pre-built table
-                }
+    pageArgs["pagination_controls_group"] = {
+        order = displayOrder,
+        type = "group",
+        inline = true,
+        name = " ",
+        width = "full",
+        args = {
+            prev_button = {
+                order = 1,
+                type = "execute",
+                name = "<< Prev",
+                disabled = (currentPage <= 1),
+                func = function()
+                    self:FMG_PrevPage()
+                end,
+                width = "normal"
+            },
+            next_button = {
+                order = 2,
+                type = "execute",
+                name = "Next >>",
+                disabled = (currentPage >= totalPages),
+                func = function()
+                    self:FMG_NextPage()
+                end,
+                width = "normal"
             }
         }
-        groupEntryOrder = groupEntryOrder + 1
+    }
+    displayOrder = displayOrder + 1
+
+    local startIndex = (currentPage - 1) * itemsPerPage + 1
+    local endIndex = math.min(startIndex + itemsPerPage - 1, totalGroups)
+
+    local groupEntryOrder = displayOrder
+    for i = startIndex, endIndex do
+        local groupInfo = allDisplayableGroups[i]
+        if groupInfo then
+            local groupKey = groupInfo.key; local isExpanded = self:IsGroupExpanded(groupKey)
+            local groupDisplayName = groupInfo.displayName .. " (" .. groupInfo.mountCount .. " mounts)"
+            local detailArgsForThisGroup = (isExpanded and self:GetExpandedGroupDetailsArgs(groupKey, groupInfo.type)) or
+                {}
+
+            pageArgs["entry_" .. groupKey] = {
+                order = groupEntryOrder,
+                type = "group",
+                name = groupDisplayName,
+                inline = true,
+                handler = self,
+                args = {
+                    expandCollapse = {
+                        order = 1,
+                        type = "execute",
+                        name = isExpanded and "[-] Collapse" or "[+] Expand",
+                        func = function()
+                            self:ToggleExpansionState(groupKey)
+                        end,
+                        width = "normal"
+                    },
+                    enabledToggle = {
+                        order = 2,
+                        type = "toggle",
+                        name = "Enabled",
+                        get = function()
+                            return self
+                                :IsGroupEnabled(groupKey)
+                        end,
+                        set = function(i, v) self:SetGroupEnabled(groupKey, v) end,
+                        width = "normal"
+                    },
+                    weightControl = {
+                        order = 3,
+                        type = "range",
+                        name = "Weight",
+                        min = 0,
+                        max = 6,
+                        step = 1,
+                        get = function()
+                            return
+                                self:GetGroupWeight(groupKey)
+                        end,
+                        set = function(i, v) self:SetGroupWeight(groupKey, v) end,
+                        width = "normal"
+                    },
+                    detailsContainer = { order = 100, type = "group", name = " ", inline = true, hidden = not isExpanded, width = "full", args = detailArgsForThisGroup }
+                }
+            }
+            groupEntryOrder = groupEntryOrder + 1
+        end
     end
     return pageArgs
 end
 
--- PopulateFamilyManagementUI (remains the same, it calls BuildFamilyManagementArgs and NotifyChange)
+-- This function takes the output of BuildFamilyManagementArgs and updates the table
+-- that Options.lua initially registered with AceConfig.
 function addon:PopulateFamilyManagementUI()
     print("RMB_DEBUG_UI: PopulateFamilyManagementUI called.")
     if not self.fmArgsRef then
-        print("RMB_DEBUG_UI_ERROR: self.fmArgsRef nil!"); return
+        print("RMB_DEBUG_UI_ERROR: self.fmArgsRef (the options table for familyManagement.args) is nil!")
+        return
     end
 
-    if not self.RMB_DataReadyForUI then
-        print("RMB_DEBUG_UI: Data not ready, populating with 'loading' message.")
-        wipe(self.fmArgsRef)
-        self.fmArgsRef.refresh_button_placeholder = { order = 0, type = "execute", name = "Refresh List (Data Not Ready)", func = function()
-            self:PopulateFamilyManagementUI() end }
-        self.fmArgsRef.loading_or_refresh_placeholder = { order = 1, type = "description", name =
-        "Data not yet processed. Click Refresh or wait." }
-    else
-        local newArgsForPage = self:BuildFamilyManagementArgs()
-        wipe(self.fmArgsRef)
-        for key, value in pairs(newArgsForPage) do self.fmArgsRef[key] = value end
+    local newPageContentArgs = self:BuildFamilyManagementArgs() -- Get the full new args for the page
+
+    -- Clear out the old contents of the table AceConfig is holding a reference to
+    wipe(self.fmArgsRef)
+
+    -- Copy the new contents into that same table
+    for k, v in pairs(newPageContentArgs) do
+        self.fmArgsRef[k] = v
     end
-    print("RMB_DEBUG_UI: Updated self.fmArgsRef. Notifying AceConfigRegistry.")
-    if LibAceConfigRegistry then LibAceConfigRegistry:NotifyChange(addonNameFromToc) end
+
+    print("RMB_DEBUG_UI: self.fmArgsRef has been updated with new page content. Notifying AceConfigRegistry.")
+    if LibAceConfigRegistry then
+        LibAceConfigRegistry:NotifyChange(addonNameFromToc)
+    end
 end
 
-function addon:TriggerFamilyManagementUIRefresh() -- Called by button in Options.lua
-    print("RMB_DEBUG_UI: TriggerFamilyManagementUIRefresh (button) called.")
+-- TriggerFamilyManagementUIRefresh is just an alias now or can be removed if Populate is always called directly
+function addon:TriggerFamilyManagementUIRefresh()
+    print("RMB_DEBUG_UI: Manual Refresh Triggered by button.")
     self:PopulateFamilyManagementUI()
 end
 
@@ -375,11 +593,63 @@ function addon:GetExpandedGroupDetailsArgs(gk, gt)
     end; if o == 1 then da.nd = { o = 1, t = "d", n = "No details." } end; return da
 end
 
-function addon:ToggleExpansionState(gk)
-    if not (self.db and self.db.profile and self.db.profile.expansionStates) then return end; self.db.profile.expansionStates[gk] = not
-        self.db.profile.expansionStates[gk]; print("RMB_UI:ToggleExp " ..
-        tostring(gk) .. "=" .. tostring(self.db.profile.expansionStates[gk])); if LibAceConfigRegistry then
-        LibAceConfigRegistry:NotifyChange(addonNameFromToc)
+function addon:ToggleExpansionState(groupKey)
+    if not (self.db and self.db.profile and self.db.profile.expansionStates) then
+        print("RMB_UI: ExpStates DB ERR"); return
+    end
+
+    local newStateIsExpanded = not self.db.profile.expansionStates[groupKey]
+    self.db.profile.expansionStates[groupKey] = newStateIsExpanded
+    print("RMB_UI:ToggleExp for '" .. tostring(groupKey) .. "' to " .. tostring(newStateIsExpanded))
+
+    -- Now, try to directly update the relevant parts of the UI definition in self.fmArgsRef
+    if self.fmArgsRef and self.fmArgsRef["entry_" .. groupKey] and self.fmArgsRef["entry_" .. groupKey].args then
+        local entryArgs = self.fmArgsRef["entry_" .. groupKey].args
+
+        -- Update the button text
+        if entryArgs.expandCollapse then
+            entryArgs.expandCollapse.name = newStateIsExpanded and "[-] Collapse" or "[+] Expand"
+        end
+
+        -- Update the details container's content and hidden state
+        if entryArgs.detailsContainer then
+            entryArgs.detailsContainer.hidden = not newStateIsExpanded
+            if newStateIsExpanded then
+                -- We need groupInfo.type here. GetDisplayableGroups caches it.
+                -- This is a bit awkward; ideally, BuildFamilyManagementArgs has access to groupInfo.
+                -- For now, we might need to find groupInfo again or store it.
+                -- Let's assume BuildFamilyManagementArgs is robust enough to be called to get just details.
+                -- This is slightly inefficient as GetDisplayableGroups would run again inside BuildFamilyManagementArgs then GetExpanded...
+                -- A better way would be for BuildFamilyManagementArgs to accept a specific groupKey to rebuild.
+
+                -- To make detailsContainer.args dynamic again for just this part:
+                -- Find groupInfo for this groupKey
+                local groupInfoForDetails
+                local displayableGroups = self:GetDisplayableGroups() -- Re-get for this, not ideal for performance
+                for _, gi in ipairs(displayableGroups) do
+                    if gi.key == groupKey then
+                        groupInfoForDetails = gi
+                        break
+                    end
+                end
+
+                if groupInfoForDetails then
+                    entryArgs.detailsContainer.args = self:GetExpandedGroupDetailsArgs(groupKey, groupInfoForDetails
+                        .type)
+                else
+                    entryArgs.detailsContainer.args = { error_details = { order = 1, type = "description", name = "Error finding group info for details." } }
+                end
+            else
+                entryArgs.detailsContainer.args = {} -- Clear args when collapsing
+            end
+        end
+
+        if LibAceConfigRegistry then LibAceConfigRegistry:NotifyChange(addonNameFromToc) end
+        print("RMB_UI: Specific parts of fmArgsRef updated, NotifyChange called.")
+    else
+        print("RMB_UI_ERROR: Could not find entry for " .. groupKey .. " in self.fmArgsRef to update UI dynamically.")
+        -- Fallback to full refresh if direct update fails
+        if LibAceConfigRegistry then LibAceConfigRegistry:NotifyChange(addonNameFromToc) end
     end
 end
 
@@ -390,7 +660,7 @@ end
 
 function addon:GetGroupWeight(gk)
     if not (self.db and self.db.profile and self.db.profile.groupWeights) then return 1 end; local w = self.db.profile
-    .groupWeights[gk]; if w == nil then return 1 end; return tonumber(w) or 1
+        .groupWeights[gk]; if w == nil then return 1 end; return tonumber(w) or 1
 end
 
 function addon:SetGroupWeight(gk, w)
@@ -399,19 +669,19 @@ function addon:SetGroupWeight(gk, w)
         print("RMB_SET: Invalid W for " .. tostring(gk)); return
     end
     self.db.profile.groupWeights[gk] = nw; print("RMB_SET:SetGW K:'" .. tostring(gk) .. "',W:" .. tostring(nw))
-    -- if LibAceConfigRegistry then LibAceConfigRegistry:NotifyChange(addonNameFromToc) end -- COMMENTED OUT
+    -- NO NotifyChange here; AceConfig widget should update itself via its get method
 end
 
 function addon:IsGroupEnabled(gk)
     if not (self.db and self.db.profile and self.db.profile.groupEnabledStates) then return true end; local ie = self.db
-    .profile.groupEnabledStates[gk]; if ie == nil then return true end; return ie == true
+        .profile.groupEnabledStates[gk]; if ie == nil then return true end; return ie == true
 end
 
 function addon:SetGroupEnabled(gk, e)
     if not (self.db and self.db.profile and self.db.profile.groupEnabledStates) then return end
     local be = (e == true); self.db.profile.groupEnabledStates[gk] = be
     print("RMB_SET:SetGE K:'" .. tostring(gk) .. "',E:" .. tostring(be))
-    -- if LibAceConfigRegistry then LibAceConfigRegistry:NotifyChange(addonNameFromToc) end -- COMMENTED OUT
+    -- NO NotifyChange here
 end
 
 function addon:OnEnable() print("RMB_DEBUG: OnEnable CALLED.") end
