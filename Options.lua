@@ -1,29 +1,50 @@
--- Options.lua (Using AddToBlizOptions and full spec structure)
+-- Options.lua (Call dynamic function at table definition time)
 
-local currentAddonName = ... -- This will be "RandomMountBuddy"
+local currentAddonName = ...
 print("RMB_OPTIONS: Options.lua START. Addon Name: " .. tostring(currentAddonName))
 
 local addon = RandomMountBuddy
 if not addon then
-    print("RMB_OPTIONS: CRITICAL ERROR - RandomMountBuddy global is nil!")
+    print("RMB_OPTIONS: CRITICAL ERROR - RandomMountBuddy global is nil at Options.lua top!")
     return
 end
+if type(addon.GetSetting) ~= "function" then print("RMB_OPTIONS: WARNING - addon.GetSetting is not a function.") end
+if not addon.GetFavoriteMountsForOptions then -- Check if the function exists on addon
+    print("RMB_OPTIONS: CRITICAL ERROR - addon.GetFavoriteMountsForOptions method does not exist on addon object!")
+    -- Define a dummy one to prevent further errors if it's missing, though it should exist
+    addon.GetFavoriteMountsForOptions = function()
+        print("RMB_OPTIONS_ERROR: Dummy GetFavoriteMountsForOptions called because original was missing!")
+        return { error_msg = { order = 1, type = "description", name = "Error: Mount list function missing." } }
+    end
+end
+
 
 local LibAceConfig = LibStub("AceConfig-3.0")
-local LibAceConfigDialog = LibStub("AceConfigDialog-3.0") -- We need this for AddToBlizOptions
+local LibAceConfigDialog = LibStub("AceConfigDialog-3.0")
 
 if not (LibAceConfig and LibAceConfigDialog) then
     print("RMB_OPTIONS: CRITICAL ERROR - AceConfig or AceConfigDialog not found!")
     return
 end
 
--- Define the full options table as per your original specification
+-- Call the function from Core.lua HERE to get the table for mount_list_container.args
+-- This ensures 'addon' is valid at this point.
+print("RMB_OPTIONS: Attempting to call addon:GetFavoriteMountsForOptions() to build mount list args...")
+local favoriteMountsArgsTable = addon:GetFavoriteMountsForOptions() -- Get the table directly
+
+if type(favoriteMountsArgsTable) ~= "table" then
+    print("RMB_OPTIONS_ERROR: addon:GetFavoriteMountsForOptions() did NOT return a table! Type: " ..
+    tostring(type(favoriteMountsArgsTable)))
+    favoriteMountsArgsTable = { error_in_data = { order = 1, type = "description", name = "Error generating mount list." } }
+end
+print("RMB_OPTIONS: favoriteMountsArgsTable created, type: " .. tostring(type(favoriteMountsArgsTable)))
+
+
 local optionsTable = {
-    name = addon:GetName() .. " Settings", -- Title for the options panel
-    handler = addon,                       -- The addon object will handle get/set methods
+    name = addon:GetName() and (addon:GetName() .. " Settings") or "Random Mount Buddy Settings", -- Title for the options panel
+    handler = addon,
     type = "group",
     args = {
-        -- Main Page (from your spec)
         main = {
             type = "group",
             name = "Main Settings",
@@ -63,7 +84,7 @@ local optionsTable = {
                     name = "Treat Minor Armor as Distinct",
                     get = function(info) return addon:GetSetting("treatMinorArmorAsDistinct") end,
                     set = function(info, value) addon:SetSetting("treatMinorArmorAsDistinct", value) end,
-                    disabled = function() return not addon:GetSetting("useSuperGrouping") end,
+                    disabled = function() return not (addon and addon:GetSetting("useSuperGrouping")) end,
                 },
                 treatMajorArmorAsDistinct = {
                     order = 13,
@@ -71,7 +92,7 @@ local optionsTable = {
                     name = "Treat Major Armor as Distinct",
                     get = function(info) return addon:GetSetting("treatMajorArmorAsDistinct") end,
                     set = function(info, value) addon:SetSetting("treatMajorArmorAsDistinct", value) end,
-                    disabled = function() return not addon:GetSetting("useSuperGrouping") end,
+                    disabled = function() return not (addon and addon:GetSetting("useSuperGrouping")) end,
                 },
                 treatModelVariantsAsDistinct = {
                     order = 14,
@@ -79,7 +100,7 @@ local optionsTable = {
                     name = "Treat Model Variants as Distinct",
                     get = function(info) return addon:GetSetting("treatModelVariantsAsDistinct") end,
                     set = function(info, value) addon:SetSetting("treatModelVariantsAsDistinct", value) end,
-                    disabled = function() return not addon:GetSetting("useSuperGrouping") end,
+                    disabled = function() return not (addon and addon:GetSetting("useSuperGrouping")) end,
                 },
                 treatUniqueEffectsAsDistinct = {
                     order = 15,
@@ -87,39 +108,50 @@ local optionsTable = {
                     name = "Treat Unique Effects/Skins as Distinct",
                     get = function(info) return addon:GetSetting("treatUniqueEffectsAsDistinct") end,
                     set = function(info, value) addon:SetSetting("treatUniqueEffectsAsDistinct", value) end,
-                    disabled = function() return not addon:GetSetting("useSuperGrouping") end,
+                    disabled = function() return not (addon and addon:GetSetting("useSuperGrouping")) end,
                 },
             },
         },
-        -- Placeholder for Family & Group Management Page
+
         familyManagement = {
             type = "group",
             name = "Family & Group Management",
             order = 2,
             args = { desc_family = { order = 1, type = "description", name = "Customize families, super-groups, traits. (Coming Soon!)" } },
         },
-        -- Placeholder for Group Weights Page
         groupWeights = {
             type = "group",
             name = "Group Weights",
             order = 3,
             args = { desc_weights = { order = 1, type = "description", name = "Assign weights to groups. (Coming Soon!)" } },
         },
+        mountInspector = {
+            type = "group",
+            name = "Mount Inspector",
+            order = 4,
+            args = {
+                header_inspector = { order = 1, type = "header", name = "Favorite Mounts Overview" },
+                desc_inspector = { order = 2, type = "description", name = "Lists your favorite mounts and their assigned family name.", fontSize = "medium" },
+                mount_list_container = {
+                    order = 3,
+                    type = "group",
+                    name = " ",
+                    inline = true,
+                    args = favoriteMountsArgsTable, -- Assign the pre-generated table here
+                },
+            },
+        },
     }
 }
 print("RMB_OPTIONS: Full options table defined.")
 
--- Register the options table with AceConfig
-LibAceConfig:RegisterOptionsTable(currentAddonName, optionsTable) -- No 'true' needed here if slash command handled by AceConsole in Core.lua
+LibAceConfig:RegisterOptionsTable(currentAddonName, optionsTable)
 print("RMB_OPTIONS: Options table registered with AceConfig.")
 
--- Add the options to the Blizzard Interface Options panel
--- This is the crucial change:
-local panel, categoryID = LibAceConfigDialog:AddToBlizOptions(currentAddonName, addon:GetName()) -- Use addon's proper name for display
+local panel, categoryID = LibAceConfigDialog:AddToBlizOptions(currentAddonName,
+    addon:GetName() and addon:GetName() or currentAddonName)
 if panel then
-    addon.optionsPanelObject = { frame = panel, id = categoryID or panel.name }                  -- Store for slash command
-    -- For WoW 10.0+, categoryID is preferred for Settings.OpenToCategory
-    -- panel.name is a fallback if categoryID is nil (older WoW/Ace versions)
+    addon.optionsPanelObject = { frame = panel, id = categoryID or panel.name }
     print("RMB_OPTIONS: Added to Blizzard Interface Options. Panel Name/ID: " ..
         tostring(addon.optionsPanelObject.id or addon.optionsPanelObject.frame.name))
 else

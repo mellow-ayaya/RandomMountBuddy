@@ -1,6 +1,9 @@
 ## Interface: 110105, 110107
-## Title: Random Mount Buddy (OptionsDiag)
-## Version: 0.0.1-optsdiag
+## Title: Random Mount Buddy
+## Author: mellow_ayaya
+## Version: 0.2.0
+## Notes: Enhances random mount summoning.
+## SavedVariables: RandomMountBuddy_SavedVars
 
 # Libraries
 Libs\LibStub\LibStub.lua
@@ -12,7 +15,7 @@ Libs\AceDB-3.0\AceDB-3.0.xml
 Libs\AceConsole-3.0\AceConsole-3.0.xml
 Libs\AceEvent-3.0\AceEvent-3.0.xml
 
-# Data Files (Commented out for now to speed up reloads, not strictly necessary for this options test)
+# Data Files
 Data\GeneratedMountModelGroups_WithPaths.lua
 Data\ManualFamilyDefinitions.lua
 
