@@ -15,7 +15,7 @@ local dbDefaults = {
         groupWeights = {},
         groupEnabledStates = {},
         familyOverrides = {},
-        fmItemsPerPage = 15, -- Default items per page
+        fmItemsPerPage = 5, -- Default items per page
     }
 }
 
@@ -50,7 +50,7 @@ print("RMB_DEBUG: NewAddon SUCCEEDED. Addon valid: " ..
 
 addon.RMB_DataReadyForUI = false -- Flag
 addon.fmCurrentPage = 1          -- Initialize current page here
-addon.fmItemsPerPage = 15        -- Initialize items per page here (will be loaded from DB in OnInitialize)
+addon.fmItemsPerPage = 5         -- Initialize items per page here (will be loaded from DB in OnInitialize)
 
 
 function addon:GetFamilyInfoForMountID(mountID)
@@ -208,13 +208,13 @@ function addon:BuildFamilyManagementArgs()
         ", ItemsPerPage: " .. tostring(self.fmItemsPerPage) .. ", DataReady:" .. tostring(self.RMB_DataReadyForUI))
     local pageArgs = {}
     local displayOrder = 1
-
+    --[[
     pageArgs["fmg_header"] = { order = displayOrder, type = "header", name = "Family & Group Configuration" }; displayOrder =
         displayOrder + 1
-
+--]]
     -- Manual Refresh Button (always present as part of the built args)
     pageArgs["manual_refresh_button"] = {
-        order = displayOrder,
+        order = 9999,
         type = "execute",
         name = "Refresh List",
         func = function()
@@ -222,7 +222,7 @@ function addon:BuildFamilyManagementArgs()
         end,
         width = "full"
     }; displayOrder = displayOrder + 1
-
+    --[[
     pageArgs["items_per_page_input"] = {
         order = displayOrder,
         type = "input",
@@ -235,7 +235,7 @@ function addon:BuildFamilyManagementArgs()
         width = "half"
     }; displayOrder =
         displayOrder + 1
-
+--]]
     if not self.RMB_DataReadyForUI then
         pageArgs.loading_placeholder = {
             order = displayOrder,
@@ -271,12 +271,7 @@ function addon:BuildFamilyManagementArgs()
         currentPage = 1; self.fmCurrentPage = currentPage;
     end
 
-    pageArgs["fmg_page_info"] = {
-        order = displayOrder,
-        type = "description",
-        name = string.format("Page %d / %d (%d groups total)", currentPage, totalPages, totalGroups),
-        width = "full"
-    }; displayOrder = displayOrder + 1;
+
 
     -- Pagination Controls Group
     pageArgs["pagination_controls_group"] = {
@@ -286,26 +281,52 @@ function addon:BuildFamilyManagementArgs()
         name = " ",
         width = "full",
         args = {
-            prev_button = {
+            first_button = {
                 order = 1,
                 type = "execute",
-                name = "<< Prev",
+                name = "<<",
                 disabled = (currentPage <= 1),
                 func = function()
                     self:FMG_PrevPage()
                 end,
-                width = "normal"
+                width = 0.5,
             },
-            next_button = {
+            prev_button = {
                 order = 2,
                 type = "execute",
-                name = "Next >>",
+                name = "<",
+                disabled = (currentPage <= 1),
+                func = function()
+                    self:FMG_PrevPage()
+                end,
+                width = 0.5,
+            },
+            page_info = {
+                order = 3,
+                type = "description",
+                name = string.format("                                     %d / %d", currentPage, totalPages),
+                width = 1.5,
+            },
+            next_button = {
+                order = 4,
+                type = "execute",
+                name = ">",
                 disabled = (currentPage >= totalPages),
                 func = function()
                     self:FMG_NextPage()
                 end,
-                width = "normal"
-            }
+                width = 0.5,
+            },
+            last_button = {
+                order = 5,
+                type = "execute",
+                name = ">>",
+                disabled = (currentPage >= totalPages),
+                func = function()
+                    self:FMG_NextPage()
+                end,
+                width = 0.5,
+            },
         }
     }; displayOrder = displayOrder + 1
 
@@ -333,14 +354,20 @@ function addon:BuildFamilyManagementArgs()
                     expandCollapse = {
                         order = 1,
                         type = "execute",
-                        name = isExpanded and "[-] Collapse" or "[+] Expand",
+                        name = isExpanded and "-" or "+",
                         func = function()
                             self:ToggleExpansionState(groupKey)
                         end,
-                        width = "normal"
+                        width = 0.3,
+                    },
+                    group_name = {
+                        order = 2,
+                        type = "description",
+                        name = groupDisplayName,
+                        width = 1,
                     },
                     enabledToggle = {
-                        order = 2,
+                        order = 3,
                         type = "toggle",
                         name = "Enabled",
                         get = function()
@@ -351,7 +378,7 @@ function addon:BuildFamilyManagementArgs()
                         width = "normal"
                     },
                     weightControl = {
-                        order = 3,
+                        order = 4,
                         type = "range",
                         name = "Weight",
                         min = 0,
@@ -412,7 +439,7 @@ function addon:FMG_SetItemsPerPage(items)
     end
 end
 
-function addon:FMG_GetItemsPerPage() return self.fmItemsPerPage or 15 end
+function addon:FMG_GetItemsPerPage() return self.fmItemsPerPage or 5 end
 
 function addon:FMG_GoToPage(pN)
     if not self.RMB_DataReadyForUI then

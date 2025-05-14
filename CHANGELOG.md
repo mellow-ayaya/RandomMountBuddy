@@ -1,3 +1,6 @@
+# 0.4.2
+UI update.
+
 # 0.4.1
 Fixed Expand/Collapse in Famiy menu.
 
