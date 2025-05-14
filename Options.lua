@@ -1,4 +1,4 @@
--- Options.lua (Call dynamic function at table definition time)
+-- Options.lua (Modify-in-Place strategy for FamilyManagement)
 
 local currentAddonName = ...
 print("RMB_OPTIONS: Options.lua START. Addon Name: " .. tostring(currentAddonName))
@@ -8,16 +8,16 @@ if not addon then
     print("RMB_OPTIONS: CRITICAL ERROR - RandomMountBuddy global is nil at Options.lua top!")
     return
 end
-if type(addon.GetSetting) ~= "function" then print("RMB_OPTIONS: WARNING - addon.GetSetting is not a function.") end
-if not addon.GetFavoriteMountsForOptions then -- Check if the function exists on addon
-    print("RMB_OPTIONS: CRITICAL ERROR - addon.GetFavoriteMountsForOptions method does not exist on addon object!")
-    -- Define a dummy one to prevent further errors if it's missing, though it should exist
-    addon.GetFavoriteMountsForOptions = function()
-        print("RMB_OPTIONS_ERROR: Dummy GetFavoriteMountsForOptions called because original was missing!")
-        return { error_msg = { order = 1, type = "description", name = "Error: Mount list function missing." } }
-    end
-end
 
+-- Early check for functions that will be called by UI elements or the Populate function
+if type(addon.PopulateFamilyManagementUI) ~= "function" then
+    print(
+    "RMB_OPTIONS_WARN: Critical addon method 'PopulateFamilyManagementUI' is missing! Family Management page refresh will fail.")
+end
+if type(addon.GetFavoriteMountsForOptions) ~= "function" then
+    print("RMB_OPTIONS_WARN: Addon method 'GetFavoriteMountsForOptions' is missing! Mount Inspector page may fail.")
+    addon.GetFavoriteMountsForOptions = function() return { mi_error = { order = 1, type = "description", name = "Inspector Func Error" } } end
+end
 
 local LibAceConfig = LibStub("AceConfig-3.0")
 local LibAceConfigDialog = LibStub("AceConfigDialog-3.0")
@@ -27,21 +27,46 @@ if not (LibAceConfig and LibAceConfigDialog) then
     return
 end
 
--- Call the function from Core.lua HERE to get the table for mount_list_container.args
--- This ensures 'addon' is valid at this point.
-print("RMB_OPTIONS: Attempting to call addon:GetFavoriteMountsForOptions() to build mount list args...")
-local favoriteMountsArgsTable = addon:GetFavoriteMountsForOptions() -- Get the table directly
-
+-- For Mount Inspector (pre-generated)
+local favoriteMountsArgsTable = addon:GetFavoriteMountsForOptions()
 if type(favoriteMountsArgsTable) ~= "table" then
-    print("RMB_OPTIONS_ERROR: addon:GetFavoriteMountsForOptions() did NOT return a table! Type: " ..
+    print("RMB_OPTIONS_ERROR: GetFavoriteMountsForOptions() did NOT return a table for Mount Inspector! Type: " ..
     tostring(type(favoriteMountsArgsTable)))
-    favoriteMountsArgsTable = { error_in_data = { order = 1, type = "description", name = "Error generating mount list." } }
+    favoriteMountsArgsTable = { inspector_data_error = { order = 1, type = "description", name = "Error generating Mount Inspector list." } }
 end
-print("RMB_OPTIONS: favoriteMountsArgsTable created, type: " .. tostring(type(favoriteMountsArgsTable)))
+print("RMB_OPTIONS: favoriteMountsArgsTable (for Mount Inspector) generated.")
+
+-- KEY: Define familyManagement.args as an empty table initially.
+-- Core.lua will get a reference to this table and populate it.
+local initialFamilyManagementArgs = {
+    -- This refresh button will call a function in Core.lua that repopulates this table
+    initial_refresh_button = {
+        order = 0, -- Show at the very top
+        type = "execute",
+        name = "Load / Refresh Mount Groups",
+        func = function()
+            print("RMB_OPTIONS_UI: Initial Refresh button clicked from Options.lua.")
+            if addon.PopulateFamilyManagementUI then
+                addon:PopulateFamilyManagementUI()
+            else
+                print("RMB_OPTIONS_UI_ERROR: PopulateFamilyManagementUI function missing on addon object.")
+            end
+        end,
+        width = "full"
+    },
+    initial_status_message = {
+        order = 1,
+        type = "description",
+        name = "Click 'Load / Refresh Mount Groups' to display the list once data is ready."
+    }
+}
+-- Store this reference on the addon object so Core.lua can modify it.
+addon.fmArgsRef = initialFamilyManagementArgs
+print("RMB_OPTIONS: Stored reference to initialFamilyManagementArgs on addon.fmArgsRef.")
 
 
 local optionsTable = {
-    name = addon:GetName() and (addon:GetName() .. " Settings") or "Random Mount Buddy Settings", -- Title for the options panel
+    name = addon:GetName() and (addon:GetName() .. " Settings") or "Random Mount Buddy Settings",
     handler = addon,
     type = "group",
     args = {
@@ -49,101 +74,60 @@ local optionsTable = {
             type = "group",
             name = "Main Settings",
             order = 1,
-            args = {
+            args = { -- Condensed main args for brevity; ensure your full ones are here
                 generalHeader = { order = 1, type = "header", name = "General" },
-                desc_main = { order = 2, type = "description", name = "Configure the core behavior of Random Mount Buddy.", fontSize = "medium" },
-                overrideBlizzardButton = {
-                    order = 3,
-                    type = "toggle",
-                    name = "Override Blizzard's Random Button",
-                    desc = "If checked, RMB will take over 'Summon Random Favorite Mount'.",
-                    get = function(info) return addon:GetSetting("overrideBlizzardButton") end,
-                    set = function(info, value) addon:SetSetting("overrideBlizzardButton", value) end,
-                },
-                useSuperGrouping = {
-                    order = 4,
-                    type = "toggle",
-                    name = "Use Super-Grouping",
-                    desc = "Group mounts by 'superGroup' by default. If unchecked, groups by 'familyName'.",
-                    get = function(info) return addon:GetSetting("useSuperGrouping") end,
-                    set = function(info, value) addon:SetSetting("useSuperGrouping", value) end,
-                },
-                contextualSummoning = {
-                    order = 5,
-                    type = "toggle",
-                    name = "Enable Contextual Summoning",
-                    desc = "Automatically filter mounts based on current location/situation.",
-                    get = function(info) return addon:GetSetting("contextualSummoning") end,
-                    set = function(info, value) addon:SetSetting("contextualSummoning", value) end,
-                },
-                traitStrictnessHeader = { order = 10, type = "header", name = "Trait-Based Strictness (if Super-Grouping is enabled)" },
-                desc_trait_strictness = { order = 11, type = "description", name = "If 'Use Super-Grouping' is enabled, these settings determine if a mount 'breaks out' of its superGroup.", fontSize = "medium" },
-                treatMinorArmorAsDistinct = {
-                    order = 12,
-                    type = "toggle",
-                    name = "Treat Minor Armor as Distinct",
-                    get = function(info) return addon:GetSetting("treatMinorArmorAsDistinct") end,
-                    set = function(info, value) addon:SetSetting("treatMinorArmorAsDistinct", value) end,
-                    disabled = function() return not (addon and addon:GetSetting("useSuperGrouping")) end,
-                },
-                treatMajorArmorAsDistinct = {
-                    order = 13,
-                    type = "toggle",
-                    name = "Treat Major Armor as Distinct",
-                    get = function(info) return addon:GetSetting("treatMajorArmorAsDistinct") end,
-                    set = function(info, value) addon:SetSetting("treatMajorArmorAsDistinct", value) end,
-                    disabled = function() return not (addon and addon:GetSetting("useSuperGrouping")) end,
-                },
-                treatModelVariantsAsDistinct = {
-                    order = 14,
-                    type = "toggle",
-                    name = "Treat Model Variants as Distinct",
-                    get = function(info) return addon:GetSetting("treatModelVariantsAsDistinct") end,
-                    set = function(info, value) addon:SetSetting("treatModelVariantsAsDistinct", value) end,
-                    disabled = function() return not (addon and addon:GetSetting("useSuperGrouping")) end,
-                },
-                treatUniqueEffectsAsDistinct = {
-                    order = 15,
-                    type = "toggle",
-                    name = "Treat Unique Effects/Skins as Distinct",
-                    get = function(info) return addon:GetSetting("treatUniqueEffectsAsDistinct") end,
-                    set = function(info, value) addon:SetSetting("treatUniqueEffectsAsDistinct", value) end,
-                    disabled = function() return not (addon and addon:GetSetting("useSuperGrouping")) end,
-                },
-            },
+                overrideBlizzardButton = { order = 3, type = "toggle", name = "Override Blizzard", get = function() return
+                    addon:GetSetting("overrideBlizzardButton") end, set = function(i, v) addon:SetSetting(
+                    "overrideBlizzardButton", v) end },
+                useSuperGrouping = { order = 4, type = "toggle", name = "Use Super-Grouping", get = function() return
+                    addon:GetSetting("useSuperGrouping") end, set = function(i, v) addon:SetSetting("useSuperGrouping", v) end },
+                contextualSummoning = { order = 5, type = "toggle", name = "Contextual Summoning", get = function() return
+                    addon:GetSetting("contextualSummoning") end, set = function(i, v) addon:SetSetting(
+                    "contextualSummoning", v) end },
+                traitStrictnessHeader = { order = 10, type = "header", name = "Trait Strictness" },
+                treatMinorArmorAsDistinct = { order = 12, type = "toggle", name = "Minor Armor Distinct", get = function() return
+                    addon:GetSetting("treatMinorArmorAsDistinct") end, set = function(i, v) addon:SetSetting(
+                    "treatMinorArmorAsDistinct", v) end, disabled = function() return not addon:GetSetting(
+                    "useSuperGrouping") end },
+                treatMajorArmorAsDistinct = { order = 13, type = "toggle", name = "Major Armor Distinct", get = function() return
+                    addon:GetSetting("treatMajorArmorAsDistinct") end, set = function(i, v) addon:SetSetting(
+                    "treatMajorArmorAsDistinct", v) end, disabled = function() return not addon:GetSetting(
+                    "useSuperGrouping") end },
+                treatModelVariantsAsDistinct = { order = 14, type = "toggle", name = "Model Variants Distinct", get = function() return
+                    addon:GetSetting("treatModelVariantsAsDistinct") end, set = function(i, v) addon:SetSetting(
+                    "treatModelVariantsAsDistinct", v) end, disabled = function() return not addon:GetSetting(
+                    "useSuperGrouping") end },
+                treatUniqueEffectsAsDistinct = { order = 15, type = "toggle", name = "Unique Effects Distinct", get = function() return
+                    addon:GetSetting("treatUniqueEffectsAsDistinct") end, set = function(i, v) addon:SetSetting(
+                    "treatUniqueEffectsAsDistinct", v) end, disabled = function() return not addon:GetSetting(
+                    "useSuperGrouping") end },
+            }
         },
-
         familyManagement = {
             type = "group",
             name = "Family & Group Management",
             order = 2,
-            args = { desc_family = { order = 1, type = "description", name = "Customize families, super-groups, traits. (Coming Soon!)" } },
-        },
-        groupWeights = {
-            type = "group",
-            name = "Group Weights",
-            order = 3,
-            args = { desc_weights = { order = 1, type = "description", name = "Assign weights to groups. (Coming Soon!)" } },
+            args = initialFamilyManagementArgs, -- Assign the table directly
         },
         mountInspector = {
             type = "group",
             name = "Mount Inspector",
-            order = 4,
+            order = 3,
             args = {
                 header_inspector = { order = 1, type = "header", name = "Favorite Mounts Overview" },
-                desc_inspector = { order = 2, type = "description", name = "Lists your favorite mounts and their assigned family name.", fontSize = "medium" },
-                mount_list_container = {
-                    order = 3,
-                    type = "group",
-                    name = " ",
-                    inline = true,
-                    args = favoriteMountsArgsTable, -- Assign the pre-generated table here
-                },
+                desc_inspector = { order = 2, type = "description", name = "Lists favorite mounts and their assigned family name.", fontSize = "medium" },
+                mount_list_container = { order = 3, type = "group", name = " ", inline = true, args = favoriteMountsArgsTable, },
             },
+        },
+        groupWeights = {
+            type = "group",
+            name = "Group Weights",
+            order = 4,
+            args = { desc_weights = { order = 1, type = "description", name = "Assign weights to groups. (Placeholder)" } },
         },
     }
 }
-print("RMB_OPTIONS: Full options table defined.")
+print("RMB_OPTIONS: Full options table defined with initial static args for FamilyManagement.")
 
 LibAceConfig:RegisterOptionsTable(currentAddonName, optionsTable)
 print("RMB_OPTIONS: Options table registered with AceConfig.")
@@ -153,7 +137,7 @@ local panel, categoryID = LibAceConfigDialog:AddToBlizOptions(currentAddonName,
 if panel then
     addon.optionsPanelObject = { frame = panel, id = categoryID or panel.name }
     print("RMB_OPTIONS: Added to Blizzard Interface Options. Panel Name/ID: " ..
-        tostring(addon.optionsPanelObject.id or addon.optionsPanelObject.frame.name))
+    tostring(addon.optionsPanelObject.id or addon.optionsPanelObject.frame.name))
 else
     print("RMB_OPTIONS: FAILED to add to Blizzard Interface Options.")
 end
