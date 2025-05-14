@@ -1,3 +1,6 @@
+# 0.4.1
+Fixed Expand/Collapse in Famiy menu.
+
 # 0.4.0
 The family list is now no longer causing huge FPS drops. Small UI redesign.
 
