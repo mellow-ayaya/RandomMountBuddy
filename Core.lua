@@ -1,8 +1,7 @@
--- Core.lua (Full version with enhanced DB/Settings logging)
+-- Core.lua (Full version with fix for '...' in InitializeProcessedData logging)
 local addonNameFromToc, addonTableProvidedByWoW = ...
-RandomMountBuddy = addonTableProvidedByWoW -- Make the addon's table global
+RandomMountBuddy = addonTableProvidedByWoW
 
--- Define dbDefaults at a scope accessible by OnInitialize and GetSetting/SetSetting
 local dbDefaults = {
     profile = {
         overrideBlizzardButton = true,
@@ -12,8 +11,10 @@ local dbDefaults = {
         treatMajorArmorAsDistinct = false,
         treatModelVariantsAsDistinct = false,
         treatUniqueEffectsAsDistinct = true,
-        familyOverrides = {}, -- For future UI: e.g., familyOverrides["Classic Wolf"] = { superGroup = "My Custom Pack" }
-        groupWeights = {},    -- For future UI: e.g., groupWeights["Wolf Pack"] = 2
+        expansionStates = {},
+        groupWeights = {},
+        groupEnabledStates = {},
+        familyOverrides = {},
     }
 }
 
@@ -21,7 +22,8 @@ print("RMB_DEBUG: Core.lua START. Addon Name: " .. tostring(addonNameFromToc) ..
 
 local LibAceAddon = LibStub("AceAddon-3.0")
 local LibAceDB = LibStub("AceDB-3.0")
-local LibAceConsole = LibStub("AceConsole-3.0") -- For slash command
+local LibAceConsole = LibStub("AceConsole-3.0")
+local LibAceEvent = LibStub("AceEvent-3.0")
 
 if not LibAceAddon then
     print("RMB_DEBUG: FATAL - AceAddon-3.0 not found!")
@@ -29,11 +31,12 @@ if not LibAceAddon then
 end
 if not LibAceDB then print("RMB_DEBUG: WARNING - AceDB-3.0 not found!") end
 if not LibAceConsole then print("RMB_DEBUG: WARNING - AceConsole-3.0 not found!") end
+if not LibAceEvent then print("RMB_DEBUG: WARNING - AceEvent-3.0 not found!") end
 
-local addon -- Will be assigned after NewAddon
+local addon
 local success, result = pcall(function()
     LibAceAddon:NewAddon(RandomMountBuddy, addonNameFromToc, "AceEvent-3.0", "AceConsole-3.0")
-    addon = RandomMountBuddy -- RandomMountBuddy (the global) is now the AceAddon object
+    addon = RandomMountBuddy
 end)
 
 if not success then
@@ -41,50 +44,178 @@ if not success then
     return
 else
     print("RMB_DEBUG: AceAddon:NewAddon call SUCCEEDED.")
-    if not (addon and addon.GetName) then
-        print("RMB_DEBUG: Addon object invalid after NewAddon (GetName method missing).")
+    if not (addon and addon.GetName and addon.RegisterEvent) then
+        print("RMB_DEBUG: Addon object invalid or AceEvent-3.0 not mixed in properly.")
         return
     end
-    print("RMB_DEBUG: Addon object valid. Name from GetName(): " .. tostring(addon:GetName()))
+    print("RMB_DEBUG: Addon object valid. Name: " ..
+    tostring(addon:GetName()) .. ". AceEvent mixed in: " .. tostring(type(addon.RegisterEvent)))
+end
+
+function addon:GetFamilyInfoForMountID(mountID)
+    if not mountID then return nil end
+    local id = tonumber(mountID)
+    if not id then return nil end
+    local modelPath = self.MountToModelPath and self.MountToModelPath[id]
+    if not modelPath then return nil end
+    local familyDef = self.FamilyDefinitions and self.FamilyDefinitions[modelPath]
+    if not familyDef then return nil end
+    return {
+        familyName = familyDef.familyName,
+        superGroup = familyDef.superGroup,
+        traits = familyDef.traits or {},
+        modelPath = modelPath
+    }
+end
+
+function addon:InitializeProcessedData()
+    local eventNameForLog = self.lastProcessingEventName or "Manual Call or Unknown Event"
+    print("RMB_DEBUG_DATA: Initializing Processed Data (Reason/Event: " .. eventNameForLog .. ")...")
+    self.processedData = {
+        superGroupMap = {},
+        standaloneFamilyNames = {},
+        familyToMountIDsMap = {},
+        superGroupToMountIDsMap = {},
+        allCollectedMountFamilyInfo = {}
+    }
+
+    if not C_MountJournal or not C_MountJournal.GetMountIDs or not C_MountJournal.GetMountInfoByID then
+        print("RMB_DEBUG_DATA: C_MountJournal API not available at this time!")
+        return
+    end
+    local allMountIDs = C_MountJournal.GetMountIDs()
+    if not allMountIDs then
+        print("RMB_DEBUG_DATA: C_MountJournal.GetMountIDs() returned nil.")
+        return
+    end
+    print("RMB_DEBUG_DATA: C_MountJournal.GetMountIDs() returned " .. #allMountIDs .. " total IDs in the journal.")
+    if #allMountIDs == 0 then print("RMB_DEBUG_DATA: No mount IDs returned by API.") end
+
+    local actuallyCollectedCount = 0
+    local processedWithFamilyInfoCount = 0
+    local scannedApiEntries = 0
+
+    for i, mountID in ipairs(allMountIDs) do
+        scannedApiEntries = scannedApiEntries + 1
+        local name, spellID, icon, isActive, isUsable, sourceType, isFavorite,
+        isFactionSpecific, faction, shouldHideOnChar, isCollected, returnedMountID, isSteadyFlight =
+            C_MountJournal.GetMountInfoByID(mountID)
+
+        if type(name) == "string" and type(isCollected) == "boolean" then
+            if scannedApiEntries <= 10 then
+                print("RMB_DEBUG_DATA_MOUNT_SCAN: ID=" .. tostring(mountID) ..
+                    ", Name=" .. tostring(name) ..
+                    ", isCollected=" .. tostring(isCollected) .. " (Type: " .. type(isCollected) .. ")" ..
+                    ", isUsable=" .. tostring(isUsable) .. " (Type: " .. type(isUsable) .. ")" ..
+                    ", isFavorite=" .. tostring(isFavorite) .. " (Type: " .. type(isFavorite) .. ")")
+            end
+            if isCollected == true then
+                actuallyCollectedCount = actuallyCollectedCount + 1
+                local familyInfo = self:GetFamilyInfoForMountID(mountID)
+                if familyInfo and familyInfo.familyName then
+                    processedWithFamilyInfoCount = processedWithFamilyInfoCount + 1
+                    self.processedData.allCollectedMountFamilyInfo[mountID] = {
+                        name = name,
+                        isUsable = isUsable,
+                        isFavorite = isFavorite,
+                        familyName = familyInfo.familyName,
+                        superGroup = familyInfo.superGroup,
+                        traits = familyInfo.traits,
+                        modelPath = familyInfo.modelPath
+                    }
+                    local fn = familyInfo.familyName; local sg = familyInfo.superGroup
+                    if not self.processedData.familyToMountIDsMap[fn] then self.processedData.familyToMountIDsMap[fn] = {} end
+                    table.insert(self.processedData.familyToMountIDsMap[fn], mountID)
+                    if sg then
+                        if not self.processedData.superGroupMap[sg] then self.processedData.superGroupMap[sg] = {} end
+                        local found = false; for _, eFN in ipairs(self.processedData.superGroupMap[sg]) do if eFN == fn then
+                                found = true; break;
+                            end end; if not found then table.insert(self.processedData.superGroupMap[sg], fn) end
+                        if not self.processedData.superGroupToMountIDsMap[sg] then self.processedData.superGroupToMountIDsMap[sg] = {} end
+                        table.insert(self.processedData.superGroupToMountIDsMap[sg], mountID)
+                    else
+                        self.processedData.standaloneFamilyNames[fn] = true
+                    end
+                end
+            end
+        else
+            if scannedApiEntries <= 10 then
+                print("RMB_DEBUG_DATA_MOUNT_SCAN_WARN: GetMountInfoByID(" .. tostring(mountID) ..
+                    ") returned unexpected data. Name type: " .. type(name) ..
+                    ", isCollected type: " .. type(isCollected) ..
+                    (type(name) == "string" and (", NameVal: " .. name) or ""))
+            end
+        end
+    end
+    print("RMB_DEBUG_DATA: Total mount API entries scanned: " .. scannedApiEntries)
+    print("RMB_DEBUG_DATA: Total mounts determined as 'isCollected=true': " .. actuallyCollectedCount)
+    print("RMB_DEBUG_DATA: Mounts with addon family info processed: " .. processedWithFamilyInfoCount)
+    local sgC = 0; for _ in pairs(self.processedData.superGroupMap) do sgC = sgC + 1 end; print(
+    "RMB_DEBUG_DATA: SuperGroups populated: " .. sgC)
+    if sgC > 0 then
+        local pSg = 0; for sgn, fl in pairs(self.processedData.superGroupMap) do if pSg < 2 then
+                print("  SG: " ..
+                sgn ..
+                " (" ..
+                #(self.processedData.superGroupToMountIDsMap[sgn] or {}) .. " mounts) - Fams: " .. table.concat(fl, ", ")); pSg =
+                pSg + 1;
+            else
+                print("  ...more SG"); break;
+            end end
+    end
+    local fnC = 0; for _ in pairs(self.processedData.standaloneFamilyNames) do fnC = fnC + 1 end; print(
+    "RMB_DEBUG_DATA: StandaloneFamilies populated: " .. fnC)
+    if fnC > 0 then
+        local pFn = 0; for fn, _ in pairs(self.processedData.standaloneFamilyNames) do if pFn < 2 then
+                print("  FN: " .. fn .. " (" .. #(self.processedData.familyToMountIDsMap[fn] or {}) .. " mounts)"); pFn =
+                pFn + 1;
+            else
+                print("  ...more FN"); break;
+            end end
+    end
+    print("RMB_DEBUG_DATA: Processed Data Initialized COMPLETE.")
+    local ACRegistry = LibStub("AceConfigRegistry-3.0"); if ACRegistry then
+        ACRegistry:NotifyChange(addonNameFromToc); print("RMB_DEBUG_DATA: Notified AceConfigRegistry.")
+    end
+end
+
+function addon:OnPlayerLoginAttemptProcessData(eventArg, ...) -- 'eventArg' will be the event name string "PLAYER_LOGIN"
+    print("RMB_EVENT_DEBUG: Handler OnPlayerLoginAttemptProcessData received Event '" .. tostring(eventArg) .. "'.")
+    self.lastProcessingEventName = eventArg                   -- Store it for InitializeProcessedData to see
+    self:InitializeProcessedData()
+    self.lastProcessingEventName = nil                        -- Clear it after use
+    self:UnregisterEvent("PLAYER_LOGIN")                      -- PLAYER_LOGIN only fires once, but good practice
+    print("RMB_EVENT_DEBUG: Unregistered PLAYER_LOGIN after processing attempt.")
 end
 
 function addon:OnInitialize()
     print("RMB_DEBUG: OnInitialize CALLED.")
+    if RandomMountBuddy_PreloadData and RandomMountBuddy_PreloadData.MountToModelPath then self.MountToModelPath =
+        RandomMountBuddy_PreloadData.MountToModelPath else self.MountToModelPath = {} end;
+    if RandomMountBuddy_PreloadData and RandomMountBuddy_PreloadData.FamilyDefinitions then self.FamilyDefinitions =
+        RandomMountBuddy_PreloadData.FamilyDefinitions else self.FamilyDefinitions = {} end;
+    RandomMountBuddy_PreloadData = nil;
+    local mtpCount = 0; for _ in pairs(self.MountToModelPath) do mtpCount = mtpCount + 1 end; print(
+    "RMB_DEBUG: OnInitialize - MountToModelPath loaded (" .. mtpCount .. " entries).")
+    local fdCount = 0; for _ in pairs(self.FamilyDefinitions) do fdCount = fdCount + 1 end; print(
+    "RMB_DEBUG: OnInitialize - FamilyDefinitions loaded (" .. fdCount .. " entries).")
+    print("RMB_DEBUG: OnInitialize - RandomMountBuddy_PreloadData cleared.");
 
-    -- Load Data
-    if RandomMountBuddy_PreloadData and RandomMountBuddy_PreloadData.MountToModelPath then
-        self.MountToModelPath = RandomMountBuddy_PreloadData.MountToModelPath
-        local count = 0
-        if type(self.MountToModelPath) == "table" then for _ in pairs(self.MountToModelPath) do count = count + 1 end end
-        print("RMB_DEBUG: OnInitialize - MountToModelPath loaded (" .. count .. " entries).")
-    else
-        self.MountToModelPath = {}
-        print("RMB_DEBUG: OnInitialize - WARNING! MountToModelPath data not found.")
-    end
+    self.processedData = {
+        superGroupMap = {},
+        standaloneFamilyNames = {},
+        familyToMountIDsMap = {},
+        superGroupToMountIDsMap = {},
+        allCollectedMountFamilyInfo = {}
+    }
+    print("RMB_DEBUG: OnInitialize - Initialized empty self.processedData.")
 
-    if RandomMountBuddy_PreloadData and RandomMountBuddy_PreloadData.FamilyDefinitions then
-        self.FamilyDefinitions = RandomMountBuddy_PreloadData.FamilyDefinitions
-        local count = 0
-        if type(self.FamilyDefinitions) == "table" then for _ in pairs(self.FamilyDefinitions) do count = count + 1 end end
-        print("RMB_DEBUG: OnInitialize - FamilyDefinitions loaded (" ..
-            count ..
-            " entries). Test for 'creature/direwolf/ridingdirewolf.m2': " ..
-            tostring(self.FamilyDefinitions and self.FamilyDefinitions["creature/direwolf/ridingdirewolf.m2"]))
-    else
-        self.FamilyDefinitions = {}
-        print("RMB_DEBUG: OnInitialize - WARNING! FamilyDefinitions data not found.")
-    end
-    RandomMountBuddy_PreloadData = nil -- Clear the global staging table
-    print("RMB_DEBUG: OnInitialize - RandomMountBuddy_PreloadData cleared.")
-
-    -- Init AceDB
     if LibAceDB then
-        -- dbDefaults is defined at the top of this file
-        self.db = LibAceDB:New("RandomMountBuddy_SavedVars", dbDefaults, true) -- true for defaultProfileOnly (account-wide)
-        print("RMB_DEBUG: OnInitialize - AceDB:New call completed.")
+        self.db = LibAceDB:New("RandomMountBuddy_SavedVars", dbDefaults, true); print(
+        "RMB_DEBUG: OnInitialize - AceDB:New call completed.");
         if self.db and self.db.profile then
-            print("RMB_DEBUG: OnInitialize - self.db.profile exists. Current 'overrideBlizzardButton' from DB on init: " ..
-                tostring(self.db.profile.overrideBlizzardButton))
+            print("RMB_DEBUG: OnInitialize - self.db.profile exists. Initial 'overrideBlizzardButton': " ..
+            tostring(self.db.profile.overrideBlizzardButton))
         else
             print("RMB_DEBUG: OnInitialize - self.db OR self.db.profile is NIL after AceDB:New!")
         end
@@ -92,191 +223,84 @@ function addon:OnInitialize()
         print("RMB_DEBUG: OnInitialize - LibAceDB not available, skipping AceDB initialization.")
     end
 
-    -- Options are registered by Options.lua.
-    -- It will store the panel object from AddToBlizOptions on self.optionsPanelObject
-
-    -- Register Slash Command
     if LibAceConsole then
-        self:RegisterChatCommand("rmb", "SlashCommandHandler")
-        self:RegisterChatCommand("randommountbuddy", "SlashCommandHandler")
-        print("RMB_DEBUG: OnInitialize - Slash commands registered.")
+        self:RegisterChatCommand("rmb", "SlashCommandHandler"); self:RegisterChatCommand("randommountbuddy",
+            "SlashCommandHandler"); print("RMB_DEBUG: OnInitialize - Slash commands registered.");
     else
         print("RMB_DEBUG: OnInitialize - LibAceConsole not available, skipping slash command registration.")
     end
-    print("RMB_DEBUG: OnInitialize END.")
-    if self.db and LibAceDB.GetBlizzardDB then -- GetBlizzardDB is an internal AceDB func but can give clues
-        local blizzardSideTable = LibAceDB:GetBlizzardDB("RandomMountBuddy_SavedVars")
-        print("RMB_DEBUG: OnInitialize - AceDB's GetBlizzardDB for RandomMountBuddy_SavedVars returns type: " ..
-            tostring(type(blizzardSideTable)))
-        if type(blizzardSideTable) == "table" then
-            print("RMB_DEBUG: OnInitialize - Blizzard-side table for SVars has 'profile' key? Type: " ..
-                tostring(type(blizzardSideTable.profile)))
-        end
+
+    print("RMB_DEBUG: OnInitialize - Attempting to register PLAYER_LOGIN for OnPlayerLoginAttemptProcessData...")
+    local regSuccess, regErr = pcall(function()
+        self:RegisterEvent("PLAYER_LOGIN", "OnPlayerLoginAttemptProcessData")
+    end)
+    if regSuccess then
+        print("RMB_DEBUG: OnInitialize - Successfully registered for PLAYER_LOGIN.")
+    else
+        print("RMB_DEBUG: OnInitialize - FAILED to register for PLAYER_LOGIN. Error: " .. tostring(regErr))
     end
+
+    print("RMB_DEBUG: OnInitialize END.")
 end
 
 function addon:SlashCommandHandler(input)
     input = input and input:trim() or ""
     print("RMB_DEBUG: Slash command used with input: [" .. input .. "]")
-
     if self.optionsPanelObject then
-        local idToOpen = self.optionsPanelObject.id
-        local frameToOpen = self.optionsPanelObject.frame
+        local idToOpen = self.optionsPanelObject.id; local frameToOpen = self.optionsPanelObject.frame
         print("RMB_DEBUG: Trying to open options. ID: " ..
-            tostring(idToOpen) .. ", Frame type: " .. tostring(type(frameToOpen)))
-
+        tostring(idToOpen) .. ", Frame type: " .. tostring(type(frameToOpen)))
         if idToOpen then
-            local success, err = pcall(Settings.OpenToCategory, idToOpen)
-            if success then
+            local s, e = pcall(Settings.OpenToCategory, idToOpen)
+            if s then
                 print("RMB_DEBUG: Attempted Settings.OpenToCategory('" .. tostring(idToOpen) .. "')")
             else
-                print("RMB_DEBUG: ERROR with Settings.OpenToCategory('" .. tostring(idToOpen) .. "'): " .. tostring(err))
-                if frameToOpen then
-                    print("RMB_DEBUG: Falling back to InterfaceOptionsFrame_OpenToCategory with frame object.")
-                    InterfaceOptionsFrame_OpenToCategory(frameToOpen)
-                else
-                    print("RMB_DEBUG: No valid ID or frame to open options panel.")
-                end
+                print("RMB_DEBUG: ERROR Settings.OpenToCategory: " .. tostring(e)); if frameToOpen then
+                    print("RMB_DEBUG: Fallback InterfaceOptionsFrame_OpenToCategory"); InterfaceOptionsFrame_OpenToCategory(
+                    frameToOpen)
+                else print("RMB_DEBUG: No valid ID/frame.") end
             end
         elseif frameToOpen then
-            print("RMB_DEBUG: 'id' was nil, attempting InterfaceOptionsFrame_OpenToCategory with frame object.")
-            InterfaceOptionsFrame_OpenToCategory(frameToOpen)
+            print("RMB_DEBUG: 'id' nil, fallback InterfaceOptionsFrame_OpenToCategory"); InterfaceOptionsFrame_OpenToCategory(
+            frameToOpen)
         else
-            print("RMB_DEBUG: Both 'id' and 'frame' in optionsPanelObject are nil. Cannot open.")
+            print("RMB_DEBUG: Both 'id' and 'frame' nil.")
         end
     else
-        print("RMB_DEBUG: Options panel object not yet available (self.optionsPanelObject is nil).")
+        print("RMB_DEBUG: self.optionsPanelObject is nil.")
     end
 end
 
 function addon:OnEnable()
     print("RMB_DEBUG: OnEnable CALLED.")
-    -- You could add a check here to see what self.db.profile contains after a reload,
-    -- before any GetSetting calls from AceConfig fill it.
-    -- For example:
-    -- if self.db and self.db.profile then
-    --     print("RMB_DEBUG: OnEnable - 'overrideBlizzardButton' from DB: " .. tostring(self.db.profile.overrideBlizzardButton))
-    -- end
-end
-
-function addon:GetMountFamilyName(mountID)
-    if not mountID then return "Unknown ID" end
-
-    local modelPath = self.MountToModelPath and self.MountToModelPath[tonumber(mountID)]
-    if not modelPath then
-        -- Try to get display info directly if model path unknown
-        local creatureName, _, _, _, _, _, _, _, _, _, _, _, isFavorite, _, _, _, _, _ = C_MountJournal.GetMountInfoByID(
-        mountID)
-        if creatureName then return creatureName .. " (No model path in data)" end
-        return "Unknown (ID: " .. mountID .. ")"
-    end
-
-    local familyDef = self.FamilyDefinitions and self.FamilyDefinitions[modelPath]
-    if not familyDef or not familyDef.familyName then
-        local creatureName, _, _, _, _, _, _, _, _, _, _, _, isFavorite, _, _, _, _, _ = C_MountJournal.GetMountInfoByID(
-        mountID)
-        if creatureName then return creatureName .. " (No family def for: " .. modelPath .. ")" end
-        return "No Family Def (Path: " .. modelPath .. ")"
-    end
-    return familyDef.familyName
 end
 
 function addon:GetFavoriteMountsForOptions()
-    print("RMB_DEBUG: GetFavoriteMountsForOptions called")
-    local mountArgs = {}
-    local displayOrder = 1
-
-    local allMountIDs = C_MountJournal.GetMountIDs()
-    if not allMountIDs then
-        print("RMB_DEBUG: GetMountIDs returned nil")
-        mountArgs["no_mounts_api"] = {
-            order = displayOrder,
-            type = "description",
-            name = "Could not retrieve mount list from WoW API."
-        }
-        return mountArgs
-    end
-
-    print("RMB_DEBUG: Total mounts known by API: " .. #allMountIDs)
-    local favoriteCount = 0
-
-    for i, mountID in ipairs(allMountIDs) do
-        local creatureName, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountTypeID =
-        C_MountJournal.GetMountInfoByID(mountID)
-
-        if isCollected and isFavorite then
-            favoriteCount = favoriteCount + 1
-            local familyName = self:GetMountFamilyName(mountID) -- Use the helper
-            local mountKey = "mount_" .. tostring(mountID)      -- Unique key for AceConfig
-
-            mountArgs[mountKey] = {
-                order = displayOrder,
-                type = "description", -- Simple display
-                -- For description type, 'name' is the main text.
-                -- We can format it. Using a simple approach here.
-                -- Using a non-breaking space (ASCII 255 or specific UTF-8) might be better if spacing is an issue, or use multiple description lines.
-                name = string.format("|cFFD1D1D1%s:|r %s", creatureName or ("ID " .. mountID),
-                    familyName or "Unknown Family"),
-                -- fontSize = "medium" -- Optional: if you want them larger
-            }
-            displayOrder = displayOrder + 1
-        end
-    end
-
-    if favoriteCount == 0 then
-        mountArgs["no_favorites"] = {
-            order = displayOrder,
-            type = "description",
-            name = "You have no mounts marked as favorite, or none are collected."
-        }
-    end
-
-    print("RMB_DEBUG: Processed favorites. Found: " ..
-    favoriteCount .. ". Returning " .. displayOrder - 1 .. " AceConfig args.")
-    return mountArgs
+    print("RMB_DEBUG_CORE: GetFavoriteMountsForOptions called (placeholder)")
+    return { placeholder = { order = 1, type = "description", name = "Mount Inspector list under construction." } }
 end
 
--- Getter/Setter for AceConfig options (used by Options.lua)
 function addon:GetSetting(key)
-    if not self.db then
-        print("RMB_DEBUG: GetSetting - self.db is NIL! Key: " .. tostring(key) .. ". Returning initial default.")
-        return dbDefaults.profile[key] -- Fallback to initial defaults
+    if not (self.db and self.db.profile) then
+        print("RMB_DEBUG: GetSetting - DB/profile nil. Key: " .. tostring(key)); return dbDefaults.profile[key]
     end
-    if not self.db.profile then
-        print("RMB_DEBUG: GetSetting - self.db.profile is NIL! Key: " .. tostring(key) .. ". Returning initial default.")
-        return dbDefaults.profile[key] -- Fallback to initial defaults
-    end
-
     local value = self.db.profile[key]
-    print("RMB_DEBUG: GetSetting - Key: '" ..
-        tostring(key) .. "', Value from DB: " .. tostring(value) .. ", Type: " .. tostring(type(value)))
-
-    -- If value is nil in the DB (e.g., new setting not yet saved), AceConfig expects the default value from the options table,
-    -- which eventually comes from your initial dbDefaults.
+    -- print("RMB_DEBUG: GetSetting - Key:'"..tostring(key).."', Val:'"..tostring(value).."', Type:'"..tostring(type(value)).."'") -- Making this less spammy
     if value == nil and dbDefaults.profile[key] ~= nil then
-        print("RMB_DEBUG: GetSetting - Key: '" ..
-            tostring(key) ..
-            "' was nil in DB profile, returning initial default from dbDefaults: " .. tostring(dbDefaults.profile[key]))
+        -- print("RMB_DEBUG: GetSetting - Key:'"..tostring(key).."' nil in DB, using default."); -- Less spammy
         return dbDefaults.profile[key]
     end
-    -- If the key genuinely has no default in dbDefaults.profile either (e.g. a new ad-hoc key), 'value' (which would be nil) is correct to return.
     return value
 end
 
 function addon:SetSetting(key, value)
-    if not self.db then
-        print("RMB_DEBUG: SetSetting - self.db is NIL! Cannot set Key: " .. tostring(key))
-        return
+    if not (self.db and self.db.profile) then
+        print("RMB_DEBUG: SetSetting - DB/profile nil. Key: " .. tostring(key)); return
     end
-    if not self.db.profile then
-        print("RMB_DEBUG: SetSetting - self.db.profile is NIL! Cannot set Key: " .. tostring(key))
-        return
-    end
-
-    print("RMB_DEBUG: SetSetting - Key: '" ..
-        tostring(key) .. "', Attempting to set New Value: " .. tostring(value) .. ", Type: " .. tostring(type(value)))
+    print("RMB_DEBUG: SetSetting - Key:'" ..
+    tostring(key) .. "', NewVal:'" .. tostring(value) .. "', Type:'" .. tostring(type(value)) .. "'")
     self.db.profile[key] = value
-    print("RMB_DEBUG: SetSetting - self.db.profile['" .. key .. "'] is now: " .. tostring(self.db.profile[key]))
+    -- print("RMB_DEBUG: SetSetting - self.db.profile['"..key.."'] is now: "..tostring(self.db.profile[key])) -- Less spammy
 end
 
 print("RMB_DEBUG: Core.lua END.")
