@@ -398,7 +398,7 @@ function addon:BuildFamilyManagementArgs()
 	pageArgs["pagination_controls_group_top"] = {
 		order = displayOrder,
 		type = "group",
-		inline = true, -- Keep this as true since it looks ok in your screenshot
+		inline = true,
 		name = "",
 		width = "full",
 		args = {
@@ -460,17 +460,67 @@ function addon:BuildFamilyManagementArgs()
 		return pageArgs;
 	end
 
-	-- Go back to the original implementation using nested groups
-	-- It seems AceGUI's layout management works better with the nested structure
 	local groupEntryOrder = displayOrder
 	for i = startIndex, endIndex do
 		local groupInfo = allDisplayableGroups[i]
 		if groupInfo then
 			local groupKey = groupInfo.key
 			local isExpanded = self:IsGroupExpanded(groupKey)
-			local groupDisplayName = groupInfo.displayName .. " (" .. groupInfo.mountCount .. ")"
-			local detailArgsForThisGroup = (isExpanded and self:GetExpandedGroupDetailsArgs(groupKey, groupInfo.type)) or
-					{}
+			-- Special handling for standalone families with exactly one mount
+			local isSingleMountFamily = false
+			local mountName = nil
+			-- Check if this is a standalone family (not in a superGroup)
+			if groupInfo.type == "familyName" then
+				-- First, find the model path for this family name
+				local familyModelPath = nil
+				for modelPath, familyDef in pairs(self.FamilyDefinitions or {}) do
+					if familyDef.familyName == groupKey then
+						familyModelPath = modelPath
+						break
+					end
+				end
+
+				-- Now count how many mount IDs use this model path
+				local mountCount = 0
+				if familyModelPath then
+					for _, mountModelPath in pairs(self.MountToModelPath or {}) do
+						if mountModelPath == familyModelPath then
+							mountCount = mountCount + 1
+							-- If we find more than one, we can break early
+							if mountCount > 1 then
+								break
+							end
+						end
+					end
+				end
+
+				-- It's a single-mount family if there's only one mount that uses this model path
+				isSingleMountFamily = (mountCount == 1)
+				if isSingleMountFamily and groupInfo.mountCount == 1 then
+					-- Get the mount name for display
+					local mIDs = self.processedData.familyToMountIDsMap and self.processedData.familyToMountIDsMap[groupKey]
+					if mIDs and #mIDs == 1 then
+						local mountID = mIDs[1]
+						if self.processedData.allCollectedMountFamilyInfo and
+								self.processedData.allCollectedMountFamilyInfo[mountID] then
+							mountName = self.processedData.allCollectedMountFamilyInfo[mountID].name
+						end
+					end
+				else
+					-- Not a single mount family, or has more than one collected
+					isSingleMountFamily = false
+				end
+			end
+
+			-- Construct the display name differently for single mount families
+			local groupDisplayName
+			if isSingleMountFamily then
+				groupDisplayName = groupInfo.displayName .. " (Mount)"
+			else
+				groupDisplayName = groupInfo.displayName .. " (" .. groupInfo.mountCount .. ")"
+			end
+
+			local detailArgsForThisGroup = (isExpanded and self:GetExpandedGroupDetailsArgs(groupKey, groupInfo.type)) or {}
 			pageArgs["entry_" .. groupKey] = {
 				order = groupEntryOrder,
 				type = "group",
@@ -522,6 +572,7 @@ function addon:BuildFamilyManagementArgs()
 						name = isExpanded and "Collapse" or "Expand",
 						func = function() self:ToggleExpansionState(groupKey) end,
 						width = 0.5,
+						hidden = isSingleMountFamily, -- Hide the expand button for single mount families
 					},
 					previewButton = {
 						order = 9,
@@ -640,6 +691,32 @@ function addon:TriggerFamilyManagementUIRefresh()
 	print("RMB_DEBUG_UI: Manual Refresh Triggered."); self:PopulateFamilyManagementUI()
 end
 
+function addon:CollapseAllExpanded()
+	print("RMB_DEBUG_UI: Collapsing all expanded groups")
+	if not (self.db and self.db.profile and self.db.profile.expansionStates) then
+		print("RMB_UI: ExpStates DB ERR")
+		return
+	end
+
+	-- Iterate through all expansion states and set them to false (collapsed)
+	local changed = false
+	for groupKey, state in pairs(self.db.profile.expansionStates) do
+		if state == true then
+			self.db.profile.expansionStates[groupKey] = false
+			changed = true
+		end
+	end
+
+	-- Only refresh UI if we actually collapsed something
+	if changed then
+		print("RMB_UI: Collapsed expanded groups, refreshing UI")
+	end
+
+	-- We don't call PopulateFamilyManagementUI() here because
+	-- this function is called from navigation functions that already refresh the UI
+	return changed
+end
+
 function addon:FMG_SetItemsPerPage(items)
 	local numItems = tonumber(items); if numItems and numItems >= 5 and numItems <= 50 then
 		print("RMB_PAGING: Set IPP to " .. numItems); self.fmItemsPerPage = numItems; if self.db and self.db.profile then
@@ -674,21 +751,28 @@ function addon:FMG_GoToPage(pN)
 end
 
 function addon:FMG_NextPage()
-	if not self.RMB_DataReadyForUI then return end; local allG = self:GetDisplayableGroups(); local ipp = self
-			:FMG_GetItemsPerPage(); local tP = math.max(1, math.ceil(#allG / ipp)); if self.fmCurrentPage < tP then
-		self
-				:FMG_GoToPage(self.fmCurrentPage + 1)
+	if not self.RMB_DataReadyForUI then return end
+
+	local allG = self:GetDisplayableGroups()
+	local ipp = self:FMG_GetItemsPerPage()
+	local tP = math.max(1, math.ceil(#allG / ipp))
+	if self.fmCurrentPage < tP then
+		self:CollapseAllExpanded()
+		self:FMG_GoToPage(self.fmCurrentPage + 1)
 	end
 end
 
 function addon:FMG_PrevPage()
-	if not self.RMB_DataReadyForUI then return end; if self.fmCurrentPage > 1 then
-		self:FMG_GoToPage(self.fmCurrentPage -
-			1)
+	if not self.RMB_DataReadyForUI then return end
+
+	if self.fmCurrentPage > 1 then
+		self:CollapseAllExpanded()
+		self:FMG_GoToPage(self.fmCurrentPage - 1)
 	end
 end
 
 function addon:FMG_GoToFirstPage()
+	self:CollapseAllExpanded()
 	self:FMG_GoToPage(1)
 end
 
@@ -696,6 +780,7 @@ function addon:FMG_GoToLastPage()
 	local allGroups = self:GetDisplayableGroups();
 	local ipp = self:FMG_GetItemsPerPage();
 	local totalPages = math.max(1, math.ceil(#allGroups / ipp));
+	self:CollapseAllExpanded()
 	self:FMG_GoToPage(totalPages)
 end
 
@@ -750,12 +835,50 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 			-- For each family in this supergroup, we'll create a row of controls
 			for fidx, fn in ipairs(sortedFams) do
 				local mc = self.processedData.familyToMountIDsMap and #(self.processedData.familyToMountIDsMap[fn] or {}) or 0;
+				-- Check if this is a single-mount family (just like in BuildFamilyManagementArgs)
+				local isSingleMountFamily = false
+				if mc == 1 then
+					-- Find the model path for this family name
+					local familyModelPath = nil
+					for modelPath, familyDef in pairs(self.FamilyDefinitions or {}) do
+						if familyDef.familyName == fn then
+							familyModelPath = modelPath
+							break
+						end
+					end
+
+					-- Count how many mount IDs use this model path
+					local mountCount = 0
+					if familyModelPath then
+						for _, mountModelPath in pairs(self.MountToModelPath or {}) do
+							if mountModelPath == familyModelPath then
+								mountCount = mountCount + 1
+								-- If we find more than one, we can break early
+								if mountCount > 1 then
+									break
+								end
+							end
+						end
+					end
+
+					-- It's a single-mount family if there's only one mount that uses this model path
+					isSingleMountFamily = (mountCount == 1)
+				end
+
+				-- Create display name
+				local familyDisplayName
+				if isSingleMountFamily then
+					familyDisplayName = fn .. " (Mount)"
+				else
+					familyDisplayName = fn .. " (" .. mc .. ")"
+				end
+
 				-- Make sure to align each family's controls properly in a row
 				-- Family name
 				detailsArgs["fam_" .. fn .. "_name"] = {
 					order = displayOrder,
 					type = "description",
-					name = fn .. " (" .. mc .. ")",
+					name = familyDisplayName,
 					width = 1.4,
 					fontSize = "medium",
 				}
@@ -804,6 +927,7 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 					name = isFamExpanded and "Collapse" or "Expand",
 					func = function() self:ToggleExpansionState(fn) end,
 					width = 0.5,
+					hidden = isSingleMountFamily, -- Hide for single-mount families
 				}
 				displayOrder = displayOrder + 1
 				-- Preview button
