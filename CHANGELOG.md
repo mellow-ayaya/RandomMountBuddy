@@ -1,3 +1,6 @@
+# 0.4.3
+Family & Groups menu is much more compact and the families contained in groups are now clearly separated from the next group/family below.
+
 # 0.4.2
 UI update.
 
