@@ -229,6 +229,142 @@ function addon:GetWeightDisplayString(weight)
 	return "|cff" .. colorCode .. fullText .. "|r"
 end
 
+-- Add these helper functions for getting mount information
+-- Gets a random mount from a group (for previewing or summoning)
+function addon:GetRandomMountFromGroup(groupKey, groupType)
+	if not groupKey or not groupType then return nil end
+
+	local mountIDs = {}
+	if groupType == "familyName" then
+		-- For a family, get mount IDs directly
+		mountIDs = self.processedData.familyToMountIDsMap and self.processedData.familyToMountIDsMap[groupKey] or {}
+	elseif groupType == "superGroup" then
+		-- For a supergroup, get mount IDs from the supergroup map
+		mountIDs = self.processedData.superGroupToMountIDsMap and self.processedData.superGroupToMountIDsMap[groupKey] or {}
+	end
+
+	-- Filter out any non-collected mounts (should not be necessary, but as a safety check)
+	local collectedMounts = {}
+	for _, mountID in ipairs(mountIDs) do
+		if self.processedData.allCollectedMountFamilyInfo and self.processedData.allCollectedMountFamilyInfo[mountID] then
+			table.insert(collectedMounts, mountID)
+		end
+	end
+
+	-- If no collected mounts, return nil
+	if #collectedMounts == 0 then return nil end
+
+	-- Pick a random mount from the list
+	local randomIndex = math.random(1, #collectedMounts)
+	local selectedMountID = collectedMounts[randomIndex]
+	-- Get mount name and other info
+	local mountInfo = self.processedData.allCollectedMountFamilyInfo[selectedMountID]
+	local mountName = mountInfo and mountInfo.name or ("Mount ID " .. selectedMountID)
+	return selectedMountID, mountName
+end
+
+-- Function to get tooltip text for a group
+function addon:GetMountPreviewTooltip(groupKey, groupType)
+	-- Get a random mount from the specified group
+	local mountID, mountName = self:GetRandomMountFromGroup(groupKey, groupType)
+	if not mountID then
+		-- No mounts found in this group
+		return "No collected mounts found"
+	end
+
+	-- Return a simple tooltip text
+	return "Preview: " .. mountName .. "\n(Click to summon)"
+end
+
+-- Function to determine group type from key
+function addon:GetGroupTypeFromKey(groupKey)
+	if self.processedData.superGroupMap and self.processedData.superGroupMap[groupKey] then
+		return "superGroup"
+	else
+		return "familyName"
+	end
+end
+
+function addon:ShowMountPreview(mountID, mountName, groupKey, groupType)
+	-- Create the model frame if it doesn't exist yet
+	if not self.modelPreviewFrame then
+		-- Create a modal dialog frame
+		self.modelPreviewFrame = CreateFrame("Frame", "RMB_ModelPreview", UIParent, "BackdropTemplate")
+		local frame = self.modelPreviewFrame
+		-- Make it a good size and position
+		frame:SetSize(350, 350)
+		frame:SetPoint("CENTER")
+		frame:SetFrameStrata("DIALOG")
+		-- Add a background
+		frame:SetBackdrop({
+			bgFile = "Interface/DialogFrame/UI-DialogBox-Background",
+			edgeFile = "Interface/DialogFrame/UI-DialogBox-Border",
+			tile = true,
+			tileSize = 32,
+			edgeSize = 32,
+			insets = { left = 11, right = 12, top = 12, bottom = 11 },
+		})
+		-- Add title text
+		frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		frame.title:SetPoint("TOP", 0, -15)
+		-- Add model display area
+		frame.model = CreateFrame("PlayerModel", nil, frame)
+		frame.model:SetPoint("TOP", 0, -40)
+		frame.model:SetPoint("BOTTOM", 0, 40)
+		frame.model:SetPoint("LEFT", 20, 0)
+		frame.model:SetPoint("RIGHT", -20, 0)
+		-- Add close button
+		frame.closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+		frame.closeButton:SetPoint("TOPRIGHT", -4, -4)
+		frame.closeButton:SetScript("OnClick", function() frame:Hide() end)
+		-- Add "Next Mount" button
+		frame.nextButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+		frame.nextButton:SetSize(120, 22)
+		frame.nextButton:SetPoint("BOTTOMRIGHT", -20, 15)
+		frame.nextButton:SetText("Next Mount")
+		-- Add "Summon" button
+		frame.summonButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+		frame.summonButton:SetSize(120, 22)
+		frame.summonButton:SetPoint("BOTTOMLEFT", 20, 15)
+		frame.summonButton:SetText("Summon")
+		print("RMB_MODEL: Created model preview frame")
+	end
+
+	-- Update the frame with the current mount info
+	local frame = self.modelPreviewFrame
+	-- Store the group info for "Next Mount" button
+	frame.groupKey = groupKey
+	frame.groupType = groupType
+	-- Store the current mount ID for "Summon" button
+	frame.currentMountID = mountID
+	-- Set the title
+	frame.title:SetText(mountName)
+	-- Set the model
+	local creatureDisplayID = select(1, C_MountJournal.GetMountInfoExtraByID(mountID))
+	if creatureDisplayID then
+		frame.model:SetDisplayInfo(creatureDisplayID)
+		frame.model:SetCamDistanceScale(1.5)
+		frame.model:SetPosition(0, 0, 0)
+	end
+
+	-- Set up the Next Mount button
+	frame.nextButton:SetScript("OnClick", function()
+		local nextMountID, nextMountName = self:GetRandomMountFromGroup(groupKey, groupType)
+		if nextMountID then
+			self:ShowMountPreview(nextMountID, nextMountName, groupKey, groupType)
+		end
+	end)
+	-- Set up the Summon button
+	frame.summonButton:SetScript("OnClick", function()
+		if frame.currentMountID then
+			C_MountJournal.SummonByID(frame.currentMountID)
+			frame:Hide()
+		end
+	end)
+	-- Show the frame
+	frame:Show()
+end
+
 function addon:OnInitialize()
 	print("RMB_DEBUG: OnInitialize CALLED.")
 	if RandomMountBuddy_PreloadData then
@@ -276,55 +412,6 @@ function addon:OnInitialize()
 	end
 
 	print("RMB_DEBUG: OnInitialize END.")
-end
-
-function addon:PostBuildWidget(frame, data)
-	-- print("RMB_DEBUG_ACEGUI: PostBuildWidget called for data type: " .. tostring(data and data.type) .. ", key: " .. tostring(data and data.key)); -- Debug print
-	-- Check if this is one of our specific weight buttons by checking its 'type' and 'key'
-	if data.type == "execute" and (data.key == "weightDecrement" or data.key == "weightIncrement") then
-		-- Found one of our weight buttons.
-		-- We need to prevent the default tooltip. Set an OnEnter script.
-		frame:SetScript("OnEnter", function(self)
-			-- Hide any currently active tooltip frame, specifically the GameTooltip or ShoppingTooltip if visible.
-			-- Using GameTooltip:Hide() is the standard way to dismiss tooltips triggered by the UI.
-			if GameTooltip:IsShown() then
-				GameTooltip:Hide();
-			end
-
-			-- Optional: If the ShoppingTooltip is involved (less likely here but good practice for items/spells)
-			if ShoppingTooltip1:IsShown() then
-				ShoppingTooltip1:Hide();
-			end
-
-			-- You could also try explicitly clearing the frame's tooltip setting again here,
-			-- although SetScript OnEnter is usually enough to stop it from *showing*.
-			-- self:SetTooltip(nil); -- Or self:SetTooltip("");
-		end);
-		-- We should also set an OnLeave script to allow other tooltips to show normally after leaving our button
-		frame:SetScript("OnLeave", function(self)
-			-- Standard OnLeave behavior often implicitly allows other tooltips to appear,
-			-- but an explicit OnLeave could potentially resume standard tooltip behavior
-			-- if we had overridden it more drastically. For just preventing the name tooltip,
-			-- clearing on enter is usually sufficient. Leaving this minimal.
-		end);
-		-- print("RMB_DEBUG_ACEGUI: Found weight button '" .. tostring(data.key) .. "', setting OnEnter script to hide tooltip."); -- Debug print
-		-- Check if this is our weight display description by checking its 'type' and 'key'
-	elseif data.type == "description" and data.key == "weightDisplay" then
-		-- AceGUI descriptions typically contain a FontString object that holds the text.
-		local fontString = frame:GetFontString();
-		if fontString then
-			-- Attempt to center the text horizontally within the description's allocated frame area.
-			fontString:SetJustifyH("CENTER");
-			-- print("RMB_DEBUG_ACEGUI: Found weight display description, attempting to center text."); -- Debug print
-		else
-			-- print("RMB_DEBUG_ACEGUI: Found weight display description, but no FontString found."); -- Debug print
-		end
-
-		-- If you wanted a *custom* tooltip for the description that AceConfig's 'tooltip' parameter didn't support,
-		-- you'd add OnEnter/OnLeave scripts here similar to the buttons, using GameTooltip:SetText() or :SetSpellByID(), etc.
-	end
-
-	-- Note: No return needed for PostBuildWidget
 end
 
 function addon:BuildFamilyManagementArgs()
@@ -498,7 +585,8 @@ function addon:BuildFamilyManagementArgs()
 				isSingleMountFamily = (mountCount == 1)
 				if isSingleMountFamily and groupInfo.mountCount == 1 then
 					-- Get the mount name for display
-					local mIDs = self.processedData.familyToMountIDsMap and self.processedData.familyToMountIDsMap[groupKey]
+					local mIDs = self.processedData.familyToMountIDsMap and
+							self.processedData.familyToMountIDsMap[groupKey]
 					if mIDs and #mIDs == 1 then
 						local mountID = mIDs[1]
 						if self.processedData.allCollectedMountFamilyInfo and
@@ -520,7 +608,8 @@ function addon:BuildFamilyManagementArgs()
 				groupDisplayName = groupInfo.displayName .. " (" .. groupInfo.mountCount .. ")"
 			end
 
-			local detailArgsForThisGroup = (isExpanded and self:GetExpandedGroupDetailsArgs(groupKey, groupInfo.type)) or {}
+			local detailArgsForThisGroup = (isExpanded and self:GetExpandedGroupDetailsArgs(groupKey, groupInfo.type)) or
+					{}
 			pageArgs["entry_" .. groupKey] = {
 				order = groupEntryOrder,
 				type = "group",
@@ -578,7 +667,16 @@ function addon:BuildFamilyManagementArgs()
 						order = 9,
 						type = "execute",
 						name = "Preview",
-						--  func = , todo
+						desc = function() return self:GetMountPreviewTooltip(groupKey, groupInfo.type) end,
+						func = function(info)
+							local mountID, mountName = self:GetRandomMountFromGroup(groupKey, groupInfo.type)
+							if mountID then
+								-- Instead of summoning, show in our preview window
+								self:ShowMountPreview(mountID, mountName, groupKey, groupInfo.type)
+							else
+								print("RMB_PREVIEW: No mount available to preview from this group")
+							end
+						end,
 						width = 0.5,
 					},
 					-- The critical change is here - we're not putting expanded content in a group
@@ -834,7 +932,8 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 			print("RMB_DEBUG_UI_DETAILS: Processing Families for SG: " .. tostring(groupKey));
 			-- For each family in this supergroup, we'll create a row of controls
 			for fidx, fn in ipairs(sortedFams) do
-				local mc = self.processedData.familyToMountIDsMap and #(self.processedData.familyToMountIDsMap[fn] or {}) or 0;
+				local mc = self.processedData.familyToMountIDsMap and #(self.processedData.familyToMountIDsMap[fn] or {}) or
+						0;
 				-- Check if this is a single-mount family (just like in BuildFamilyManagementArgs)
 				local isSingleMountFamily = false
 				if mc == 1 then
@@ -935,7 +1034,17 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 					order = displayOrder,
 					type = "execute",
 					name = "Preview",
-					--  func = , todo
+					desc = function() return self:GetMountPreviewTooltip(fn, "familyName") end,
+					func = function()
+						local mountID, mountName = self:GetRandomMountFromGroup(fn, "familyName")
+						if mountID then
+							print("RMB_PREVIEW: Summoning " .. mountName .. " (ID: " .. mountID .. ")")
+							-- Summon the mount
+							C_MountJournal.SummonByID(mountID)
+						else
+							print("RMB_PREVIEW: No mount available to summon from this group")
+						end
+					end,
 					width = 0.5,
 				}
 				displayOrder = displayOrder + 1
@@ -1125,7 +1234,103 @@ function addon:SetGroupEnabled(gk, e)
 	-- NO NotifyChange here
 end
 
-function addon:OnEnable() print("RMB_DEBUG: OnEnable CALLED.") end
+function addon:SetupModelPreviewSystem()
+	-- Create a simple model frame
+	if not self.modelPreviewFrame then
+		self.modelPreviewFrame = CreateFrame("PlayerModel", "RMB_ModelPreview", UIParent, "BackdropTemplate")
+		local frame = self.modelPreviewFrame
+		-- Make it a good size
+		frame:SetSize(250, 250)
+		frame:SetPoint("CENTER", UIParent, "CENTER", 2000, 0) -- Off-screen initially
+		frame:Hide()
+		-- Add a background
+		frame:SetBackdrop({
+			bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+			tile = true,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 },
+		})
+		frame:SetBackdropColor(0, 0, 0, 0.8)
+		print("RMB_MODEL: Created model preview frame")
+	end
+
+	-- Create a simple update frame - this avoids all hooks
+	if not self.modelUpdateFrame then
+		self.modelUpdateFrame = CreateFrame("Frame")
+		self.modelUpdateFrame.elapsed = 0
+		self.modelUpdateFrame:SetScript("OnUpdate", function(frame, elapsed)
+			-- Throttle checks to every 0.1 seconds
+			frame.elapsed = frame.elapsed + elapsed
+			if frame.elapsed < 0.1 then
+				return
+			end
+
+			frame.elapsed = 0
+			-- Check for tooltip existence
+			if GameTooltip:IsShown() then
+				-- Safely get tooltip text
+				local tooltipText = nil
+				-- Use GetText() safely by checking for textLeft1
+				if GameTooltip.TextLeft1 and GameTooltip.TextLeft1:GetText() then
+					tooltipText = GameTooltip.TextLeft1:GetText()
+				end
+
+				-- Only process if this is a preview tooltip
+				if tooltipText and tooltipText:find("^Preview: ") then
+					-- Extract mount name
+					local mountName = tooltipText:match("^Preview: ([^%\n]+)")
+					if mountName then
+						-- Trim the mount name
+						mountName = mountName:gsub("^%s*(.-)%s*$", "%1")
+						-- Find mount ID by name
+						local mountID = nil
+						for _, id in ipairs(C_MountJournal.GetMountIDs()) do
+							local name = C_MountJournal.GetMountInfoByID(id)
+							if name == mountName then
+								mountID = id
+								break
+							end
+						end
+
+						-- Show model if mount found
+						if mountID then
+							local creatureDisplayID = select(1, C_MountJournal.GetMountInfoExtraByID(mountID))
+							if creatureDisplayID then
+								local tooltipOwner = GameTooltip:GetOwner()
+								if tooltipOwner then
+									local modelFrame = self.modelPreviewFrame
+									modelFrame:ClearAllPoints()
+									modelFrame:SetPoint("LEFT", tooltipOwner, "RIGHT", 10, 0)
+									modelFrame:SetDisplayInfo(creatureDisplayID)
+									modelFrame:SetCamDistanceScale(1.5)
+									modelFrame:SetPosition(0, 0, 0)
+									modelFrame:Show()
+								end
+							end
+						end
+					end
+				end
+			else
+				-- Hide model when tooltip disappears
+				if self.modelPreviewFrame:IsShown() then
+					self.modelPreviewFrame:Hide()
+				end
+			end
+		end)
+		print("RMB_MODEL: Created model update frame")
+	end
+
+	print("RMB_MODEL: Model preview system initialized")
+end
+
+-- Update your OnEnable to only call the new system
+function addon:OnEnable()
+	print("RMB_DEBUG: OnEnable CALLED.")
+	-- We don't need to set up anything special at load time
+	-- The preview window is created on-demand when needed
+end
 
 function addon:GetFavoriteMountsForOptions()
 	print("RMB_DEBUG_CORE: GetFavoriteMountsForOptions (placeholder)"); return { p = { order = 1, type = "description", name = "MI list placeholder." } }

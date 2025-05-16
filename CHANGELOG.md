@@ -1,3 +1,6 @@
+# 0.4.5-click-to-preview
+Added mount preview in the family & groups menu, it requires clicking on the preview button as opposed to showing in the tooltip.
+
 # 0.4.4
 Families that only contain one mount are now listed as Mountname (Mount) for easier identification, ie Wandering Ancient (Mount).
 
