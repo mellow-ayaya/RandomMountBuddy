@@ -1,3 +1,6 @@
+# 0.4.7
+Added support for uncollected mounts in the family and groups menu.
+
 # 0.4.6
 Improved preview by allowing it to anchor to the cursor again, plus allowing clicking on the preview button to create a separate window that can be dragged where desired + cycle through mounts + click to summon.
 

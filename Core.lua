@@ -10,11 +10,12 @@ local dbDefaults = {
 		treatMajorArmorAsDistinct = false,
 		treatModelVariantsAsDistinct = false,
 		treatUniqueEffectsOrSkin = true,
+		showUncollectedMounts = true,
 		expansionStates = {},
 		groupWeights = {},
 		groupEnabledStates = {},
 		familyOverrides = {},
-		fmItemsPerPage = 15, -- Default items per page
+		fmItemsPerPage = 15,
 	},
 }
 print("RMB_DEBUG: Core.lua START. Addon Name: " .. tostring(addonNameFromToc) .. ". Time: " .. tostring(time()))
@@ -79,12 +80,17 @@ end
 function addon:InitializeProcessedData()
 	local eventNameForLog = self.lastProcessingEventName or "Manual Call or Unknown Event"
 	print("RMB_DEBUG_DATA: Initializing Processed Data (Event: " .. eventNameForLog .. ")...")
+	-- Initialize with additional data structures for uncollected mounts
 	self.processedData = {
 		superGroupMap = {},
 		standaloneFamilyNames = {},
 		familyToMountIDsMap = {},
 		superGroupToMountIDsMap = {},
 		allCollectedMountFamilyInfo = {},
+		-- New tables for uncollected mounts
+		familyToUncollectedMountIDsMap = {},
+		superGroupToUncollectedMountIDsMap = {},
+		allUncollectedMountFamilyInfo = {},
 	}
 	if not C_MountJournal or not C_MountJournal.GetMountIDs then
 		print("RMB_DEBUG_DATA: C_MountJournal API missing!"); return
@@ -95,7 +101,7 @@ function addon:InitializeProcessedData()
 	end
 
 	print("RMB_DEBUG_DATA: GetMountIDs found " .. #allMountIDs .. " IDs.")
-	local collectedCount, processedCount, scannedCount = 0, 0, 0
+	local collectedCount, uncollectedCount, processedCount, scannedCount = 0, 0, 0, 0
 	for _, mountID in ipairs(allMountIDs) do
 		scannedCount = scannedCount + 1
 		local name, _, _, _, isUsable, _, isFavorite, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(mountID)
@@ -106,35 +112,89 @@ function addon:InitializeProcessedData()
 					",U:" .. tostring(isUsable))
 			end
 
-			if isCollected == true then
-				collectedCount = collectedCount + 1; local familyInfo = self:GetFamilyInfoForMountID(mountID)
-				if familyInfo and familyInfo.familyName then
-					processedCount = processedCount + 1
-					self.processedData.allCollectedMountFamilyInfo[mountID] = {
-						name = name,
-						isUsable = isUsable,
-						isFavorite =
-								isFavorite,
-						familyName = familyInfo.familyName,
-						superGroup = familyInfo.superGroup,
-						traits =
-								familyInfo.traits,
-						modelPath = familyInfo.modelPath,
-					}
-					local fn, sg = familyInfo.familyName, familyInfo.superGroup
-					if not self.processedData.familyToMountIDsMap[fn] then self.processedData.familyToMountIDsMap[fn] = {} end; table
-							.insert(self.processedData.familyToMountIDsMap[fn], mountID)
+			local familyInfo = self:GetFamilyInfoForMountID(mountID)
+			if familyInfo and familyInfo.familyName then
+				processedCount = processedCount + 1
+				-- Create common mount info regardless of collection status
+				local mountFamilyInfo = {
+					name = name,
+					isUsable = isUsable,
+					isFavorite = isFavorite,
+					familyName = familyInfo.familyName,
+					superGroup = familyInfo.superGroup,
+					traits = familyInfo.traits,
+					modelPath = familyInfo.modelPath,
+				}
+				local fn, sg = familyInfo.familyName, familyInfo.superGroup
+				-- Process based on collection status
+				if isCollected == true then
+					collectedCount = collectedCount + 1
+					self.processedData.allCollectedMountFamilyInfo[mountID] = mountFamilyInfo
+					-- Add to collected mount maps
+					if not self.processedData.familyToMountIDsMap[fn] then
+						self.processedData.familyToMountIDsMap[fn] = {}
+					end
+
+					table.insert(self.processedData.familyToMountIDsMap[fn], mountID)
 					if sg then
-						if not self.processedData.superGroupMap[sg] then self.processedData.superGroupMap[sg] = {} end
+						if not self.processedData.superGroupMap[sg] then
+							self.processedData.superGroupMap[sg] = {}
+						end
 
-						local found = false; for _, eFN in ipairs(self.processedData.superGroupMap[sg]) do
+						local found = false
+						for _, eFN in ipairs(self.processedData.superGroupMap[sg]) do
 							if eFN == fn then
-								found = true; break
+								found = true
+								break
 							end
-						end; if not found then table.insert(self.processedData.superGroupMap[sg], fn) end
+						end
 
-						if not self.processedData.superGroupToMountIDsMap[sg] then self.processedData.superGroupToMountIDsMap[sg] = {} end; table
-								.insert(self.processedData.superGroupToMountIDsMap[sg], mountID)
+						if not found then
+							table.insert(self.processedData.superGroupMap[sg], fn)
+						end
+
+						if not self.processedData.superGroupToMountIDsMap[sg] then
+							self.processedData.superGroupToMountIDsMap[sg] = {}
+						end
+
+						table.insert(self.processedData.superGroupToMountIDsMap[sg], mountID)
+					else
+						self.processedData.standaloneFamilyNames[fn] = true
+					end
+				else
+					-- Handle uncollected mounts
+					uncollectedCount = uncollectedCount + 1
+					self.processedData.allUncollectedMountFamilyInfo[mountID] = mountFamilyInfo
+					-- Add to uncollected mount maps
+					if not self.processedData.familyToUncollectedMountIDsMap[fn] then
+						self.processedData.familyToUncollectedMountIDsMap[fn] = {}
+					end
+
+					table.insert(self.processedData.familyToUncollectedMountIDsMap[fn], mountID)
+					if sg then
+						-- Ensure supergroup exists in the map
+						if not self.processedData.superGroupMap[sg] then
+							self.processedData.superGroupMap[sg] = {}
+						end
+
+						-- Make sure family is in supergroup list (if not already added by a collected mount)
+						local found = false
+						for _, eFN in ipairs(self.processedData.superGroupMap[sg]) do
+							if eFN == fn then
+								found = true
+								break
+							end
+						end
+
+						if not found then
+							table.insert(self.processedData.superGroupMap[sg], fn)
+						end
+
+						if not self.processedData.superGroupToUncollectedMountIDsMap[sg] then
+							self.processedData.superGroupToUncollectedMountIDsMap[sg] = {}
+						end
+
+						table.insert(self.processedData.superGroupToUncollectedMountIDsMap[sg], mountID)
 					else
 						self.processedData.standaloneFamilyNames[fn] = true
 					end
@@ -149,11 +209,14 @@ function addon:InitializeProcessedData()
 	end
 
 	print("RMB_DEBUG_DATA: Scanned:" ..
-		scannedCount .. ", APICollected:" .. collectedCount .. ", ProcessedFamilyInfo:" .. processedCount)
-	local sgC = 0; for k in pairs(self.processedData.superGroupMap) do sgC = sgC + 1 end; print(
-		"RMB_DEBUG_DATA: SuperGroups:" .. sgC)
-	local fnC = 0; for k in pairs(self.processedData.standaloneFamilyNames) do fnC = fnC + 1 end; print(
-		"RMB_DEBUG_DATA: StandaloneFams:" .. fnC)
+		scannedCount .. ", APICollected:" .. collectedCount .. ", APIUncollected:" .. uncollectedCount ..
+		", ProcessedFamilyInfo:" .. processedCount)
+	local sgC = 0; for k in pairs(self.processedData.superGroupMap) do sgC = sgC + 1 end
+
+	print("RMB_DEBUG_DATA: SuperGroups:" .. sgC)
+	local fnC = 0; for k in pairs(self.processedData.standaloneFamilyNames) do fnC = fnC + 1 end
+
+	print("RMB_DEBUG_DATA: StandaloneFams:" .. fnC)
 	print("RMB_DEBUG_DATA: Init COMPLETE.")
 	self.RMB_DataReadyForUI = true; print("RMB_DEBUG_DATA: Set RMB_DataReadyForUI to true.")
 	self:PopulateFamilyManagementUI() -- Populate UI now that data is ready
@@ -231,62 +294,209 @@ end
 
 -- Add these helper functions for getting mount information
 -- Gets a random mount from a group (for previewing or summoning)
-function addon:GetRandomMountFromGroup(groupKey, groupType)
-	if not groupKey or not groupType then return nil end
-
-	local mountIDs = {}
-	if groupType == "familyName" then
-		-- For a family, get mount IDs directly
-		mountIDs = self.processedData.familyToMountIDsMap and self.processedData.familyToMountIDsMap[groupKey] or {}
-	elseif groupType == "superGroup" then
-		-- For a supergroup, get mount IDs from the supergroup map
-		mountIDs = self.processedData.superGroupToMountIDsMap and self.processedData.superGroupToMountIDsMap[groupKey] or {}
+function addon:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
+	print("RMB_DEBUG_MOUNT: GetRandomMountFromGroup called for " .. tostring(groupKey) ..
+		", type: " .. tostring(groupType) .. ", includeUncollected: " .. tostring(includeUncollected))
+	if not groupKey then
+		print("RMB_DEBUG_MOUNT: No groupKey provided")
+		return nil
 	end
 
-	-- Filter out any non-collected mounts (should not be necessary, but as a safety check)
+	-- Default to including uncollected if not specified
+	if includeUncollected == nil then
+		includeUncollected = self:GetSetting("showUncollectedMounts")
+	end
+
+	-- Check if it's a direct mount ID reference (prefixed with "mount_")
+	if type(groupKey) == "string" and string.match(groupKey, "^mount_(%d+)$") then
+		local mountID = tonumber(string.match(groupKey, "^mount_(%d+)$"))
+		print("RMB_DEBUG_MOUNT: Direct mount ID: " .. tostring(mountID))
+		-- Check collected mounts first
+		if mountID and self.processedData.allCollectedMountFamilyInfo and
+				self.processedData.allCollectedMountFamilyInfo[mountID] then
+			local mountInfo = self.processedData.allCollectedMountFamilyInfo[mountID]
+			print("RMB_DEBUG_MOUNT: Found collected mount: " .. tostring(mountInfo.name))
+			return mountID, mountInfo.name, false
+		end
+
+		-- If not found in collected and we should include uncollected, check there
+		if includeUncollected and mountID and self.processedData.allUncollectedMountFamilyInfo and
+				self.processedData.allUncollectedMountFamilyInfo[mountID] then
+			local mountInfo = self.processedData.allUncollectedMountFamilyInfo[mountID]
+			print("RMB_DEBUG_MOUNT: Found uncollected mount: " .. tostring(mountInfo.name))
+			return mountID, mountInfo.name, true
+		end
+
+		print("RMB_DEBUG_MOUNT: No mount found for ID: " .. tostring(mountID))
+		return nil
+	end
+
+	-- If no groupType provided, try to determine it
+	if not groupType then
+		groupType = self:GetGroupTypeFromKey(groupKey)
+		print("RMB_DEBUG_MOUNT: Determined group type: " .. tostring(groupType))
+	end
+
+	-- Arrays to store mounts
 	local collectedMounts = {}
-	for _, mountID in ipairs(mountIDs) do
-		if self.processedData.allCollectedMountFamilyInfo and self.processedData.allCollectedMountFamilyInfo[mountID] then
-			table.insert(collectedMounts, mountID)
+	local uncollectedMounts = {}
+	if groupType == "familyName" then
+		print("RMB_DEBUG_MOUNT: Processing as family: " .. tostring(groupKey))
+		-- For a family, get mount IDs directly
+		local collectedIDs = self.processedData.familyToMountIDsMap and
+				self.processedData.familyToMountIDsMap[groupKey] or {}
+		print("RMB_DEBUG_MOUNT: Found " .. #collectedIDs .. " collected mounts in family")
+		for _, mountID in ipairs(collectedIDs) do
+			if self.processedData.allCollectedMountFamilyInfo and
+					self.processedData.allCollectedMountFamilyInfo[mountID] then
+				local info = self.processedData.allCollectedMountFamilyInfo[mountID]
+				table.insert(collectedMounts, {
+					id = mountID,
+					name = info.name or ("Mount ID " .. mountID),
+					isUncollected = false,
+				})
+			end
+		end
+
+		if includeUncollected then
+			local uncollectedIDs = self.processedData.familyToUncollectedMountIDsMap and
+					self.processedData.familyToUncollectedMountIDsMap[groupKey] or {}
+			print("RMB_DEBUG_MOUNT: Found " .. #uncollectedIDs .. " uncollected mounts in family")
+			for _, mountID in ipairs(uncollectedIDs) do
+				if self.processedData.allUncollectedMountFamilyInfo and
+						self.processedData.allUncollectedMountFamilyInfo[mountID] then
+					local info = self.processedData.allUncollectedMountFamilyInfo[mountID]
+					table.insert(uncollectedMounts, {
+						id = mountID,
+						name = info.name or ("Mount ID " .. mountID),
+						isUncollected = true,
+					})
+				end
+			end
+		end
+	elseif groupType == "superGroup" then
+		print("RMB_DEBUG_MOUNT: Processing as supergroup: " .. tostring(groupKey))
+		-- For a supergroup, get mount IDs from the supergroup map
+		local collectedIDs = self.processedData.superGroupToMountIDsMap and
+				self.processedData.superGroupToMountIDsMap[groupKey] or {}
+		print("RMB_DEBUG_MOUNT: Found " .. #collectedIDs .. " collected mounts in supergroup")
+		for _, mountID in ipairs(collectedIDs) do
+			if self.processedData.allCollectedMountFamilyInfo and
+					self.processedData.allCollectedMountFamilyInfo[mountID] then
+				local info = self.processedData.allCollectedMountFamilyInfo[mountID]
+				table.insert(collectedMounts, {
+					id = mountID,
+					name = info.name or ("Mount ID " .. mountID),
+					isUncollected = false,
+				})
+			end
+		end
+
+		if includeUncollected then
+			local uncollectedIDs = self.processedData.superGroupToUncollectedMountIDsMap and
+					self.processedData.superGroupToUncollectedMountIDsMap[groupKey] or {}
+			print("RMB_DEBUG_MOUNT: Found " .. #uncollectedIDs .. " uncollected mounts in supergroup")
+			for _, mountID in ipairs(uncollectedIDs) do
+				if self.processedData.allUncollectedMountFamilyInfo and
+						self.processedData.allUncollectedMountFamilyInfo[mountID] then
+					local info = self.processedData.allUncollectedMountFamilyInfo[mountID]
+					table.insert(uncollectedMounts, {
+						id = mountID,
+						name = info.name or ("Mount ID " .. mountID),
+						isUncollected = true,
+					})
+				end
+			end
 		end
 	end
 
-	-- If no collected mounts, return nil
-	if #collectedMounts == 0 then return nil end
+	print("RMB_DEBUG_MOUNT: Final counts - Collected: " .. #collectedMounts ..
+		", Uncollected: " .. #uncollectedMounts)
+	-- Prioritize collected mounts if any exist
+	if #collectedMounts > 0 then
+		-- Pick a random collected mount
+		local randomIndex = math.random(1, #collectedMounts)
+		local selectedMount = collectedMounts[randomIndex]
+		print("RMB_DEBUG_MOUNT: Selected collected mount: " .. tostring(selectedMount.name))
+		return selectedMount.id, selectedMount.name, false
+	elseif includeUncollected and #uncollectedMounts > 0 then
+		-- If no collected mounts and we're including uncollected, pick a random uncollected mount
+		local randomIndex = math.random(1, #uncollectedMounts)
+		local selectedMount = uncollectedMounts[randomIndex]
+		print("RMB_DEBUG_MOUNT: Selected uncollected mount: " .. tostring(selectedMount.name))
+		return selectedMount.id, selectedMount.name, true
+	end
 
-	-- Pick a random mount from the list
-	local randomIndex = math.random(1, #collectedMounts)
-	local selectedMountID = collectedMounts[randomIndex]
-	-- Get mount name and other info
-	local mountInfo = self.processedData.allCollectedMountFamilyInfo[selectedMountID]
-	local mountName = mountInfo and mountInfo.name or ("Mount ID " .. selectedMountID)
-	return selectedMountID, mountName
+	print("RMB_DEBUG_MOUNT: No mounts found for selection")
+	return nil
 end
 
 -- Function to get tooltip text for a group
 function addon:GetMountPreviewTooltip(groupKey, groupType)
-	-- Get a random mount from the specified group
-	local mountID, mountName = self:GetRandomMountFromGroup(groupKey, groupType)
+	print("RMB_DEBUG_TOOLTIP: Getting tooltip for " .. tostring(groupKey))
+	-- Always include uncollected mounts in tooltip if setting is enabled
+	local includeUncollected = self:GetSetting("showUncollectedMounts")
+	local mountID, mountName, isUncollected = self:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
 	if not mountID then
-		-- No mounts found in this group
-		return "No collected mounts found"
+		print("RMB_DEBUG_TOOLTIP: No mounts found for " .. tostring(groupKey))
+		return "No mounts found in this group"
 	end
 
-	-- Return a simple tooltip text
-	return "Mount: " .. mountName .. "\n(Click to open Preview Window)"
+	-- Return tooltip text with uncollected indicator if needed
+	if isUncollected then
+		print("RMB_DEBUG_TOOLTIP: Returning uncollected tooltip for " .. tostring(mountName))
+		return "|cff9d9d9dMount: " .. mountName .. " (Uncollected)|r\n(Click to open Preview Window)"
+	else
+		print("RMB_DEBUG_TOOLTIP: Returning collected tooltip for " .. tostring(mountName))
+		return "Mount: " .. mountName .. "\n(Click to open Preview Window)"
+	end
 end
 
 -- Function to determine group type from key
+-- Function to determine group type from key
 function addon:GetGroupTypeFromKey(groupKey)
+	if not groupKey then return nil end
+
+	-- First check if it's a direct mount reference
+	if type(groupKey) == "string" and string.match(groupKey, "^mount_(%d+)$") then
+		return "mountID"
+	end
+
+	-- Then check if it's a supergroup
 	if self.processedData.superGroupMap and self.processedData.superGroupMap[groupKey] then
 		return "superGroup"
-	else
+	end
+
+	-- Check if it's a family within any supergroup
+	if self.processedData.superGroupMap then
+		for sgName, families in pairs(self.processedData.superGroupMap) do
+			for _, famName in ipairs(families) do
+				if famName == groupKey then
+					return "familyName"
+				end
+			end
+		end
+	end
+
+	-- Check if it's a standalone family
+	if self.processedData.standaloneFamilyNames and self.processedData.standaloneFamilyNames[groupKey] then
 		return "familyName"
 	end
+
+	-- If we still haven't found a match, check if there are any mounts with this family name
+	if self.processedData.familyToMountIDsMap and self.processedData.familyToMountIDsMap[groupKey] and
+			#self.processedData.familyToMountIDsMap[groupKey] > 0 then
+		return "familyName"
+	end
+
+	-- If we got here, we don't know what this is
+	print("RMB_DEBUG_WARN: Unable to determine group type for key: " .. tostring(groupKey))
+	return nil
 end
 
 -- Direct replacement for ShowMountPreview function
-function addon:ShowMountPreview(mountID, mountName, groupKey, groupType)
+-- Update the ShowMountPreview function to handle uncollected mounts
+function addon:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncollected)
 	-- Create the model frame if it doesn't exist yet
 	if not self.previewDialog then
 		-- Create a modal dialog frame
@@ -344,13 +554,18 @@ function addon:ShowMountPreview(mountID, mountName, groupKey, groupType)
 	frame.groupType = groupType
 	-- Store the current mount ID for "Summon" button
 	frame.currentMountID = mountID
-	-- Set the title
-	if frame.title then -- Verify title exists before using it
-		frame.title:SetText(mountName or "")
+	frame.isUncollected = isUncollected
+	-- Set the title with appropriate color
+	if frame.title then
+		if isUncollected then
+			frame.title:SetText("|cff9d9d9d" .. (mountName or "") .. " (Uncollected)|r")
+		else
+			frame.title:SetText(mountName or "")
+		end
 	end
 
 	-- Set the model
-	if frame.model then -- Verify model exists
+	if frame.model then
 		local creatureDisplayID = select(1, C_MountJournal.GetMountInfoExtraByID(mountID))
 		if creatureDisplayID then
 			frame.model:SetDisplayInfo(creatureDisplayID)
@@ -369,14 +584,21 @@ function addon:ShowMountPreview(mountID, mountName, groupKey, groupType)
 		end)
 	end
 
-	-- Set up the Summon button
+	-- Set up the Summon button - disable for uncollected mounts
 	if frame.summonButton then
-		frame.summonButton:SetScript("OnClick", function()
-			if frame.currentMountID then
-				C_MountJournal.SummonByID(frame.currentMountID)
-				frame:Hide()
-			end
-		end)
+		if isUncollected then
+			frame.summonButton:SetText("Cannot Summon")
+			frame.summonButton:Disable()
+		else
+			frame.summonButton:SetText("Summon")
+			frame.summonButton:Enable()
+			frame.summonButton:SetScript("OnClick", function()
+				if frame.currentMountID then
+					C_MountJournal.SummonByID(frame.currentMountID)
+					frame:Hide()
+				end
+			end)
+		end
 	end
 
 	-- Show the frame
@@ -576,54 +798,67 @@ function addon:BuildFamilyManagementArgs()
 			local mountName = nil
 			-- Check if this is a standalone family (not in a superGroup)
 			if groupInfo.type == "familyName" then
-				-- First, find the model path for this family name
-				local familyModelPath = nil
-				for modelPath, familyDef in pairs(self.FamilyDefinitions or {}) do
-					if familyDef.familyName == groupKey then
-						familyModelPath = modelPath
-						break
-					end
-				end
+				-- Calculate total mounts in this family (collected + uncollected)
+				local totalMountCount = (groupInfo.mountCount or 0) + (groupInfo.uncollectedCount or 0)
+				-- It's a single-mount family ONLY if the total count is exactly 1
+				isSingleMountFamily = (totalMountCount == 1)
+				if isSingleMountFamily then
+					-- Get the mount name if it's collected
+					if groupInfo.mountCount == 1 then
+						local mIDs = self.processedData.familyToMountIDsMap and
+								self.processedData.familyToMountIDsMap[groupKey]
+						if mIDs and #mIDs == 1 then
+							local mountID = mIDs[1]
+							if self.processedData.allCollectedMountFamilyInfo and
+									self.processedData.allCollectedMountFamilyInfo[mountID] then
+								mountName = self.processedData.allCollectedMountFamilyInfo[mountID].name
+							end
+						end
 
-				-- Now count how many mount IDs use this model path
-				local mountCount = 0
-				if familyModelPath then
-					for _, mountModelPath in pairs(self.MountToModelPath or {}) do
-						if mountModelPath == familyModelPath then
-							mountCount = mountCount + 1
-							-- If we find more than one, we can break early
-							if mountCount > 1 then
-								break
+						-- Get the mount name if it's uncollected
+					elseif groupInfo.uncollectedCount == 1 then
+						local uncollectedIDs = self.processedData.familyToUncollectedMountIDsMap and
+								self.processedData.familyToUncollectedMountIDsMap[groupKey]
+						if uncollectedIDs and #uncollectedIDs == 1 then
+							local mountID = uncollectedIDs[1]
+							if self.processedData.allUncollectedMountFamilyInfo and
+									self.processedData.allUncollectedMountFamilyInfo[mountID] then
+								mountName = self.processedData.allUncollectedMountFamilyInfo[mountID].name
 							end
 						end
 					end
-				end
-
-				-- It's a single-mount family if there's only one mount that uses this model path
-				isSingleMountFamily = (mountCount == 1)
-				if isSingleMountFamily and groupInfo.mountCount == 1 then
-					-- Get the mount name for display
-					local mIDs = self.processedData.familyToMountIDsMap and
-							self.processedData.familyToMountIDsMap[groupKey]
-					if mIDs and #mIDs == 1 then
-						local mountID = mIDs[1]
-						if self.processedData.allCollectedMountFamilyInfo and
-								self.processedData.allCollectedMountFamilyInfo[mountID] then
-							mountName = self.processedData.allCollectedMountFamilyInfo[mountID].name
-						end
-					end
-				else
-					-- Not a single mount family, or has more than one collected
-					isSingleMountFamily = false
 				end
 			end
 
 			-- Construct the display name differently for single mount families
 			local groupDisplayName
 			if isSingleMountFamily then
-				groupDisplayName = groupInfo.displayName .. " (Mount)"
+				-- If it's a single mount family, check if it's collected or uncollected
+				if groupInfo.mountCount == 1 then
+					groupDisplayName = groupInfo.displayName .. " (Mount)"
+				else -- Must be uncollected
+					groupDisplayName = "|cff9d9d9d" .. groupInfo.displayName .. " (Mount)|r"
+				end
 			else
-				groupDisplayName = groupInfo.displayName .. " (" .. groupInfo.mountCount .. ")"
+				-- It's a multi-mount family or supergroup - display counts with proper colors
+				local collectedCount = groupInfo.mountCount or 0
+				local uncollectedCount = groupInfo.uncollectedCount or 0
+				-- Format the display differently based on collection status
+				if collectedCount > 0 and uncollectedCount > 0 then
+					-- Some collected, some uncollected
+					groupDisplayName = groupInfo.displayName .. " (" .. collectedCount
+					if uncollectedCount > 0 then
+						groupDisplayName = groupDisplayName .. " + |cff9d9d9d" .. uncollectedCount .. "|r"
+					end
+
+					groupDisplayName = groupDisplayName .. ")"
+				elseif collectedCount > 0 then
+					-- All collected
+					groupDisplayName = groupInfo.displayName .. " (" .. collectedCount .. ")"
+				else
+					-- All uncollected
+					groupDisplayName = "|cff9d9d9d" .. groupInfo.displayName .. " (" .. uncollectedCount .. ")|r"
+				end
 			end
 
 			local detailArgsForThisGroup = (isExpanded and self:GetExpandedGroupDetailsArgs(groupKey, groupInfo.type)) or
@@ -677,10 +912,13 @@ function addon:BuildFamilyManagementArgs()
 						name = "Preview",
 						desc = function() return self:GetMountPreviewTooltip(groupKey, groupInfo.type) end,
 						func = function(info)
-							local mountID, mountName = self:GetRandomMountFromGroup(groupKey, groupInfo.type)
+							-- Pass the include uncollected setting to ensure we match what the tooltip shows
+							local includeUncollected = self:GetSetting("showUncollectedMounts")
+							local mountID, mountName, isUncollected = self:GetRandomMountFromGroup(groupKey, groupInfo.type,
+								includeUncollected)
 							if mountID then
-								-- Instead of summoning, show in our preview window
-								self:ShowMountPreview(mountID, mountName, groupKey, groupInfo.type)
+								-- Show preview with the uncollected flag
+								self:ShowMountPreview(mountID, mountName, groupKey, groupInfo.type, isUncollected)
 							else
 								print("RMB_PREVIEW: No mount available to preview from this group")
 							end
@@ -799,6 +1037,12 @@ function addon:PopulateFamilyManagementUI()
 		print(
 			"RMB_DEBUG_UI_ERROR: AceConfigRegistry missing.")
 	end
+
+	-- Force tooltip cleanup - this can help with stuck tooltips
+	GameTooltip:Hide()
+	if _G["AceConfigDialogTooltip"] then
+		_G["AceConfigDialogTooltip"]:Hide()
+	end
 end
 
 function addon:TriggerFamilyManagementUIRefresh()
@@ -901,28 +1145,64 @@ end
 function addon:GetDisplayableGroups()
 	if not (self.processedData and self.processedData.superGroupMap) then
 		print("RMB_UI: GetDisplayableGroups-procData ERR"); return {}
-	end; local o = {};
+	end
+
+	local o = {}
+	local showUncollected = self:GetSetting("showUncollectedMounts")
 	for sgn, fl in pairs(self.processedData.superGroupMap) do
-		local mc = self.processedData.superGroupToMountIDsMap and
-				#(self.processedData.superGroupToMountIDsMap[sgn] or {}) or
-				0; if mc > 0 then
-			table.insert(o,
-				{ key = sgn, type = "superGroup", displayName = sgn, mountCount = mc, familiesInGroup = #(fl or {}) })
+		-- Count collected mounts in this supergroup
+		local mcCollected = self.processedData.superGroupToMountIDsMap and
+				#(self.processedData.superGroupToMountIDsMap[sgn] or {}) or 0
+		-- Count uncollected mounts if setting enabled
+		local mcUncollected = 0
+		if showUncollected then
+			mcUncollected = self.processedData.superGroupToUncollectedMountIDsMap and
+					#(self.processedData.superGroupToUncollectedMountIDsMap[sgn] or {}) or 0
+		end
+
+		-- Add supergroup if it has any mounts (collected or uncollected if enabled)
+		if mcCollected > 0 or (showUncollected and mcUncollected > 0) then
+			table.insert(o, {
+				key = sgn,
+				type = "superGroup",
+				displayName = sgn,
+				mountCount = mcCollected,
+				uncollectedCount = mcUncollected,
+				familiesInGroup = #(fl or {}),
+			})
 		end
 	end
 
 	for fn, _ in pairs(self.processedData.standaloneFamilyNames) do
-		local mc = self.processedData.familyToMountIDsMap and #(self.processedData.familyToMountIDsMap[fn] or {}) or 0; if mc > 0 then
-			table.insert(o, { key = fn, type = "familyName", displayName = fn, mountCount = mc })
+		-- Count collected mounts in this family
+		local mcCollected = self.processedData.familyToMountIDsMap and
+				#(self.processedData.familyToMountIDsMap[fn] or {}) or 0
+		-- Count uncollected mounts if setting enabled
+		local mcUncollected = 0
+		if showUncollected then
+			mcUncollected = self.processedData.familyToUncollectedMountIDsMap and
+					#(self.processedData.familyToUncollectedMountIDsMap[fn] or {}) or 0
+		end
+
+		-- Add family if it has any mounts (collected or uncollected if enabled)
+		if mcCollected > 0 or (showUncollected and mcUncollected > 0) then
+			table.insert(o, {
+				key = fn,
+				type = "familyName",
+				displayName = fn,
+				mountCount = mcCollected,
+				uncollectedCount = mcUncollected,
+			})
 		end
 	end
 
-	table.sort(o, function(a, b) return (a.displayName or "") < (b.displayName or "") end); print(
-		"RMB_UI: GetDisplayableGroups returns " .. #o);
+	table.sort(o, function(a, b) return (a.displayName or "") < (b.displayName or "") end)
+	print("RMB_UI: GetDisplayableGroups returns " .. #o)
 	if #o > 0 and #o <= 5 then
 		for i = 1, #o do
 			print("RMB_UI: Gp: " ..
-				tostring(o[i].displayName) .. " C:" .. tostring(o[i].mountCount) .. " T:" .. tostring(o[i].type))
+				tostring(o[i].displayName) .. " C:" .. tostring(o[i].mountCount) ..
+				" UC:" .. tostring(o[i].uncollectedCount) .. " T:" .. tostring(o[i].type))
 		end
 	end
 
@@ -934,6 +1214,7 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 		" (" .. tostring(groupType) .. ")")
 	local detailsArgs = {} -- Table to hold args for the details section
 	local displayOrder = 1 -- Ordering for items within detailsArgs
+	local showUncollected = self:GetSetting("showUncollectedMounts")
 	if not self.processedData then
 		print("RMB_DEBUG_UI_DETAILS: No processed data."); return {}
 	end
@@ -941,192 +1222,336 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 	if groupType == "superGroup" then
 		local familyNamesInSG = self.processedData.superGroupMap and self.processedData.superGroupMap[groupKey]
 		if familyNamesInSG and #familyNamesInSG > 0 then
-			-- We don't add any header here now, since it's in the parent function
 			-- Sort the family names for consistent display
-			local sortedFams = {}; for _, fn in ipairs(familyNamesInSG) do table.insert(sortedFams, fn) end; table.sort(
-				sortedFams);
-			print("RMB_DEBUG_UI_DETAILS: Processing Families for SG: " .. tostring(groupKey));
+			local sortedFams = {}; for _, fn_iter in ipairs(familyNamesInSG) do table.insert(sortedFams, fn_iter) end -- fn_iter to avoid conflict with fn if it was in wider scope
+
+			table.sort(sortedFams)
+			print("RMB_DEBUG_UI_DETAILS: Processing Families for SG: " .. tostring(groupKey))
 			-- For each family in this supergroup, we'll create a row of controls
 			for fidx, fn in ipairs(sortedFams) do
-				local mc = self.processedData.familyToMountIDsMap and #(self.processedData.familyToMountIDsMap[fn] or {}) or
-						0;
-				-- Check if this is a single-mount family (just like in BuildFamilyManagementArgs)
-				local isSingleMountFamily = false
-				if mc == 1 then
-					-- Find the model path for this family name
-					local familyModelPath = nil
-					for modelPath, familyDef in pairs(self.FamilyDefinitions or {}) do
-						if familyDef.familyName == fn then
-							familyModelPath = modelPath
-							break
-						end
-					end
+				-- Count collected and uncollected mounts
+				local mcCollected = self.processedData.familyToMountIDsMap and
+						#(self.processedData.familyToMountIDsMap[fn] or {}) or 0
+				local mcUncollected = 0
+				if showUncollected then
+					mcUncollected = self.processedData.familyToUncollectedMountIDsMap and
+							#(self.processedData.familyToUncollectedMountIDsMap[fn] or {}) or 0
+				end
 
-					-- Count how many mount IDs use this model path
-					local mountCount = 0
-					if familyModelPath then
-						for _, mountModelPath in pairs(self.MountToModelPath or {}) do
-							if mountModelPath == familyModelPath then
-								mountCount = mountCount + 1
-								-- If we find more than one, we can break early
-								if mountCount > 1 then
-									break
+				-- Process this family only if there are mounts to show (replaces goto continue)
+				if mcCollected > 0 or mcUncollected > 0 then
+					-- Check if this is a single-mount family
+					local isSingleMountFamily = false
+					local isOnlyMountUncollected = false
+					if mcCollected + mcUncollected == 1 then
+						-- Find the model path for this family name
+						local familyModelPath = nil
+						for modelPath, familyDef in pairs(self.FamilyDefinitions or {}) do
+							if familyDef.familyName == fn then
+								familyModelPath = modelPath
+								break
+							end
+						end
+
+						-- Count how many mount IDs use this model path
+						local mountCount = 0
+						if familyModelPath then
+							for _, mountModelPath in pairs(self.MountToModelPath or {}) do
+								if mountModelPath == familyModelPath then
+									mountCount = mountCount + 1
+									-- If we find more than one, we can break early
+									if mountCount > 1 then
+										break
+									end
 								end
 							end
 						end
+
+						-- It's a single-mount family if there's only one mount that uses this model path
+						isSingleMountFamily = (mountCount == 1)
+						-- If there are no collected but one uncollected, the only mount is uncollected
+						isOnlyMountUncollected = (mcCollected == 0 and mcUncollected == 1)
 					end
 
-					-- It's a single-mount family if there's only one mount that uses this model path
-					isSingleMountFamily = (mountCount == 1)
-				end
-
-				-- Create display name
-				local familyDisplayName
-				if isSingleMountFamily then
-					familyDisplayName = fn .. " (Mount)"
-				else
-					familyDisplayName = fn .. " (" .. mc .. ")"
-				end
-
-				-- Make sure to align each family's controls properly in a row
-				-- Family name
-				detailsArgs["fam_" .. fn .. "_name"] = {
-					order = displayOrder,
-					type = "description",
-					name = familyDisplayName,
-					width = 1.38,
-					fontSize = "medium",
-				}
-				displayOrder = displayOrder + 1
-				-- Weight controls
-				detailsArgs["fam_" .. fn .. "_weightDec"] = {
-					order = displayOrder,
-					type = "execute",
-					name = "-",
-					func = function() self:DecrementGroupWeight(fn) end,
-					width = 0.1,
-					disabled = function() return self:GetGroupWeight(fn) == 0 end,
-				}
-				displayOrder = displayOrder + 1
-				detailsArgs["fam_" .. fn .. "_weightDisp"] = {
-					order = displayOrder,
-					type = "description",
-					name = self:GetWeightDisplayString(self:GetGroupWeight(fn)),
-					width = 0.5,
-				}
-				displayOrder = displayOrder + 1
-				detailsArgs["fam_" .. fn .. "_weightInc"] = {
-					order = displayOrder,
-					type = "execute",
-					name = "+",
-					func = function() self:IncrementGroupWeight(fn) end,
-					width = 0.1,
-					disabled = function() return self:GetGroupWeight(fn) == 6 end,
-				}
-				displayOrder = displayOrder + 1
-				detailsArgs["fam_" .. fn .. "_spacerWeightPreview"] = {
-					order = displayOrder,
-					type = "description",
-					name = " ",
-					width = 0.52,
-				}
-				displayOrder = displayOrder + 1
-				-- Preview button
-				detailsArgs["fam_" .. fn .. "_preview"] = {
-					order = displayOrder,
-					type = "execute",
-					name = "Preview",
-					--  func = , todo
-					width = 0.5,
-				}
-				displayOrder = displayOrder + 1
-				-- Expand/Collapse button
-				local isFamExpanded = self:IsGroupExpanded(fn)
-				detailsArgs["fam_" .. fn .. "_expand"] = {
-					order = displayOrder,
-					type = "execute",
-					name = isFamExpanded and "Collapse" or "Expand",
-					func = function() self:ToggleExpansionState(fn) end,
-					width = 0.5,
-					hidden = isSingleMountFamily, -- Hide for single-mount families
-				}
-				displayOrder = displayOrder + 1
-				-- Add a line break after each family
-				detailsArgs["fam_" .. fn .. "_linebreak"] = {
-					order = displayOrder,
-					type = "description",
-					name = "",
-					width = "full",
-				}
-				displayOrder = displayOrder + 1
-				-- If expanded, add mount details after this family
-				if isFamExpanded then
-					-- Add mount details header
-					detailsArgs["fam_" .. fn .. "_mountsheader"] = {
-						order = displayOrder,
-						type = "header",
-						name = "Mounts",
-						width = "full",
-					}
-					displayOrder = displayOrder + 1
-					-- Add mount list
-					local mIDs = self.processedData.familyToMountIDsMap and self.processedData.familyToMountIDsMap[fn]
-					if mIDs and #mIDs > 0 then
-						local mountList = {}
-						for _, mountID in ipairs(mIDs) do
-							local mountName = "ID:" .. mountID
-							if self.processedData.allCollectedMountFamilyInfo and self.processedData.allCollectedMountFamilyInfo[mountID] then
-								mountName = self.processedData.allCollectedMountFamilyInfo[mountID].name or mountName
-							end
-
-							table.insert(mountList, {
-								id = mountID,
-								name = mountName,
-							})
-						end
-
-						table.sort(mountList, function(a, b) return (a.name or "") < (b.name or "") end)
-						for _, mountData in ipairs(mountList) do
-							detailsArgs["fam_" .. fn .. "_mount_" .. mountData.id] = {
-								order = displayOrder,
-								type = "description",
-								name = "  - " .. mountData.name,
-								fontSize = "medium",
-								width = "full",
-							}
-							displayOrder = displayOrder + 1
+					-- Create display name with appropriate styling
+					local familyDisplayName
+					if isSingleMountFamily then
+						if isOnlyMountUncollected then
+							familyDisplayName = "|cff9d9d9d" .. fn .. " (Mount)|r"
+						else
+							familyDisplayName = fn .. " (Mount)"
 						end
 					else
-						detailsArgs["fam_" .. fn .. "_nomounts"] = {
-							order = displayOrder,
-							type = "description",
-							name = "No collected mounts in this family.",
-							width = "full",
-						}
-						displayOrder = displayOrder + 1
+						local uncollectedText = ""
+						if mcUncollected > 0 then
+							uncollectedText = " |cff9d9d9d+" .. mcUncollected .. "|r"
+						end
+
+						familyDisplayName = fn .. " (" .. mcCollected .. uncollectedText .. ")"
 					end
 
-					-- Add a spacer after the mount list
-					detailsArgs["fam_" .. fn .. "_aftermounts"] = {
+					-- Make sure to align each family's controls properly in a row
+					-- Family name
+					detailsArgs["fam_" .. fn .. "_name"] = {
+						order = displayOrder,
+						type = "description",
+						name = familyDisplayName,
+						width = 1.38,
+						fontSize = "medium",
+					}
+					displayOrder = displayOrder + 1
+					-- Weight controls
+					detailsArgs["fam_" .. fn .. "_weightDec"] = {
+						order = displayOrder,
+						type = "execute",
+						name = "-",
+						func = function() self:DecrementGroupWeight(fn) end,
+						width = 0.1,
+						disabled = function() return self:GetGroupWeight(fn) == 0 end,
+					}
+					displayOrder = displayOrder + 1
+					detailsArgs["fam_" .. fn .. "_weightDisp"] = {
+						order = displayOrder,
+						type = "description",
+						name = function() return self:GetWeightDisplayString(self:GetGroupWeight(fn)) end,
+						width = 0.5,
+					}
+					displayOrder = displayOrder + 1
+					detailsArgs["fam_" .. fn .. "_weightInc"] = {
+						order = displayOrder,
+						type = "execute",
+						name = "+",
+						func = function() self:IncrementGroupWeight(fn) end,
+						width = 0.1,
+						disabled = function() return self:GetGroupWeight(fn) == 6 end,
+					}
+					displayOrder = displayOrder + 1
+					detailsArgs["fam_" .. fn .. "_spacerWeightPreview"] = {
+						order = displayOrder,
+						type = "description",
+						name = " ",
+						width = 0.52,
+					}
+					displayOrder = displayOrder + 1
+					-- Preview button
+					detailsArgs["fam_" .. fn .. "_preview"] = {
+						order = displayOrder,
+						type = "execute",
+						name = "Preview",
+						desc = function()
+							-- Add a tooltip function here
+							return self:GetMountPreviewTooltip(fn, "familyName")
+						end,
+						func = function()
+							local includeUncollected = self:GetSetting("showUncollectedMounts")
+							local mountID, mountName, isUncollected = self:GetRandomMountFromGroup(fn, "familyName", includeUncollected)
+							if mountID then
+								self:ShowMountPreview(mountID, mountName, fn, "familyName", isUncollected)
+							else
+								print("RMB_PREVIEW: No mount available to preview from this family")
+							end
+						end,
+						width = 0.5,
+					}
+					displayOrder = displayOrder + 1
+					-- Expand/Collapse button
+					local isFamExpanded = self:IsGroupExpanded(fn)
+					detailsArgs["fam_" .. fn .. "_expand"] = {
+						order = displayOrder,
+						type = "execute",
+						name = isFamExpanded and "Collapse" or "Expand",
+						func = function() self:ToggleExpansionState(fn) end,
+						width = 0.5,
+						hidden = isSingleMountFamily, -- Hide for single-mount families
+					}
+					displayOrder = displayOrder + 1
+					-- Add a line break after each family
+					detailsArgs["fam_" .. fn .. "_linebreak"] = {
 						order = displayOrder,
 						type = "description",
 						name = "",
 						width = "full",
 					}
 					displayOrder = displayOrder + 1
-					-- Add a bottom border header line
-					detailsArgs["fam_" .. fn .. "_bottomborder"] = {
-						order = displayOrder,
-						type = "header",
-						name = "",
-						width = "full",
-					}
-					displayOrder = displayOrder + 1
-				end
-			end
+					-- If expanded, add mount details after this family
+					if isFamExpanded then
+						-- Add mount details header
+						detailsArgs["fam_" .. fn .. "_mountsheader"] = {
+							order = displayOrder,
+							type = "header",
+							name = "Mounts",
+							width = "full",
+						}
+						displayOrder = displayOrder + 1
+						-- Process mounts
+						local mountList = {}
+						-- Add collected mounts
+						local mIDs = self.processedData.familyToMountIDsMap and
+								self.processedData.familyToMountIDsMap[fn]
+						if mIDs and #mIDs > 0 then
+							for _, mountID in ipairs(mIDs) do
+								local mountName = "ID:" .. mountID
+								if self.processedData.allCollectedMountFamilyInfo and
+										self.processedData.allCollectedMountFamilyInfo[mountID] then
+									mountName = self.processedData.allCollectedMountFamilyInfo[mountID].name or mountName
+								end
+
+								table.insert(mountList, {
+									id = mountID,
+									name = mountName,
+									isCollected = true,
+								})
+							end
+						end
+
+						-- Add uncollected mounts if enabled
+						if showUncollected then
+							local uncollectedIDs = self.processedData.familyToUncollectedMountIDsMap and
+									self.processedData.familyToUncollectedMountIDsMap[fn]
+							if uncollectedIDs and #uncollectedIDs > 0 then
+								for _, mountID in ipairs(uncollectedIDs) do
+									local mountName = "ID:" .. mountID
+									if self.processedData.allUncollectedMountFamilyInfo and
+											self.processedData.allUncollectedMountFamilyInfo[mountID] then
+										mountName = self.processedData.allUncollectedMountFamilyInfo[mountID].name or
+												mountName
+									end
+
+									table.insert(mountList, {
+										id = mountID,
+										name = mountName,
+										isCollected = false,
+									})
+								end
+							end
+						end
+
+						-- Sort all mounts alphabetically
+						table.sort(mountList, function(a, b) return (a.name or "") < (b.name or "") end)
+						if #mountList > 0 then
+							for _, mountData in ipairs(mountList) do
+								local mountID = mountData.id
+								-- Create a display name with appropriate color based on collection status
+								local nameColor = mountData.isCollected and "ffffff" or "9d9d9d"
+								local collectionStatus = mountData.isCollected and "" or ""
+								-- Mount name
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_name"] = {
+									order = displayOrder,
+									type = "description",
+									name = "|cff" .. nameColor .. "  - " .. mountData.name .. collectionStatus .. "|r",
+									fontSize = "medium",
+									width = 1.3,
+								}
+								displayOrder = displayOrder + 1
+								-- Weight decrement button
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_weightDec"] = {
+									order = displayOrder,
+									type = "execute",
+									name = "-",
+									func = function() self:DecrementGroupWeight("mount_" .. mountID) end,
+									width = 0.1,
+									disabled = function() return self:GetGroupWeight("mount_" .. mountID) == 0 end,
+								}
+								displayOrder = displayOrder + 1
+								-- Weight display - apply gray color for uncollected mounts
+								local weightDisplayFunc = function()
+									local weightStr = self:GetWeightDisplayString(self:GetGroupWeight("mount_" .. mountID))
+									if not mountData.isCollected then
+										-- Add gray color wrap if it's not already colored
+										if not weightStr:find("|cff") then
+											weightStr = "|cff9d9d9d" .. weightStr .. "|r"
+										end
+									end
+
+									return weightStr
+								end
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_weightDisp"] = {
+									order = displayOrder,
+									type = "description",
+									name = weightDisplayFunc,
+									width = 0.5,
+								}
+								displayOrder = displayOrder + 1
+								-- Weight increment button
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_weightInc"] = {
+									order = displayOrder,
+									type = "execute",
+									name = "+",
+									func = function() self:IncrementGroupWeight("mount_" .. mountID) end,
+									width = 0.1,
+									disabled = function() return self:GetGroupWeight("mount_" .. mountID) == 6 end,
+								}
+								displayOrder = displayOrder + 1
+								-- Spacer
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_spacer"] = {
+									order = displayOrder,
+									type = "description",
+									name = "",
+									width = 0.52,
+								}
+								displayOrder = displayOrder + 1
+								-- Preview button (for all mounts)
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_preview"] = {
+									order = displayOrder,
+									type = "execute",
+									name = mountData.isCollected and "Preview" or "|cff9d9d9dPreview|r",
+									desc = function()
+										-- Add tooltip for individual mounts
+										return mountData.isCollected
+												"Click to preview " .. mountData.name
+												"|cff9d9d9dClick to preview " .. mountData.name .. " (Uncollected)|r"
+									end,
+									func = function()
+										-- For individual mounts, we can directly use the mount ID
+										self:ShowMountPreview(mountID, mountData.name, nil, nil, not mountData.isCollected)
+									end,
+									width = 0.5,
+								}
+								displayOrder = displayOrder + 1
+								-- Line break after each mount
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_linebreak"] = {
+									order = displayOrder,
+									type = "description",
+									name = "",
+									width = "full",
+								}
+								displayOrder = displayOrder + 1
+							end
+						else
+							detailsArgs["fam_" .. fn .. "_nomounts"] = {
+								order = displayOrder,
+								type = "description",
+								name = "No mounts in this family.",
+								width = "full",
+							}
+							displayOrder = displayOrder + 1
+						end
+
+						-- Add a spacer after the mount list
+						detailsArgs["fam_" .. fn .. "_aftermounts"] = {
+							order = displayOrder,
+							type = "description",
+							name = "",
+							width = "full",
+						}
+						displayOrder = displayOrder + 1
+						-- Add a bottom border header line
+						detailsArgs["fam_" .. fn .. "_bottomborder"] = {
+							order = displayOrder,
+							type = "header",
+							name = "",
+							width = "full",
+						}
+						displayOrder = displayOrder + 1
+					end -- if isFamExpanded
+				end -- if mcCollected > 0 or mcUncollected > 0 (end of replaced goto block)
+
+				-- ::continue:: label removed, loop continues to next iteration.
+			end -- end for fidx, fn
 
 			-- Add a bottom border for the supergroup after all families are listed
 			-- This ensures there's always a bottom border, even if no families are expanded
+			-- (or if all families were empty and skipped)
 			detailsArgs["supergroup_bottom_border"] = {
 				order = displayOrder,
 				type = "header",
@@ -1138,33 +1563,120 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 			detailsArgs.nf = { order = 1, type = "description", name = "No families/mounts.", width = "full" }
 		end
 	elseif groupType == "familyName" then
-		local mIDs = self.processedData.familyToMountIDsMap and self.processedData.familyToMountIDsMap[groupKey];
+		-- Process mounts in a standalone family
+		local mountList = {}
+		-- Add collected mounts
+		local mIDs = self.processedData.familyToMountIDsMap and self.processedData.familyToMountIDsMap[groupKey]
 		if mIDs and #mIDs > 0 then
-			-- No header needed here either, handled in parent
-			local ml = {};
-			for _, mid in ipairs(mIDs) do
-				local n = "ID:" .. mid;
-				if self.processedData.allCollectedMountFamilyInfo and self.processedData.allCollectedMountFamilyInfo[mid] then
-					n = self.processedData.allCollectedMountFamilyInfo[mid].name or n
-				end;
+			for _, mountID in ipairs(mIDs) do
+				local mountName = "ID:" .. mountID
+				if self.processedData.allCollectedMountFamilyInfo and
+						self.processedData.allCollectedMountFamilyInfo[mountID] then
+					mountName = self.processedData.allCollectedMountFamilyInfo[mountID].name or mountName
+				end
 
-				table.insert(ml, {
-					id = mid,
-					name = n,
+				table.insert(mountList, {
+					id = mountID,
+					name = mountName,
+					isCollected = true,
 				})
-			end;
+			end
+		end
 
-			table.sort(ml, function(a, b) return (a.name or "") < (b.name or "") end);
-			print("RMB_DEBUG_UI_DETAILS: Processing Mounts for FN: " .. tostring(groupKey));
-			for _, md in ipairs(ml) do
-				detailsArgs["md_" .. md.id] = {
+		-- Add uncollected mounts if enabled
+		if showUncollected then
+			local uncollectedIDs = self.processedData.familyToUncollectedMountIDsMap and
+					self.processedData.familyToUncollectedMountIDsMap[groupKey]
+			if uncollectedIDs and #uncollectedIDs > 0 then
+				for _, mountID in ipairs(uncollectedIDs) do
+					local mountName = "ID:" .. mountID
+					if self.processedData.allUncollectedMountFamilyInfo and
+							self.processedData.allUncollectedMountFamilyInfo[mountID] then
+						mountName = self.processedData.allUncollectedMountFamilyInfo[mountID].name or mountName
+					end
+
+					table.insert(mountList, {
+						id = mountID,
+						name = mountName,
+						isCollected = false,
+					})
+				end
+			end
+		end
+
+		-- Sort all mounts alphabetically
+		table.sort(mountList, function(a, b) return (a.name or "") < (b.name or "") end)
+		if #mountList > 0 then
+			for _, mountData in ipairs(mountList) do
+				local mountID = mountData.id
+				-- Create a display name with appropriate color based on collection status
+				local nameColor = mountData.isCollected and "ffffff" or "9d9d9d"
+				local collectionStatus = mountData.isCollected and "" or " (Mount)"
+				-- Mount name
+				detailsArgs["mount_" .. mountID .. "_name"] = {
 					order = displayOrder,
 					type = "description",
-					name = "  - " .. md.name,
+					name = "|cff" .. nameColor .. "  - " .. mountData.name .. collectionStatus .. "|r",
 					fontSize = "medium",
+					width = 1.3,
+				}
+				displayOrder = displayOrder + 1
+				-- Weight decrement button
+				detailsArgs["mount_" .. mountID .. "_weightDec"] = {
+					order = displayOrder,
+					type = "execute",
+					name = "-",
+					func = function() self:DecrementGroupWeight("mount_" .. mountID) end,
+					width = 0.1,
+					disabled = function() return self:GetGroupWeight("mount_" .. mountID) == 0 end,
+				}
+				displayOrder = displayOrder + 1
+				-- Weight display
+				detailsArgs["mount_" .. mountID .. "_weightDisp"] = {
+					order = displayOrder,
+					type = "description",
+					name = function() return self:GetWeightDisplayString(self:GetGroupWeight("mount_" .. mountID)) end,
+					width = 0.5,
+				}
+				displayOrder = displayOrder + 1
+				-- Weight increment button
+				detailsArgs["mount_" .. mountID .. "_weightInc"] = {
+					order = displayOrder,
+					type = "execute",
+					name = "+",
+					func = function() self:IncrementGroupWeight("mount_" .. mountID) end,
+					width = 0.1,
+					disabled = function() return self:GetGroupWeight("mount_" .. mountID) == 6 end,
+				}
+				displayOrder = displayOrder + 1
+				-- Spacer
+				detailsArgs["mount_" .. mountID .. "_spacer"] = {
+					order = displayOrder,
+					type = "description",
+					name = "",
+					width = 0.52,
+				}
+				displayOrder = displayOrder + 1
+				-- Preview button (for collected mounts only)
+				detailsArgs["mount_" .. mountID .. "_preview"] = {
+					order = displayOrder,
+					type = "execute",
+					name = "Preview",
+					func = function()
+						-- Show preview
+						self:ShowMountPreview(mountID, mountData.name, nil, nil)
+					end,
+					width = 0.5,
+				}
+				displayOrder = displayOrder + 1
+				-- Line break after each mount
+				detailsArgs["mount_" .. mountID .. "_linebreak"] = {
+					order = displayOrder,
+					type = "description",
+					name = "",
 					width = "full",
-				};
-				displayOrder = displayOrder + 1;
+				}
+				displayOrder = displayOrder + 1
 			end
 
 			-- Add a bottom border header line after the mount list
@@ -1173,19 +1685,19 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 				type = "header",
 				name = "",
 				width = "full",
-			};
-			displayOrder = displayOrder + 1;
+			}
+			displayOrder = displayOrder + 1
 		else
-			detailsArgs.nm = { order = 1, type = "description", name = "No collected mounts.", width = "full" }
+			detailsArgs.nm = { order = 1, type = "description", name = "No mounts in this family.", width = "full" }
 		end
 	else
 		detailsArgs.ut = { order = 1, type = "description", name = "Unknown group type.", width = "full" }
-	end;
+	end
 
 	-- Add a placeholder if nothing was added
 	if displayOrder == 1 then
 		detailsArgs.nd = { order = 1, type = "description", name = "No details available.", width = "full" }
-	end;
+	end
 
 	print("RMB_DEBUG_UI_DETAILS: GetExpandedGroupDetailsArgs returns " .. (displayOrder - 1) .. " items for detailsArgs.")
 	return detailsArgs
@@ -1728,7 +2240,8 @@ function addon:HandleButtonEnter(button)
 		local mountName = self.tooltipTextCache.lastMount
 		for g, t in pairs(self.processedData.superGroupMap or {}) do
 			-- Check if mount is in this supergroup
-			local mountIDs = self.processedData.superGroupToMountIDsMap and self.processedData.superGroupToMountIDsMap[g]
+			local mountIDs = self.processedData.superGroupToMountIDsMap and self.processedData.superGroupToMountIDsMap
+					[g]
 			if mountIDs then
 				for _, mountID in ipairs(mountIDs) do
 					local info = self.processedData.allCollectedMountFamilyInfo and
