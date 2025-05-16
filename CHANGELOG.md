@@ -1,5 +1,8 @@
+# 0.4.6
+Improved preview by allowing it to anchor to the cursor again, plus allowing clicking on the preview button to create a separate window that can be dragged where desired + cycle through mounts + click to summon.
+
 # 0.4.5
-Added mount preview in the family & groups menu, via hovering ove the preview button.
+Added mount preview in the family & groups menu, via hovering over the preview button.
 Rearranged elements in the UI.
 
 # 0.4.5-click-to-preview
