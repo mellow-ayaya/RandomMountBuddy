@@ -921,6 +921,7 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 				displayOrder = displayOrder + 1
 				detailsArgs["fam_" .. fn .. "_spacerWeightPreview"] = {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 					order = displayOrder,
 					type = "description",
 					name = " ",
@@ -939,6 +940,8 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 				-- Expand/Collapse button
 				local isFamExpanded = self:IsGroupExpanded(fn)
 				detailsArgs["fam_" .. fn .. "_expand"] = {
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 					order = displayOrder,
@@ -979,6 +982,9 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 					hidden = isSingleMountFamily, -- Hide for single-mount families
 				}
 				displayOrder = displayOrder + 1
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 				-- Add a line break after each family
 				detailsArgs["fam_" .. fn .. "_linebreak"] = {
