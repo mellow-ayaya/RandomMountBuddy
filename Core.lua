@@ -920,8 +920,6 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 				}
 				displayOrder = displayOrder + 1
 				detailsArgs["fam_" .. fn .. "_spacerWeightPreview"] = {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 					order = displayOrder,
 					type = "description",
 					name = " ",
@@ -940,40 +938,6 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 				-- Expand/Collapse button
 				local isFamExpanded = self:IsGroupExpanded(fn)
 				detailsArgs["fam_" .. fn .. "_expand"] = {
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-					order = displayOrder,
-					type = "description",
-					name = " ",
-					width = 0.52,
-				}
-				displayOrder = displayOrder + 1
-<<<<<<< Updated upstream
-=======
-				-- Preview button
-				detailsArgs["fam_" .. fn .. "_preview"] = {
-					order = displayOrder,
-					type = "execute",
-					name = "Preview",
-					desc = function() return self:GetMountPreviewTooltip(fn, "familyName") end,
-					func = function()
-						local mountID, mountName = self:GetRandomMountFromGroup(fn, "familyName")
-						if mountID then
-							print("RMB_PREVIEW: Summoning " .. mountName .. " (ID: " .. mountID .. ")")
-							-- Summon the mount
-							C_MountJournal.SummonByID(mountID)
-						else
-							print("RMB_PREVIEW: No mount available to summon from this group")
-						end
-					end,
-					width = 0.5,
-				}
-				displayOrder = displayOrder + 1
-				-- Expand/Collapse button
-				local isFamExpanded = self:IsGroupExpanded(fn)
-				detailsArgs["fam_" .. fn .. "_expand"] = {
 					order = displayOrder,
 					type = "execute",
 					name = isFamExpanded and "Collapse" or "Expand",
@@ -982,10 +946,6 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 					hidden = isSingleMountFamily, -- Hide for single-mount families
 				}
 				displayOrder = displayOrder + 1
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 				-- Add a line break after each family
 				detailsArgs["fam_" .. fn .. "_linebreak"] = {
 					order = displayOrder,
