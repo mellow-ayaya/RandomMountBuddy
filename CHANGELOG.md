@@ -1,3 +1,6 @@
+# 0.4.8
+Improved family and groups menu element arrangement, added previewing for uncollected mounts.
+
 # 0.4.7
 Added support for uncollected mounts in the family and groups menu.
 

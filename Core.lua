@@ -555,7 +555,7 @@ function addon:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncol
 	-- Store the current mount ID for "Summon" button
 	frame.currentMountID = mountID
 	frame.isUncollected = isUncollected
-	-- Set the title with appropriate color
+	-- Set the title with proper color
 	if frame.title then
 		if isUncollected then
 			frame.title:SetText("|cff9d9d9d" .. (mountName or "") .. " (Uncollected)|r")
@@ -571,20 +571,29 @@ function addon:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncol
 			frame.model:SetDisplayInfo(creatureDisplayID)
 			frame.model:SetCamDistanceScale(1.5)
 			frame.model:SetPosition(0, 0, 0)
+		else
+			print("RMB_DEBUG_PREVIEW: No display ID found for mount: " .. tostring(mountID))
 		end
 	end
 
-	-- Set up the Next Mount button
+	-- Set up the Next Mount button if we have group info
 	if frame.nextButton then
-		frame.nextButton:SetScript("OnClick", function()
-			local nextMountID, nextMountName = self:GetRandomMountFromGroup(groupKey, groupType)
-			if nextMountID then
-				self:ShowMountPreview(nextMountID, nextMountName, groupKey, groupType)
-			end
-		end)
+		if groupKey and groupType then
+			frame.nextButton:Enable()
+			frame.nextButton:SetScript("OnClick", function()
+				local nextMountID, nextMountName, nextIsUncollected =
+						self:GetRandomMountFromGroup(groupKey, groupType, true)
+				if nextMountID then
+					self:ShowMountPreview(nextMountID, nextMountName, groupKey, groupType, nextIsUncollected)
+				end
+			end)
+		else
+			-- Disable the Next button for individual mounts
+			frame.nextButton:Disable()
+		end
 	end
 
-	-- Set up the Summon button - disable for uncollected mounts
+	-- Set up the Summon button
 	if frame.summonButton then
 		if isUncollected then
 			frame.summonButton:SetText("Cannot Summon")
@@ -684,7 +693,7 @@ function addon:BuildFamilyManagementArgs()
 		func = function()
 			self:PopulateFamilyManagementUI()
 		end,
-		width = "full",
+		width = 3.6,
 	};
 	if not self.RMB_DataReadyForUI then
 		pageArgs.loading_placeholder = {
@@ -729,6 +738,13 @@ function addon:BuildFamilyManagementArgs()
 		name = "",
 		width = "full",
 		args = {
+			intro = {
+				order = 0,
+				type = "description",
+				name = "Mounts mounts mountsMounts mounts mountsMounts mounts mountsMounts mounts mountsMounts mounts mounts",
+				width = 3.5,
+				fontSize = "normal",
+			},
 			first_button = {
 				order = 1,
 				type = "execute",
@@ -736,6 +752,12 @@ function addon:BuildFamilyManagementArgs()
 				disabled = (currentPage <= 1),
 				func = function() self:FMG_GoToFirstPage() end,
 				width = 0.5,
+			},
+			spacerFirstPrev = {
+				order = 1.5,
+				type = "description",
+				name = " ",
+				width = 0.1,
 			},
 			prev_button = {
 				order = 2,
@@ -748,8 +770,8 @@ function addon:BuildFamilyManagementArgs()
 			page_info = {
 				order = 3,
 				type = "description",
-				name = string.format("                                    %d / %d", currentPage, totalPages),
-				width = 1.6,
+				name = string.format("                              %d / %d", currentPage, totalPages),
+				width = 1.4,
 			},
 			next_button = {
 				order = 4,
@@ -758,6 +780,12 @@ function addon:BuildFamilyManagementArgs()
 				disabled = (currentPage >= totalPages),
 				func = function() self:FMG_NextPage() end,
 				width = 0.5,
+			},
+			spacerNextLast = {
+				order = 4.5,
+				type = "description",
+				name = " ",
+				width = 0.1,
 			},
 			last_button = {
 				order = 5,
@@ -871,7 +899,7 @@ function addon:BuildFamilyManagementArgs()
 				handler = self,
 				args = {
 					group_name = {
-						order = 2,
+						order = 1,
 						type = "description",
 						name = groupDisplayName,
 						width = 1.38,
@@ -879,7 +907,7 @@ function addon:BuildFamilyManagementArgs()
 					},
 					-- Weight controls
 					weightDecrement = {
-						order = 4,
+						order = 2,
 						type = "execute",
 						name = "-",
 						func = function() self:DecrementGroupWeight(groupKey) end,
@@ -887,13 +915,13 @@ function addon:BuildFamilyManagementArgs()
 						disabled = function() return self:GetGroupWeight(groupKey) == 0 end,
 					},
 					weightDisplay = {
-						order = 5,
+						order = 3,
 						type = "description",
 						name = self:GetWeightDisplayString(self:GetGroupWeight(groupKey)),
 						width = 0.5,
 					},
 					weightIncrement = {
-						order = 6,
+						order = 4,
 						type = "execute",
 						name = "+",
 						func = function() self:IncrementGroupWeight(groupKey) end,
@@ -901,20 +929,42 @@ function addon:BuildFamilyManagementArgs()
 						disabled = function() return self:GetGroupWeight(groupKey) == 6 end,
 					},
 					spacerWeightPreview = {
-						order = 7,
+						order = 5,
 						type = "description",
 						name = " ",
-						width = 0.52,
+						width = 0.42,
+					},
+					spacerHiddenExpand = {
+						order = 6,
+						type = "description",
+						name = " ",
+						width = 0.50,
+						hidden = not isSingleMountFamily,
+					},
+					expandCollapse = {
+						order = 7,
+						type = "execute",
+						name = isExpanded and "Collapse" or "Expand",
+						func = function() self:ToggleExpansionState(groupKey) end,
+						width = 0.5,
+						hidden = isSingleMountFamily,
+					},
+					spacerExpandPreview = {
+						order = 8,
+						type = "description",
+						name = " ",
+						width = 0.1,
 					},
 					previewButton = {
-						order = 8,
+						order = 9,
 						type = "execute",
 						name = "Preview",
 						desc = function() return self:GetMountPreviewTooltip(groupKey, groupInfo.type) end,
 						func = function(info)
 							-- Pass the include uncollected setting to ensure we match what the tooltip shows
 							local includeUncollected = self:GetSetting("showUncollectedMounts")
-							local mountID, mountName, isUncollected = self:GetRandomMountFromGroup(groupKey, groupInfo.type,
+							local mountID, mountName, isUncollected = self:GetRandomMountFromGroup(groupKey,
+								groupInfo.type,
 								includeUncollected)
 							if mountID then
 								-- Show preview with the uncollected flag
@@ -924,14 +974,6 @@ function addon:BuildFamilyManagementArgs()
 							end
 						end,
 						width = 0.5,
-					},
-					expandCollapse = {
-						order = 9,
-						type = "execute",
-						name = isExpanded and "Collapse" or "Expand",
-						func = function() self:ToggleExpansionState(groupKey) end,
-						width = 0.5,
-						hidden = isSingleMountFamily, -- Hide the expand button for single mount families
 					},
 					-- The critical change is here - we're not putting expanded content in a group
 					-- but instead directly adding the header and details
@@ -976,6 +1018,12 @@ function addon:BuildFamilyManagementArgs()
 					func = function() self:FMG_GoToFirstPage() end,
 					width = 0.5,
 				},
+				spacerFirstPrev = {
+					order = 1.5,
+					type = "description",
+					name = " ",
+					width = 0.1,
+				},
 				prev_button_b = {
 					order = 2,
 					type = "execute",
@@ -987,8 +1035,8 @@ function addon:BuildFamilyManagementArgs()
 				page_info_b = {
 					order = 3,
 					type = "description",
-					name = string.format("                                    %d / %d", currentPage, totalPages),
-					width = 1.6,
+					name = string.format("                              %d / %d", currentPage, totalPages),
+					width = 1.4,
 				},
 				next_button_b = {
 					order = 4,
@@ -997,6 +1045,12 @@ function addon:BuildFamilyManagementArgs()
 					disabled = (currentPage >= totalPages),
 					func = function() self:FMG_NextPage() end,
 					width = 0.5,
+				},
+				spacerNextLast = {
+					order = 4.5,
+					type = "description",
+					name = " ",
+					width = 0.1,
 				},
 				last_button_b = {
 					order = 5,
@@ -1295,7 +1349,7 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 					detailsArgs["fam_" .. fn .. "_name"] = {
 						order = displayOrder,
 						type = "description",
-						name = familyDisplayName,
+						name = "> " .. familyDisplayName,
 						width = 1.38,
 						fontSize = "medium",
 					}
@@ -1330,7 +1384,32 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 						order = displayOrder,
 						type = "description",
 						name = " ",
-						width = 0.52,
+						width = 0.42,
+					}
+					detailsArgs["fam_" .. fn .. "_spacerHiddenExpand"] = {
+						order = displayOrder,
+						type = "description",
+						name = " ",
+						width = 0.50,
+						hidden = not isSingleMountFamily,
+					}
+					displayOrder = displayOrder + 1
+					-- Expand/Collapse button
+					local isFamExpanded = self:IsGroupExpanded(fn)
+					detailsArgs["fam_" .. fn .. "_expand"] = {
+						order = displayOrder,
+						type = "execute",
+						name = isFamExpanded and "Collapse" or "Expand",
+						func = function() self:ToggleExpansionState(fn) end,
+						width = 0.5,
+						hidden = isSingleMountFamily,
+					}
+					displayOrder = displayOrder + 1
+					detailsArgs["fam_" .. fn .. "_spacerExpandPreview"] = {
+						order = displayOrder,
+						type = "description",
+						name = " ",
+						width = 0.1,
 					}
 					displayOrder = displayOrder + 1
 					-- Preview button
@@ -1344,7 +1423,8 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 						end,
 						func = function()
 							local includeUncollected = self:GetSetting("showUncollectedMounts")
-							local mountID, mountName, isUncollected = self:GetRandomMountFromGroup(fn, "familyName", includeUncollected)
+							local mountID, mountName, isUncollected = self:GetRandomMountFromGroup(fn, "familyName",
+								includeUncollected)
 							if mountID then
 								self:ShowMountPreview(mountID, mountName, fn, "familyName", isUncollected)
 							else
@@ -1352,17 +1432,6 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 							end
 						end,
 						width = 0.5,
-					}
-					displayOrder = displayOrder + 1
-					-- Expand/Collapse button
-					local isFamExpanded = self:IsGroupExpanded(fn)
-					detailsArgs["fam_" .. fn .. "_expand"] = {
-						order = displayOrder,
-						type = "execute",
-						name = isFamExpanded and "Collapse" or "Expand",
-						func = function() self:ToggleExpansionState(fn) end,
-						width = 0.5,
-						hidden = isSingleMountFamily, -- Hide for single-mount families
 					}
 					displayOrder = displayOrder + 1
 					-- Add a line break after each family
@@ -1438,9 +1507,9 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_name"] = {
 									order = displayOrder,
 									type = "description",
-									name = "|cff" .. nameColor .. "  - " .. mountData.name .. collectionStatus .. "|r",
+									name = "|cff" .. nameColor .. "  >> " .. mountData.name .. collectionStatus .. "|r",
 									fontSize = "medium",
-									width = 1.3,
+									width = 1.38,
 								}
 								displayOrder = displayOrder + 1
 								-- Weight decrement button
@@ -1487,23 +1556,33 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 									order = displayOrder,
 									type = "description",
 									name = "",
-									width = 0.52,
+									width = 0.42,
+								}
+								displayOrder = displayOrder + 1
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_spacerHiddenExpand"] = {
+									order = displayOrder,
+									type = "description",
+									name = "",
+									width = 0.60,
 								}
 								displayOrder = displayOrder + 1
 								-- Preview button (for all mounts)
 								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_preview"] = {
 									order = displayOrder,
 									type = "execute",
-									name = mountData.isCollected and "Preview" or "|cff9d9d9dPreview|r",
+									name = mountData.isCollected and "Preview" or "Preview",
+									-- Use the same tooltip function as level 1 mounts
 									desc = function()
-										-- Add tooltip for individual mounts
-										return mountData.isCollected
-												"Click to preview " .. mountData.name
-												"|cff9d9d9dClick to preview " .. mountData.name .. " (Uncollected)|r"
+										return self:GetMountPreviewTooltip("mount_" .. mountID, "mountID")
 									end,
 									func = function()
-										-- For individual mounts, we can directly use the mount ID
-										self:ShowMountPreview(mountID, mountData.name, nil, nil, not mountData.isCollected)
+										-- Store the exact mount ID and name in local variables to avoid closure issues
+										local thisID = mountID
+										local thisName = mountData.name
+										local isUncollected = not mountData.isCollected
+										-- Use these local variables directly
+										print("RMB_DEBUG_MOUNT_PREVIEW: Direct preview for " .. thisName)
+										self:ShowMountPreview(thisID, thisName, nil, nil, isUncollected)
 									end,
 									width = 0.5,
 								}
@@ -1616,9 +1695,9 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 				detailsArgs["mount_" .. mountID .. "_name"] = {
 					order = displayOrder,
 					type = "description",
-					name = "|cff" .. nameColor .. "  - " .. mountData.name .. collectionStatus .. "|r",
+					name = "|cff" .. nameColor .. "  > " .. mountData.name .. collectionStatus .. "|r",
 					fontSize = "medium",
-					width = 1.3,
+					width = 1.38,
 				}
 				displayOrder = displayOrder + 1
 				-- Weight decrement button
@@ -1654,7 +1733,13 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 					order = displayOrder,
 					type = "description",
 					name = "",
-					width = 0.52,
+					width = 0.42,
+				}
+				detailsArgs["mount_" .. mountID .. "_spacerHiddenExpand"] = {
+					order = displayOrder,
+					type = "description",
+					name = "",
+					width = 0.60,
 				}
 				displayOrder = displayOrder + 1
 				-- Preview button (for collected mounts only)
@@ -1662,9 +1747,18 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 					order = displayOrder,
 					type = "execute",
 					name = "Preview",
+					-- Use a SIMPLE STRING for tooltip
+					desc = function()
+						return self:GetMountPreviewTooltip("mount_" .. mountID, "mountID")
+					end,
 					func = function()
-						-- Show preview
-						self:ShowMountPreview(mountID, mountData.name, nil, nil)
+						-- Store the exact mount ID and name in local variables to avoid closure issues
+						local thisID = mountID
+						local thisName = mountData.name
+						local isUncollected = not mountData.isCollected
+						-- Use these local variables directly
+						print("RMB_DEBUG_MOUNT_PREVIEW: Direct preview for " .. thisName)
+						self:ShowMountPreview(thisID, thisName, nil, nil, isUncollected)
 					end,
 					width = 0.5,
 				}
@@ -1893,11 +1987,10 @@ function addon:OnEnable()
 	if not self.tooltipMonitor then
 		self.tooltipMonitor = CreateFrame("Frame")
 		self.tooltipMonitor.elapsed = 0
-		self.tooltipMonitor.tooltipVisible = false
 		self.tooltipMonitor:SetScript("OnUpdate", function(frame, elapsed)
 			frame.elapsed = frame.elapsed + elapsed
-			-- Only check every 0.1 seconds
-			if frame.elapsed < 0.1 then
+			-- Check more frequently: every 0.01 seconds
+			if frame.elapsed < 0.01 then
 				return
 			end
 
