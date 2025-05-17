@@ -1,3 +1,6 @@
+# 0.4.9
+Moved UI functions from core to MoutListUI
+
 # 0.4.8
 Improved family and groups menu element arrangement, added previewing for uncollected mounts.
 
