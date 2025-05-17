@@ -1,4 +1,4 @@
--- MountListUI.lua
+-- MountListUI.lua different anchor
 -- UI components for Random Mount Buddy
 local addonName, addonTable = ...
 local addon = RandomMountBuddy -- Reference to the addon from global
@@ -216,24 +216,76 @@ function addon:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
 	return nil
 end
 
--- Function to get tooltip text for a group
-function addon:GetMountPreviewTooltip(groupKey, groupType)
-	print("RMB_DEBUG_TOOLTIP: Getting tooltip for " .. tostring(groupKey))
-	-- Always include uncollected mounts in tooltip if setting is enabled
-	local includeUncollected = self:GetSetting("showUncollectedMounts")
-	local mountID, mountName, isUncollected = self:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
-	if not mountID then
-		print("RMB_DEBUG_TOOLTIP: No mounts found for " .. tostring(groupKey))
-		return "No mounts found in this group"
+-- Create a function to show the model next to the tooltip
+function addon:ShowModelNextToTooltip()
+	if not self.lastTooltipMount or not self.lastTooltipMount.id then
+		return
 	end
 
-	-- Return tooltip text with uncollected indicator if needed
-	if isUncollected then
-		print("RMB_DEBUG_TOOLTIP: Returning uncollected tooltip for " .. tostring(mountName))
-		return "|cff9d9d9dMount: " .. mountName .. " (Uncollected)|r\n(Click to open Preview Window)"
+	-- Create model frame if it doesn't exist
+	if not self.tooltipModelFrame then
+		self.tooltipModelFrame = CreateFrame("PlayerModel", "RMB_TooltipModel", UIParent)
+		self.tooltipModelFrame:SetSize(150, 150)
+		self.tooltipModelFrame:SetFrameStrata("TOOLTIP")
+		self.tooltipModelFrame:SetFrameLevel(7)
+		-- Add a border/background for visibility
+		local bg = CreateFrame("Frame", nil, self.tooltipModelFrame, "BackdropTemplate")
+		bg:SetAllPoints()
+		bg:SetFrameStrata("TOOLTIP")
+		bg:SetFrameLevel(1)
+		bg:SetBackdrop({
+			bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+			tile = true,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 },
+		})
+		bg:SetBackdropColor(0, 0, 0, 0.7)
+		-- Hide when tooltip is hidden
+		self.tooltipModelFrame:SetScript("OnUpdate", function(self)
+			-- Check if any relevant tooltip is visible
+			local tooltipVisible = false
+			if GameTooltip:IsShown() then
+				tooltipVisible = true
+			elseif _G["AceConfigDialogTooltip"] and _G["AceConfigDialogTooltip"]:IsVisible() then
+				tooltipVisible = true
+			end
+
+			if not tooltipVisible and self:IsShown() then
+				self:Hide()
+			end
+		end)
+		print("RMB_DEBUG: Created tooltip model frame")
+	end
+
+	-- Find the tooltip that's currently showing
+	local tooltip = nil
+	if GameTooltip:IsShown() then
+		tooltip = GameTooltip
+	elseif _G["AceConfigDialogTooltip"] and _G["AceConfigDialogTooltip"]:IsVisible() then
+		tooltip = _G["AceConfigDialogTooltip"]
+	end
+
+	if not tooltip then
+		print("RMB_DEBUG: No tooltip found to attach model to")
+		return
+	end
+
+	-- Set the model's mount
+	local mountID = self.lastTooltipMount.id
+	local creatureDisplayID = select(1, C_MountJournal.GetMountInfoExtraByID(mountID))
+	if creatureDisplayID then
+		self.tooltipModelFrame:SetDisplayInfo(creatureDisplayID)
+		self.tooltipModelFrame:SetCamDistanceScale(1.5)
+		self.tooltipModelFrame:SetPosition(0, 0, 0)
+		-- Position the model next to the tooltip
+		self.tooltipModelFrame:ClearAllPoints()
+		self.tooltipModelFrame:SetPoint("LEFT", tooltip, "RIGHT", 0, 0)
+		self.tooltipModelFrame:Show()
+		print("RMB_DEBUG: Showing model for " .. self.lastTooltipMount.name)
 	else
-		print("RMB_DEBUG_TOOLTIP: Returning collected tooltip for " .. tostring(mountName))
-		return "Mount: " .. mountName .. "\n(Click to open Preview Window)"
+		print("RMB_DEBUG: No display ID found for mount: " .. tostring(mountID))
 	end
 end
 
@@ -476,7 +528,8 @@ function addon:BuildFamilyManagementArgs()
 			intro = {
 				order = 0,
 				type = "description",
-				name = "Mounts mounts mountsMounts mounts mountsMounts mounts mountsMounts mounts mountsMounts mounts mounts",
+				name =
+				"Mounts mounts mountsMounts mounts mountsMounts mounts mountsMounts mounts mountsMounts mounts mounts",
 				width = 3.5,
 				fontSize = "normal",
 			},
@@ -1578,179 +1631,6 @@ function addon:SetGroupEnabled(gk, e)
 	-- NO NotifyChange here
 end
 
-function addon:SetupModelPreviewSystem()
-	-- Create a simple model frame
-	if not self.modelPreviewFrame then
-		self.modelPreviewFrame = CreateFrame("PlayerModel", "RMB_ModelPreview", UIParent, "BackdropTemplate")
-		local frame = self.modelPreviewFrame
-		-- Make it a good size
-		frame:SetSize(250, 250)
-		frame:SetPoint("CENTER", UIParent, "CENTER", 2000, 0) -- Off-screen initially
-		frame:Hide()
-		-- Add a background
-		frame:SetBackdrop({
-			bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-			tile = true,
-			tileSize = 16,
-			edgeSize = 16,
-			insets = { left = 4, right = 4, top = 4, bottom = 4 },
-		})
-		frame:SetBackdropColor(0, 0, 0, 0.5)
-		print("RMB_MODEL: Created model preview frame")
-	end
-
-	-- Create a simple update frame - this avoids all hooks
-	if not self.modelUpdateFrame then
-		self.modelUpdateFrame = CreateFrame("Frame")
-		self.modelUpdateFrame.elapsed = 0
-		self.modelUpdateFrame:SetScript("OnUpdate", function(frame, elapsed)
-			-- Throttle checks to every 0.1 seconds
-			frame.elapsed = frame.elapsed + elapsed
-			if frame.elapsed < 0.1 then
-				return
-			end
-
-			frame.elapsed = 0
-			-- Check for tooltip existence
-			if GameTooltip:IsShown() then
-				-- Safely get tooltip text
-				local tooltipText = nil
-				-- Use GetText() safely by checking for textLeft1
-				if GameTooltip.TextLeft1 and GameTooltip.TextLeft1:GetText() then
-					tooltipText = GameTooltip.TextLeft1:GetText()
-				end
-
-				-- Only process if this is a preview tooltip
-				if tooltipText and tooltipText:find("^Preview: ") then
-					-- Extract mount name
-					local mountName = tooltipText:match("^Preview: ([^%\n]+)")
-					if mountName then
-						-- Trim the mount name
-						mountName = mountName:gsub("^%s*(.-)%s*$", "%1")
-						-- Find mount ID by name
-						local mountID = nil
-						for _, id in ipairs(C_MountJournal.GetMountIDs()) do
-							local name = C_MountJournal.GetMountInfoByID(id)
-							if name == mountName then
-								mountID = id
-								break
-							end
-						end
-
-						-- Show model if mount found
-						if mountID then
-							local creatureDisplayID = select(1, C_MountJournal.GetMountInfoExtraByID(mountID))
-							if creatureDisplayID then
-								local tooltipOwner = GameTooltip:GetOwner()
-								if tooltipOwner then
-									local modelFrame = self.modelPreviewFrame
-									modelFrame:ClearAllPoints()
-									modelFrame:SetPoint("LEFT", tooltipOwner, "RIGHT", 10, 0)
-									modelFrame:SetDisplayInfo(creatureDisplayID)
-									modelFrame:SetCamDistanceScale(1.5)
-									modelFrame:SetPosition(0, 0, 0)
-									modelFrame:Show()
-								end
-							end
-						end
-					end
-				end
-			else
-				-- Hide model when tooltip disappears
-				if self.modelPreviewFrame:IsShown() then
-					self.modelPreviewFrame:Hide()
-				end
-			end
-		end)
-		print("RMB_MODEL: Created model update frame")
-	end
-
-	print("RMB_MODEL: Model preview system initialized")
-end
-
--- In OnEnable, add this part to create and set up the tooltip monitor:
-function addon:SetupModelPreviewForTooltips()
-	-- Create the model frame
-	if not self.modelPreviewFrame then
-		self.modelPreviewFrame = CreateFrame("PlayerModel", "RMB_ModelPreview", UIParent, "BackdropTemplate")
-		local frame = self.modelPreviewFrame
-		frame:SetSize(250, 250)
-		frame:SetPoint("CENTER", UIParent, "CENTER", 2000, 0) -- Off-screen initially
-		frame:SetFrameStrata("DIALOG")
-		frame:Hide()
-		frame:SetBackdrop({
-			bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-			tile = true,
-			tileSize = 16,
-			edgeSize = 16,
-			insets = { left = 4, right = 4, top = 4, bottom = 4 },
-		})
-		frame:SetBackdropColor(0, 0, 0, 0.8)
-		print("RMB_MODEL: Created model preview frame")
-	end
-
-	-- Replace the original GetMountPreviewTooltip function to cache which mount was last requested
-	self.originalGetMountPreviewTooltip = self.GetMountPreviewTooltip
-	self.GetMountPreviewTooltip = function(self, groupKey, groupType)
-		-- Store the last requested mount info
-		self.lastPreviewMount = {
-			groupKey = groupKey,
-			groupType = groupType,
-			mountID = nil,
-			mountName = nil,
-		}
-		-- Get the mount that will be shown in the tooltip
-		local mountID, mountName = self:GetRandomMountFromGroup(groupKey, groupType)
-		-- Store this specific mount
-		if mountID then
-			self.lastPreviewMount.mountID = mountID
-			self.lastPreviewMount.mountName = mountName
-			print("RMB_MODEL: Tooltip requested for " .. mountName .. " in " .. groupKey)
-			-- Prepare to show model (delay slightly to ensure tooltip is shown)
-			C_Timer.After(0.05, function()
-				self:ShowModelForTooltip()
-			end)
-		end
-
-		-- Return the tooltip text as normal
-		return self.originalGetMountPreviewTooltip(self, groupKey, groupType)
-	end
-	-- Create frame for checking when tooltips disappear
-	if not self.tooltipMonitor then
-		self.tooltipMonitor = CreateFrame("Frame")
-		self.tooltipMonitor.elapsed = 0
-		self.tooltipMonitor:SetScript("OnUpdate", function(frame, elapsed)
-			frame.elapsed = frame.elapsed + elapsed
-			-- Check more frequently: every 0.01 seconds
-			if frame.elapsed < 0.01 then
-				return
-			end
-
-			frame.elapsed = 0
-			-- Check if any tooltip is visible
-			local tooltipVisible = false
-			-- Check various tooltip objects
-			if self:IsAnyTooltipVisible() then
-				tooltipVisible = true
-			end
-
-			-- If tooltip disappeared, hide model
-			if not tooltipVisible and self.modelPreviewFrame:IsShown() then
-				self.modelPreviewFrame:Hide()
-			end
-
-			-- Update visibility state
-			frame.tooltipVisible = tooltipVisible
-		end)
-		print("RMB_MODEL: Created tooltip monitor")
-	end
-
-	self:FixPreviewConsistency()
-	self:FixPreviewTooltipInterruption()
-end
-
 function addon:FixPreviewConsistency()
 	print("RMB_DEBUG: Setting up refreshing preview system")
 	-- Create a table to temporarily store mount selections during a tooltip session
@@ -1808,92 +1688,6 @@ function addon:FixPreviewConsistency()
 	end
 
 	print("RMB_DEBUG: Refreshing preview system installed")
-end
-
-function addon:FixPreviewTooltipInterruption()
-	print("RMB_DEBUG: Setting up tooltip recovery system")
-	-- Create a monitor frame to track tooltip state
-	if not self.tooltipRecoveryMonitor then
-		self.tooltipRecoveryMonitor = CreateFrame("Frame")
-		self.tooltipRecoveryMonitor.lastOwner = nil
-		self.tooltipRecoveryMonitor.wasOutsideAddon = false
-		-- Hook the GameTooltip OnShow to track what's showing it
-		GameTooltip:HookScript("OnShow", function(tooltip)
-			local owner = tooltip:GetOwner()
-			self.tooltipRecoveryMonitor.lastOwner = owner
-			-- Check if it's outside our addon
-			local inOurAddon = false
-			if owner then
-				local frame = owner
-				while frame do
-					if frame.GetName and frame:GetName() and (frame:GetName():find("RandomMountBuddy") or frame:GetName():find("RMB_")) then
-						inOurAddon = true
-						break
-					end
-
-					frame = frame:GetParent()
-					if not frame then break end
-				end
-			end
-
-			self.tooltipRecoveryMonitor.wasOutsideAddon = not inOurAddon
-		end)
-		-- Hook GameTooltip OnHide to detect when we need to reset
-		GameTooltip:HookScript("OnHide", function(tooltip)
-			if self.tooltipRecoveryMonitor.wasOutsideAddon then
-				-- GameTooltip was just used outside our addon, schedule a reset
-				C_Timer.After(0.1, function()
-					self:ResetTooltipSystem()
-				end)
-			end
-		end)
-	end
-
-	print("RMB_DEBUG: Tooltip recovery system installed")
-end
-
--- Function to reset tooltip system after external interruption
-function addon:ResetTooltipSystem()
-	print("RMB_DEBUG: Resetting tooltip system")
-	-- Reset the AceGUI tooltip
-	if LibStub and LibStub("AceGUI-3.0", true) then
-		local AceGUI = LibStub("AceGUI-3.0")
-		if AceGUI and AceGUI.tooltip then
-			AceGUI.tooltip:Hide()
-			AceGUI.tooltip:ClearAllPoints()
-			AceGUI.tooltip:SetOwner(UIParent, "ANCHOR_NONE")
-		end
-	end
-
-	-- Reset the AceConfigDialog tooltip
-	if LibStub and LibStub("AceConfigDialog-3.0", true) then
-		local AceConfigDialog = LibStub("AceConfigDialog-3.0")
-		if AceConfigDialog and AceConfigDialog.tooltip then
-			AceConfigDialog.tooltip:Hide()
-			AceConfigDialog.tooltip:ClearAllPoints()
-			AceConfigDialog.tooltip:SetOwner(UIParent, "ANCHOR_NONE")
-		end
-	end
-
-	-- Reset the game tooltip
-	GameTooltip:Hide()
-	GameTooltip:ClearAllPoints()
-	-- Reset the model preview frame if necessary
-	if self.modelPreviewFrame then
-		-- Store the current state
-		local wasShown = self.modelPreviewFrame:IsShown()
-		-- Reset the frame
-		self.modelPreviewFrame:Hide()
-		self.modelPreviewFrame:ClearAllPoints()
-		self.modelPreviewFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-		-- If it was previously shown, reshown it
-		if wasShown then
-			self.modelPreviewFrame:Show()
-		end
-	end
-
-	self.tooltipRecoveryMonitor.wasOutsideAddon = false
-	self.tooltipRecoveryMonitor.lastOwner = nil
 end
 
 -- Helper function to check if any tooltip is visible
@@ -1955,190 +1749,128 @@ function addon:ShowModelForTooltip()
 	print("RMB_MODEL: Showing tooltip model for " .. mountName)
 end
 
--- Function to enhance all Preview buttons in an args table
-function addon:EnhancePreviewButtons(args)
-	if not args then return end
+-- Modify the existing GetMountPreviewTooltip function to store the mount
+function addon:GetMountPreviewTooltip(groupKey, groupType)
+	print("RMB_DEBUG_TOOLTIP: Getting tooltip for " .. tostring(groupKey))
+	-- Always include uncollected mounts in tooltip if setting is enabled
+	local includeUncollected = self:GetSetting("showUncollectedMounts")
+	local mountID, mountName, isUncollected = self:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
+	if not mountID then
+		print("RMB_DEBUG_TOOLTIP: No mounts found for " .. tostring(groupKey))
+		return "No mounts found in this group"
+	end
 
-	for k, v in pairs(args) do
-		if type(v) == "table" then
-			if v.type == "execute" and v.name == "Preview" then
-				-- This is a Preview button - enhance it with direct script handlers
-				local originalFunc = v.func
-				-- Override the button function
-				v.func = function(info)
-					-- Extract the group key from the button's context
-					local groupKey = nil
-					local groupType = nil
-					-- Look for group info in the info object
-					if info and info.option then
-						-- Try to get the group key from various places
-						groupKey = info.option.groupKey
-						groupType = info.option.groupType
-					end
-
-					-- Get the parent as a fallback
-					if not groupKey and info and info.option and info.option.name then
-						-- Try to parse the name to get the group
-						local name = info.option.name
-						if type(name) == "string" and name:find("%(") then
-							groupKey = name:match("^([^%(]+)")
-							if groupKey then groupKey = groupKey:trim() end
-
-							groupType = "familyName" -- Default assumption
-						end
-					end
-
-					-- If we found a group, show the preview
-					if groupKey then
-						local mountID, mountName = self:GetRandomMountFromGroup(groupKey, groupType)
-						if mountID then
-							-- Show the model preview instead of just using tooltip
-							self:ShowMountPreview(mountID, mountName, groupKey, groupType)
-						end
-					end
-
-					-- Call the original function if it exists
-					if originalFunc then
-						return originalFunc(info)
-					end
-				end
-			elseif v.args then
-				-- Recurse into nested args tables
-				self:EnhancePreviewButtons(v.args)
-			end
-		end
+	-- Store the mount ID and call our OnShow hook
+	self.currentTooltipMount = mountID
+	-- Return tooltip text with uncollected indicator if needed
+	if isUncollected then
+		print("RMB_DEBUG_TOOLTIP: Returning uncollected tooltip for " .. tostring(mountName))
+		return "|cff9d9d9dMount: " .. mountName .. " (Uncollected)|r\n(Click to open Preview Window)"
+	else
+		print("RMB_DEBUG_TOOLTIP: Returning collected tooltip for " .. tostring(mountName))
+		return "Mount: " .. mountName .. "\n(Click to open Preview Window)"
 	end
 end
 
--- Function to enhance a Preview button with our custom handlers
-function addon:EnhancePreviewButton(button)
-	if not button or not button.frame then return end
-
-	-- Store a reference to the original OnEnter script
-	local originalOnEnter = button.frame:GetScript("OnEnter")
-	-- Hook the button's OnEnter
-	button.frame:HookScript("OnEnter", function(frame)
-		-- First let the original OnEnter run to set up tooltip
-		if originalOnEnter then
-			originalOnEnter(frame)
-		end
-
-		-- Now show our model
-		C_Timer.After(0.05, function() -- Short delay to ensure tooltip is shown
-			self:HandleButtonEnter(button)
-		end)
-	end)
-	-- Store a reference to the original OnLeave script
-	local originalOnLeave = button.frame:GetScript("OnLeave")
-	-- Hook the button's OnLeave
-	button.frame:HookScript("OnLeave", function(frame)
-		-- Hide our model
-		self:HandleButtonLeave(button)
-		-- Let the original OnLeave run
-		if originalOnLeave then
-			originalOnLeave(frame)
-		end
-	end)
-	print("RMB_MODEL: Enhanced Preview button " .. (button.frame:GetName() or "unnamed"))
-end
-
--- Function to handle button enter
-function addon:HandleButtonEnter(button)
-	if not button or not button.frame then return end
-
-	local frameName = button.frame:GetName() or ""
-	local mapping = self.previewButtonToGroupMap[frameName]
-	local groupKey, groupType
-	-- Try to get group info from our mapping
-	if mapping then
-		groupKey, groupType = mapping.groupKey, mapping.groupType
-		print("RMB_MODEL: Using mapped group: " .. tostring(groupKey))
-	end
-
-	-- If no mapping, try getting from last tooltip context
-	if not groupKey and self.lastTooltipGroup then
-		groupKey, groupType = self.lastTooltipGroup.groupKey, self.lastTooltipGroup.groupType
-		print("RMB_MODEL: Using tooltip context group: " .. tostring(groupKey))
-	end
-
-	-- If still no group, try parsing tooltip text
-	if not groupKey and self.tooltipTextCache and self.tooltipTextCache.lastMount then
-		-- Try to find group containing this mount
-		local mountName = self.tooltipTextCache.lastMount
-		for g, t in pairs(self.processedData.superGroupMap or {}) do
-			-- Check if mount is in this supergroup
-			local mountIDs = self.processedData.superGroupToMountIDsMap and self.processedData.superGroupToMountIDsMap[g]
-			if mountIDs then
-				for _, mountID in ipairs(mountIDs) do
-					local info = self.processedData.allCollectedMountFamilyInfo and
-							self.processedData.allCollectedMountFamilyInfo[mountID]
-					if info and info.name == mountName then
-						groupKey, groupType = g, "superGroup"
-						print("RMB_MODEL: Found mount in supergroup: " .. g)
-						break
-					end
-				end
-			end
-
-			if groupKey then break end
-		end
-
-		-- If not found in supergroups, check families
-		if not groupKey then
-			for f in pairs(self.processedData.standaloneFamilyNames or {}) do
-				local mountIDs = self.processedData.familyToMountIDsMap and self.processedData.familyToMountIDsMap[f]
-				if mountIDs then
-					for _, mountID in ipairs(mountIDs) do
-						local info = self.processedData.allCollectedMountFamilyInfo and
-								self.processedData.allCollectedMountFamilyInfo[mountID]
-						if info and info.name == mountName then
-							groupKey, groupType = f, "familyName"
-							print("RMB_MODEL: Found mount in family: " .. f)
-							break
-						end
-					end
-				end
-
-				if groupKey then break end
-			end
-		end
-	end
-
-	-- If we found a group, show the model
-	if groupKey and groupType then
-		local mountID, mountName = self:GetRandomMountFromGroup(groupKey, groupType)
-		if mountID then
-			local creatureDisplayID = select(1, C_MountJournal.GetMountInfoExtraByID(mountID))
+-- Create a tooltip with a model attached
+function addon:InitializeModelTooltip()
+	-- First create the backdrop frame
+	local bg = CreateFrame("Frame", "RMB_ModelTooltipBG", UIParent, "BackdropTemplate")
+	bg:SetSize(160, 160)
+	bg:SetFrameStrata("TOOLTIP")
+	bg:SetFrameLevel(1) -- Set to lowest frame level
+	bg:SetBackdrop({
+		bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+		edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+		tile = true,
+		tileSize = 16,
+		edgeSize = 16,
+		insets = { left = 4, right = 4, top = 4, bottom = 4 },
+	})
+	bg:SetBackdropColor(0, 0, 0, 0.7) -- Semi-transparent
+	bg:Hide()
+	-- Now create the model frame with a higher frame level
+	local frame = CreateFrame("PlayerModel", "RMB_ModelTooltip", UIParent)
+	frame:SetSize(150, 150)
+	frame:SetFrameStrata("TOOLTIP")
+	frame:SetFrameLevel(10) -- Higher frame level means it renders on top
+	frame:Hide()
+	-- Link them together
+	self.modelTooltipBG = bg
+	self.modelTooltip = frame
+	-- When showing one, show the other and position them together
+	GameTooltip:HookScript("OnShow", function(tooltip)
+		if self.currentTooltipMount then
+			-- Set up the model
+			local creatureDisplayID = select(1, C_MountJournal.GetMountInfoExtraByID(self.currentTooltipMount))
 			if creatureDisplayID then
-				local frame = self.modelPreviewFrame
-				frame:ClearAllPoints()
-				frame:SetPoint("LEFT", button.frame, "RIGHT", 10, 0)
 				frame:SetDisplayInfo(creatureDisplayID)
 				frame:SetCamDistanceScale(1.5)
 				frame:SetPosition(0, 0, 0)
+				-- Position model
+				frame:ClearAllPoints()
+				frame:SetPoint("LEFT", tooltip, "RIGHT", 0, 0)
+				-- Position backdrop behind model
+				bg:ClearAllPoints()
+				bg:SetPoint("CENTER", frame, "CENTER", 0, 0)
+				-- Show both
+				bg:Show()
 				frame:Show()
-				print("RMB_MODEL: Showing model for " .. mountName)
+				print("RMB_DEBUG: Showing model for mount ID: " .. self.currentTooltipMount)
 			end
+		else
+			bg:Hide()
+			frame:Hide()
 		end
-	else
-		print("RMB_MODEL: Could not determine group for button")
+	end)
+	-- Hide both on tooltip hide
+	GameTooltip:HookScript("OnHide", function()
+		bg:Hide()
+		frame:Hide()
+		-- Clear the current mount
+		self.currentTooltipMount = nil
+	end)
+	-- Same for AceConfigDialog tooltip
+	if LibStub and LibStub("AceConfigDialog-3.0", true) then
+		local AceConfigDialog = LibStub("AceConfigDialog-3.0")
+		if AceConfigDialog and AceConfigDialog.tooltip then
+			AceConfigDialog.tooltip:HookScript("OnShow", function(tooltip)
+				if self.currentTooltipMount then
+					local creatureDisplayID = select(1, C_MountJournal.GetMountInfoExtraByID(self.currentTooltipMount))
+					if creatureDisplayID then
+						frame:SetDisplayInfo(creatureDisplayID)
+						frame:SetCamDistanceScale(1.5)
+						frame:SetPosition(0, 0, 0)
+						frame:SetFacing(0.5) -- Adjust this value to change the angle
+						frame:ClearAllPoints()
+						frame:SetPoint("LEFT", tooltip, "RIGHT", 0, 0)
+						bg:ClearAllPoints()
+						bg:SetPoint("CENTER", frame, "CENTER", 0, 0)
+						bg:Show()
+						frame:Show()
+					end
+				else
+					bg:Hide()
+					frame:Hide()
+				end
+			end)
+			AceConfigDialog.tooltip:HookScript("OnHide", function()
+				bg:Hide()
+				frame:Hide()
+				self.currentTooltipMount = nil
+			end)
+		end
 	end
+
+	print("RMB_DEBUG: Model tooltip initialized")
 end
 
--- Function to handle button leave
-function addon:HandleButtonLeave(button)
-	self.modelPreviewFrame:Hide()
-end
-
--- Mount UI initialization function to be called from OnEnable
 function addon:InitializeMountUI()
-	-- Create tooltip cache
-	self.tooltipTextCache = { lastMount = nil }
-	-- Create button to group mapping
-	self.previewButtonToGroupMap = {}
-	-- Setup model preview system
-	self:SetupModelPreviewForTooltips()
-	print("RMB_MODEL: Mount UI system initialized")
+	-- Storage for current tooltip mount
+	self.currentTooltipMount = nil
+	-- Initialize model tooltip
+	self:InitializeModelTooltip()
+	print("RMB_DEBUG: Mount UI system initialized")
 end
 
 print("RMB_DEBUG: MountListUI.lua END.")

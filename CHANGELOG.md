@@ -1,5 +1,8 @@
+# 0.5.0
+Mount preview tooltip responsiveness improved
+
 # 0.4.9
-Moved UI functions from core to MoutListUI
+Moved UI functions from core to MountListUI
 
 # 0.4.8
 Improved family and groups menu element arrangement, added previewing for uncollected mounts.
