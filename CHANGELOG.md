@@ -1,3 +1,6 @@
+# 0.6.0
+Added summoning by weight via slash command.
+
 # 0.5.1
 Mount list now uses mostly icons instead of regular buttons.
 Options reformatted and checkbox for uncollected mounts added in main menu.

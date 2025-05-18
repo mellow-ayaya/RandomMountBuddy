@@ -5,9 +5,9 @@ local addon = RandomMountBuddy -- Reference to the addon from global
 print("RMB_DEBUG: MountListUI.lua START.")
 -- Mapping of weight values to descriptive text and WoW color codes (ffRRGGBB)
 local WeightDisplayMapping = {
-	[0] = { text = "         Never", color = "ff3e00" }, -- White
+	[0] = { text = "         Never", color = "ff3e00" }, -- Red
 	[1] = { text = "     Occasional", color = "9d9d9d" }, -- Grey
-	[2] = { text = "    Uncommon", color = "9d9d9d" },   -- Grey
+	[2] = { text = "    Uncommon", color = "cbcbcb" },   -- Grey
 	[3] = { text = "        Normal", color = "ffffff" }, -- White
 	[4] = { text = "       Common", color = "1eff00" },  -- Green
 	[5] = { text = "         Often", color = "0070dd" }, -- Blue
@@ -1575,8 +1575,8 @@ function addon:IsGroupExpanded(gk)
 end
 
 function addon:GetGroupWeight(gk)
-	if not (self.db and self.db.profile and self.db.profile.groupWeights) then return 3 end; local w = self.db.profile
-			.groupWeights[gk]; if w == nil then return 3 end; return tonumber(w) or 3
+	if not (self.db and self.db.profile and self.db.profile.groupWeights) then return 0 end; local w = self.db.profile
+			.groupWeights[gk]; if w == nil then return 0 end; return tonumber(w) or 0
 end
 
 function addon:SetGroupWeight(gk, w)
@@ -1813,7 +1813,7 @@ function addon:InitializeModelTooltip()
 						frame:SetDisplayInfo(creatureDisplayID)
 						frame:SetCamDistanceScale(1.5)
 						frame:SetPosition(0, 0, 0)
-						frame:SetFacing(0.5) -- Adjust this value to change the angle
+						frame:SetFacing(-0.5) -- Adjust this value to change the angle
 						frame:ClearAllPoints()
 						frame:SetPoint("LEFT", tooltip, "RIGHT", 0, 0)
 						bg:ClearAllPoints()
