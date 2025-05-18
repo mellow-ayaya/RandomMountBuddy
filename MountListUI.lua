@@ -525,14 +525,6 @@ function addon:BuildFamilyManagementArgs()
 		name = "",
 		width = "full",
 		args = {
-			intro = {
-				order = 0,
-				type = "description",
-				name =
-				"Mounts mounts mountsMounts mounts mountsMounts mounts mountsMounts mounts mountsMounts mounts mounts",
-				width = 3.5,
-				fontSize = "normal",
-			},
 			first_button = {
 				order = 1,
 				type = "execute",
@@ -540,12 +532,6 @@ function addon:BuildFamilyManagementArgs()
 				disabled = (currentPage <= 1),
 				func = function() self:FMG_GoToFirstPage() end,
 				width = 0.5,
-			},
-			spacerFirstPrev = {
-				order = 1.5,
-				type = "description",
-				name = " ",
-				width = 0.1,
 			},
 			prev_button = {
 				order = 2,
@@ -558,8 +544,8 @@ function addon:BuildFamilyManagementArgs()
 			page_info = {
 				order = 3,
 				type = "description",
-				name = string.format("                              %d / %d", currentPage, totalPages),
-				width = 1.4,
+				name = string.format("                                    %d / %d", currentPage, totalPages),
+				width = 1.6,
 			},
 			next_button = {
 				order = 4,
@@ -568,12 +554,6 @@ function addon:BuildFamilyManagementArgs()
 				disabled = (currentPage >= totalPages),
 				func = function() self:FMG_NextPage() end,
 				width = 0.5,
-			},
-			spacerNextLast = {
-				order = 4.5,
-				type = "description",
-				name = " ",
-				width = 0.1,
 			},
 			last_button = {
 				order = 5,
@@ -697,10 +677,13 @@ function addon:BuildFamilyManagementArgs()
 					weightDecrement = {
 						order = 2,
 						type = "execute",
-						name = "-",
+						name = "",
 						func = function() self:DecrementGroupWeight(groupKey) end,
 						width = 0.1,
 						disabled = function() return self:GetGroupWeight(groupKey) == 0 end,
+						image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
+						imageWidth = 16,
+						imageHeight = 20,
 					},
 					weightDisplay = {
 						order = 3,
@@ -711,42 +694,43 @@ function addon:BuildFamilyManagementArgs()
 					weightIncrement = {
 						order = 4,
 						type = "execute",
-						name = "+",
+						name = "",
 						func = function() self:IncrementGroupWeight(groupKey) end,
 						width = 0.1,
 						disabled = function() return self:GetGroupWeight(groupKey) == 6 end,
+						image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
+						imageWidth = 16,
+						imageHeight = 20,
 					},
 					spacerWeightPreview = {
 						order = 5,
 						type = "description",
 						name = " ",
-						width = 0.42,
+						width = 1.05,
 					},
 					spacerHiddenExpand = {
 						order = 6,
 						type = "description",
 						name = " ",
-						width = 0.50,
+						width = 0.15,
 						hidden = not isSingleMountFamily,
 					},
 					expandCollapse = {
 						order = 7,
 						type = "execute",
-						name = isExpanded and "Collapse" or "Expand",
+						name = "",
 						func = function() self:ToggleExpansionState(groupKey) end,
-						width = 0.5,
+						width = 0.15,
 						hidden = isSingleMountFamily,
-					},
-					spacerExpandPreview = {
-						order = 8,
-						type = "description",
-						name = " ",
-						width = 0.1,
+						image = isExpanded and "Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonUpv10" or
+								"Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonDownv10",
+						imageWidth = 20,
+						imageHeight = 20,
 					},
 					previewButton = {
 						order = 9,
 						type = "execute",
-						name = "Preview",
+						name = "|TInterface\\CURSOR\\Crosshair\\Inspect:20:20:0:-2|t",
 						desc = function() return self:GetMountPreviewTooltip(groupKey, groupInfo.type) end,
 						func = function(info)
 							-- Pass the include uncollected setting to ensure we match what the tooltip shows
@@ -761,7 +745,7 @@ function addon:BuildFamilyManagementArgs()
 								print("RMB_PREVIEW: No mount available to preview from this group")
 							end
 						end,
-						width = 0.5,
+						width = 0.3,
 					},
 					-- The critical change is here - we're not putting expanded content in a group
 					-- but instead directly adding the header and details
@@ -806,12 +790,6 @@ function addon:BuildFamilyManagementArgs()
 					func = function() self:FMG_GoToFirstPage() end,
 					width = 0.5,
 				},
-				spacerFirstPrev = {
-					order = 1.5,
-					type = "description",
-					name = " ",
-					width = 0.1,
-				},
 				prev_button_b = {
 					order = 2,
 					type = "execute",
@@ -823,8 +801,8 @@ function addon:BuildFamilyManagementArgs()
 				page_info_b = {
 					order = 3,
 					type = "description",
-					name = string.format("                              %d / %d", currentPage, totalPages),
-					width = 1.4,
+					name = string.format("                                    %d / %d", currentPage, totalPages),
+					width = 1.6,
 				},
 				next_button_b = {
 					order = 4,
@@ -833,12 +811,6 @@ function addon:BuildFamilyManagementArgs()
 					disabled = (currentPage >= totalPages),
 					func = function() self:FMG_NextPage() end,
 					width = 0.5,
-				},
-				spacerNextLast = {
-					order = 4.5,
-					type = "description",
-					name = " ",
-					width = 0.1,
 				},
 				last_button_b = {
 					order = 5,
@@ -1865,11 +1837,100 @@ function addon:InitializeModelTooltip()
 	print("RMB_DEBUG: Model tooltip initialized")
 end
 
+function addon:SetupIconOnlyButtons()
+	-- Hook AceConfigDialog:Open to modify buttons after UI creation
+	if LibStub and LibStub("AceConfigDialog-3.0") then
+		local AceConfigDialog = LibStub("AceConfigDialog-3.0")
+		if not AceConfigDialog then return end
+
+		local origOpen = AceConfigDialog.Open
+		AceConfigDialog.Open = function(self, ...)
+			-- Call original function
+			local frame = origOpen(self, ...)
+			-- Allow time for frame to be fully created
+			C_Timer.After(0.1, function()
+				addon:FixIconOnlyButtons()
+			end)
+			return frame
+		end
+	end
+
+	print("RMB_DEBUG: Setup icon-only button fix")
+end
+
+function addon:FixIconOnlyButtons()
+	-- Find and fix all Preview buttons
+	local buttons = {}
+	-- Find all frames with Preview buttons
+	local function scanForButtons(frame)
+		if not frame then return end
+
+		for i = 1, frame:GetNumChildren() do
+			local child = select(i, frame:GetChildren())
+			if not child then break end
+
+			-- Check if this is a button
+			if child.GetObjectType and child:GetObjectType() == "Button" then
+				local text = child:GetText()
+				-- If it's a Preview button with icon
+				if text == "" and child:GetName() and child:GetName():find("Preview") then
+					table.insert(buttons, child)
+				end
+			end
+
+			-- Scan children recursively
+			if child.GetNumChildren and child:GetNumChildren() > 0 then
+				scanForButtons(child)
+			end
+		end
+	end
+
+	-- Find InterfaceOptionsFrame and scan it
+	if InterfaceOptionsFrame then
+		scanForButtons(InterfaceOptionsFrame)
+	end
+
+	-- Fix the found buttons
+	for _, button in ipairs(buttons) do
+		-- Make sure the button still triggers tooltips
+		button:SetHitRectInsets(0, 0, 0, 0)
+		-- Find and center the texture if present
+		for i = 1, button:GetNumRegions() do
+			local region = select(i, button:GetRegions())
+			if region and region:GetObjectType() == "Texture" and not region:GetName() then
+				region:ClearAllPoints()
+				region:SetPoint("CENTER", button, "CENTER", 0, 0)
+			end
+		end
+
+		-- Create a fontstring for the tooltip if needed
+		if not button.tooltipText then
+			button.tooltipText = button:CreateFontString(nil, "ARTWORK")
+			button.tooltipText:SetText("Preview Mount")
+			button.tooltipText:Hide()
+		end
+
+		-- Make sure tooltips work
+		button:HookScript("OnEnter", function(self)
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetText("Preview Mount")
+			GameTooltip:Show()
+		end)
+		button:HookScript("OnLeave", function()
+			GameTooltip:Hide()
+		end)
+	end
+
+	print("RMB_DEBUG: Fixed " .. #buttons .. " icon-only buttons")
+end
+
 function addon:InitializeMountUI()
 	-- Storage for current tooltip mount
 	self.currentTooltipMount = nil
 	-- Initialize model tooltip
 	self:InitializeModelTooltip()
+	-- Setup icon-only buttons
+	self:SetupIconOnlyButtons()
 	print("RMB_DEBUG: Mount UI system initialized")
 end
 

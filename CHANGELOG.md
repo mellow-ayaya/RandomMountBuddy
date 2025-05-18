@@ -1,3 +1,8 @@
+# 0.5.1
+Mount list now uses mostly icons instead of regular buttons.
+Options reformatted and checkbox for uncollected mounts added in main menu.
+Moved general settings from the main settings submenu to the main menu.
+
 # 0.5.0
 Mount preview tooltip responsiveness improved
 
