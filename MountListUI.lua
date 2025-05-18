@@ -859,6 +859,43 @@ function addon:PopulateFamilyManagementUI()
 	end
 end
 
+-- Add this function to MountListUI.lua
+function addon:GetDynamicSuperGroup(familyName)
+	if not familyName then return nil end
+
+	-- Check if we have dynamic grouping data
+	if not self.processedData.dynamicSuperGroupMap then
+		-- Fall back to original supergroup map
+		if self.processedData.superGroupMap then
+			for sg, families in pairs(self.processedData.superGroupMap) do
+				for _, fn in ipairs(families) do
+					if fn == familyName then
+						return sg
+					end
+				end
+			end
+		end
+
+		return nil
+	end
+
+	-- Check if family is explicitly marked as standalone in dynamic grouping
+	if self.processedData.dynamicStandaloneFamilies and self.processedData.dynamicStandaloneFamilies[familyName] then
+		return nil
+	end
+
+	-- Find supergroup in dynamic mapping
+	for sg, families in pairs(self.processedData.dynamicSuperGroupMap) do
+		for _, fn in ipairs(families) do
+			if fn == familyName then
+				return sg
+			end
+		end
+	end
+
+	return nil
+end
+
 function addon:TriggerFamilyManagementUIRefresh()
 	print("RMB_DEBUG_UI: Manual Refresh Triggered."); self:PopulateFamilyManagementUI()
 end
@@ -957,13 +994,15 @@ function addon:FMG_GoToLastPage()
 end
 
 function addon:GetDisplayableGroups()
-	if not (self.processedData and self.processedData.superGroupMap) then
+	if not (self.processedData) then
 		print("RMB_UI: GetDisplayableGroups-procData ERR"); return {}
 	end
 
 	local o = {}
 	local showUncollected = self:GetSetting("showUncollectedMounts")
-	for sgn, fl in pairs(self.processedData.superGroupMap) do
+	-- Use dynamic supergroup map if available, otherwise fall back to original
+	local superGroupMap = self.processedData.dynamicSuperGroupMap or self.processedData.superGroupMap
+	for sgn, fl in pairs(superGroupMap or {}) do
 		-- Count collected mounts in this supergroup
 		local mcCollected = self.processedData.superGroupToMountIDsMap and
 				#(self.processedData.superGroupToMountIDsMap[sgn] or {}) or 0
@@ -987,7 +1026,9 @@ function addon:GetDisplayableGroups()
 		end
 	end
 
-	for fn, _ in pairs(self.processedData.standaloneFamilyNames) do
+	-- Use dynamic standalone families if available, otherwise fall back to original
+	local standaloneFamilies = self.processedData.dynamicStandaloneFamilies or self.processedData.standaloneFamilyNames
+	for fn, _ in pairs(standaloneFamilies or {}) do
 		-- Count collected mounts in this family
 		local mcCollected = self.processedData.familyToMountIDsMap and
 				#(self.processedData.familyToMountIDsMap[fn] or {}) or 0

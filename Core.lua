@@ -210,6 +210,7 @@ function addon:InitializeProcessedData()
 	print("RMB_DEBUG_DATA: Init COMPLETE.")
 	self.RMB_DataReadyForUI = true; print("RMB_DEBUG_DATA: Set RMB_DataReadyForUI to true.")
 	self:PopulateFamilyManagementUI() -- Populate UI now that data is ready
+	self:RebuildMountGrouping()
 end
 
 function addon:OnPlayerLoginAttemptProcessData(eventArg)
@@ -276,6 +277,86 @@ end
 
 function addon:GetFavoriteMountsForOptions()
 	print("RMB_DEBUG_CORE: GetFavoriteMountsForOptions (placeholder)"); return { p = { order = 1, type = "description", name = "MI list placeholder." } }
+end
+
+-- Add this function to Core.lua
+function addon:RebuildMountGrouping()
+	-- Create temporary tables for the new organization
+	local newSuperGroupMap = {}
+	local newStandaloneFamilies = {}
+	-- Get trait settings
+	local treatMinorArmorAsDistinct = self:GetSetting("treatMinorArmorAsDistinct")
+	local treatMajorArmorAsDistinct = self:GetSetting("treatMajorArmorAsDistinct")
+	local treatModelVariantsAsDistinct = self:GetSetting("treatModelVariantsAsDistinct")
+	local treatUniqueEffectsAsDistinct = self:GetSetting("treatUniqueEffectsAsDistinct")
+	print("RMB_DYNAMIC: Rebuilding groups with settings - MinorArmor:",
+		treatMinorArmorAsDistinct, "MajorArmor:", treatMajorArmorAsDistinct,
+		"ModelVariants:", treatModelVariantsAsDistinct, "UniqueEffects:", treatUniqueEffectsAsDistinct)
+	-- First pass: Process all mounts to identify which families have distinguishing traits
+	local familiesWithDistinguishingTraits = {}
+	for mountID, mountInfo in pairs(self.processedData.allCollectedMountFamilyInfo) do
+		local familyName = mountInfo.familyName
+		local traits = mountInfo.traits or {}
+		-- Check if this family has any "distinguishing" traits
+		if (treatMinorArmorAsDistinct and traits.hasMinorArmor) or
+				(treatMajorArmorAsDistinct and traits.hasMajorArmor) or
+				(treatModelVariantsAsDistinct and traits.hasModelVariant) or
+				(treatUniqueEffectsAsDistinct and traits.isUniqueEffect) then
+			familiesWithDistinguishingTraits[familyName] = true
+		end
+	end
+
+	-- Second pass: Create the new grouping structure
+	for mountID, mountInfo in pairs(self.processedData.allCollectedMountFamilyInfo) do
+		local familyName = mountInfo.familyName
+		local superGroup = mountInfo.superGroup
+		-- Check if this family should be standalone based on traits
+		local shouldBeStandalone = familiesWithDistinguishingTraits[familyName] or false
+		if superGroup and not shouldBeStandalone then
+			-- Keep in supergroup
+			if not newSuperGroupMap[superGroup] then
+				newSuperGroupMap[superGroup] = {}
+			end
+
+			-- Add family to supergroup if not already there
+			local found = false
+			for _, familyInGroup in ipairs(newSuperGroupMap[superGroup] or {}) do
+				if familyInGroup == familyName then
+					found = true
+					break
+				end
+			end
+
+			if not found then
+				table.insert(newSuperGroupMap[superGroup], familyName)
+			end
+		else
+			-- Make standalone
+			newStandaloneFamilies[familyName] = true
+		end
+	end
+
+	-- Replace the original grouping with the new one
+	self.processedData.dynamicSuperGroupMap = newSuperGroupMap
+	self.processedData.dynamicStandaloneFamilies = newStandaloneFamilies
+	-- Log counts for debugging
+	local sgCount = 0
+	local familiesInSGCount = 0
+	for sg, families in pairs(newSuperGroupMap) do
+		sgCount = sgCount + 1
+		familiesInSGCount = familiesInSGCount + #families
+	end
+
+	local standaloneCount = 0
+	for _ in pairs(newStandaloneFamilies) do
+		standaloneCount = standaloneCount + 1
+	end
+
+	print("RMB_DYNAMIC: Rebuilt mount grouping - SuperGroups:", sgCount,
+		"Families in SuperGroups:", familiesInSGCount,
+		"Standalone Families:", standaloneCount)
+	-- Update the UI
+	self:PopulateFamilyManagementUI()
 end
 
 function addon:GetSetting(key)

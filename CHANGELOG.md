@@ -1,3 +1,6 @@
+# 0.6.1
+Added checkboxes that allow separating families from super groups based on tratis.
+
 # 0.6.0
 Added summoning by weight via slash command.
 

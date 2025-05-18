@@ -120,8 +120,12 @@ local rootOptionsTable = {
 			order = 12,
 			type = "toggle",
 			name = "Minor Armor as Distinct",
+			desc = "Consider minor armor differences significant enough to treat as separate families",
 			get = function() return addon:GetSetting("treatMinorArmorAsDistinct") end,
-			set = function(i, v) addon:SetSetting("treatMinorArmorAsDistinct", v) end,
+			set = function(i, v)
+				addon:SetSetting("treatMinorArmorAsDistinct", v)
+				addon:RebuildMountGrouping() -- Rebuild the grouping
+			end,
 			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
 		},
 
@@ -129,8 +133,12 @@ local rootOptionsTable = {
 			order = 13,
 			type = "toggle",
 			name = "Major Armor as Distinct",
+			desc = "Consider major armor differences significant enough to treat as separate families",
 			get = function() return addon:GetSetting("treatMajorArmorAsDistinct") end,
-			set = function(i, v) addon:SetSetting("treatMajorArmorAsDistinct", v) end,
+			set = function(i, v)
+				addon:SetSetting("treatMajorArmorAsDistinct", v)
+				addon:RebuildMountGrouping() -- Rebuild the grouping
+			end,
 			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
 		},
 
@@ -138,8 +146,12 @@ local rootOptionsTable = {
 			order = 14,
 			type = "toggle",
 			name = "Model Variants as Distinct",
+			desc = "Consider model variants significant enough to treat as separate families",
 			get = function() return addon:GetSetting("treatModelVariantsAsDistinct") end,
-			set = function(i, v) addon:SetSetting("treatModelVariantsAsDistinct", v) end,
+			set = function(i, v)
+				addon:SetSetting("treatModelVariantsAsDistinct", v)
+				addon:RebuildMountGrouping() -- Rebuild the grouping
+			end,
 			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
 		},
 
@@ -147,8 +159,12 @@ local rootOptionsTable = {
 			order = 15,
 			type = "toggle",
 			name = "Unique Effects/Skins as Distinct",
+			desc = "Consider unique effects/skins significant enough to treat as separate families",
 			get = function() return addon:GetSetting("treatUniqueEffectsAsDistinct") end,
-			set = function(i, v) addon:SetSetting("treatUniqueEffectsAsDistinct", v) end,
+			set = function(i, v)
+				addon:SetSetting("treatUniqueEffectsAsDistinct", v)
+				addon:RebuildMountGrouping() -- Rebuild the grouping
+			end,
 			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
 		},
 	},
