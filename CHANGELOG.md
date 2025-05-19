@@ -1,3 +1,7 @@
+# 0.6.2
+Added two more data files to help identify mount types for contextual summoning.
+Added contextual summoning - no flying mounts in ground-only areas, no ground mounts in flying areas etc.
+
 # 0.6.1
 Added checkboxes that allow separating families from super groups based on tratis.
 

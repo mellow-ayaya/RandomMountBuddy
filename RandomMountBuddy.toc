@@ -18,6 +18,8 @@ Libs\AceEvent-3.0\AceEvent-3.0.xml
 # Data Files
 Data\GeneratedMountModelGroups_WithPaths.lua
 Data\ManualFamilyDefinitions.lua
+Data\MountType.lua
+Data\MountID_to_MountTypeID.lua
 
 # Core Addon Lua Files
 Core.lua

@@ -89,7 +89,13 @@ local rootOptionsTable = {
 			name = "Enable Contextual Summoning",
 			desc = "Automatically filter mounts based on location/situation.",
 			get = function() return addon:GetSetting("contextualSummoning") end,
-			set = function(i, v) addon:SetSetting("contextualSummoning", v) end,
+			set = function(i, v)
+				addon:SetSetting("contextualSummoning", v)
+				-- Refresh mount pools if needed
+				if addon.RefreshMountPools then
+					addon:RefreshMountPools()
+				end
+			end,
 		},
 
 		-- New checkbox for showing uncollected mounts

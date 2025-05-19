@@ -236,6 +236,14 @@ function addon:OnInitialize()
 	self.processedData = { superGroupMap = {}, standaloneFamilyNames = {}, familyToMountIDsMap = {}, superGroupToMountIDsMap = {}, allCollectedMountFamilyInfo = {} }
 	print("RMB_DEBUG: OnInitialize - Initialized empty self.processedData.")
 	self.RMB_DataReadyForUI = false
+	-- Load mount type data
+	self.mountTypeTraits = MountTypeTraits_Input_Helper or {}
+	self.mountIDtoTypeID = MountIDtoMountTypeID or {}
+	-- Clear global tables to save memory
+	MountTypeTraits_Input_Helper = nil
+	MountIDtoMountTypeID = nil
+	print("RMB_DEBUG: Mount type data loaded. Types: " .. self:CountTableEntries(self.mountTypeTraits) ..
+		", ID mappings: " .. self:CountTableEntries(self.mountIDtoTypeID))
 	if LibAceDB then
 		self.db = LibAceDB:New("RandomMountBuddy_SavedVars", dbDefaults, true); print("RMB_DEBUG: AceDB:New done.");
 		if self.db and self.db.profile then
@@ -265,7 +273,25 @@ function addon:OnInitialize()
 		print("RMB_DEBUG: self:RegisterEvent missing!")
 	end
 
+	-- Initialize mount pools data structure
+	self.mountPools = {
+		flying = { superGroups = {}, families = {}, mountsByFamily = {} },
+		ground = { superGroups = {}, families = {}, mountsByFamily = {} },
+		underwater = { superGroups = {}, families = {}, mountsByFamily = {} },
+	}
 	print("RMB_DEBUG: OnInitialize END.")
+end
+
+-- Helper function to count table entries
+function addon:CountTableEntries(tbl)
+	local count = 0
+	if tbl then
+		for _ in pairs(tbl) do
+			count = count + 1
+		end
+	end
+
+	return count
 end
 
 function addon:OnEnable()
