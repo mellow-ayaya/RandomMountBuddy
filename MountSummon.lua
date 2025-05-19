@@ -2,6 +2,58 @@
 local addonName, addonTable = ...
 local addon = RandomMountBuddy -- Reference to the addon from global
 print("RMB_DEBUG: MountSummon.lua START.")
+local isInSkyridingMode = false
+-- Function to check which flight style the player is using
+function addon:CheckCurrentFlightStyle()
+	-- Check for "Switch to Steady Flight" (460002) spell - if present, player is in skyriding mode
+	-- Check for "Switch to Dragonriding" (460003) spell - if present, player is in steady flight mode
+	local steadySpellID = 460003   -- Switch TO skyriding (player is currently in steady flight)
+	local skyridingSpellID = 460002 -- Switch TO steady flight (player is currently in skyriding)
+	-- Use C_Spell.GetSpellInfo to check if the player knows these spells
+	local skyridingSpellInfo = C_Spell.GetSpellInfo(skyridingSpellID)
+	local steadySpellInfo = C_Spell.GetSpellInfo(steadySpellID)
+	if skyridingSpellInfo then
+		-- If "Switch to Steady Flight" spell is known, player is in skyriding mode
+		isInSkyridingMode = true
+		print("RMB_DEBUG: Flight style check - Player is in SKYRIDING mode")
+		return true
+	elseif steadySpellInfo then
+		-- If "Switch to Dragonriding" spell is known, player is in steady flight mode
+		isInSkyridingMode = false
+		print("RMB_DEBUG: Flight style check - Player is in STEADY FLIGHT mode")
+		return false
+	else
+		-- If neither spell is known, default to steady flight
+		isInSkyridingMode = false
+		print("RMB_DEBUG: Flight style check - Could not determine style, defaulting to STEADY FLIGHT")
+		return false
+	end
+end
+
+-- Register for events to track flight style changes
+function addon:RegisterFlightStyleEvents()
+	if not self.eventFrame then
+		self.eventFrame = CreateFrame("Frame")
+		self.eventFrame:SetScript("OnEvent", function(frame, event, ...)
+			if event == "UNIT_SPELLCAST_SUCCEEDED" then
+				local unit, castGUID, spellID = ...
+				if unit == "player" then
+					if spellID == 460003 then -- Switch TO skyriding
+						isInSkyridingMode = true
+						print("RMB_DEBUG: Switched TO skyriding mode")
+					elseif spellID == 460002 then -- Switch TO steady flight
+						isInSkyridingMode = false
+						print("RMB_DEBUG: Switched TO steady flight mode")
+					end
+				end
+			end
+		end)
+	end
+
+	self.eventFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+	print("RMB_DEBUG: Registered for flight style change events")
+end
+
 -- =============================
 -- MOUNT TYPE & CAPABILITY DETECTION
 -- =============================
@@ -55,10 +107,11 @@ function addon:GetCurrentContext()
 		canDragonride = false,
 		isUnderwater = false,
 		inZone = nil,
+		isInSkyridingMode = false,
 	}
 	-- Check if player can fly in current zone
 	context.canFly = IsFlyableArea()
-	-- Check if Dragonriding is enabled in current zone
+	-- Check if Dragonriding is available (zone check for backward compatibility)
 	if IsAdvancedFlyableArea then
 		context.canDragonride = IsAdvancedFlyableArea()
 	else
@@ -78,6 +131,8 @@ function addon:GetCurrentContext()
 		end
 	end
 
+	-- Check current flight style (regardless of zone)
+	context.isInSkyridingMode = isInSkyridingMode or self:CheckCurrentFlightStyle()
 	-- Get current zone
 	local mapID = C_Map.GetBestMapForUnit("player")
 	if mapID then
@@ -89,6 +144,7 @@ function addon:GetCurrentContext()
 	print("RMB_CONTEXT: Current context:",
 		"canFly =", context.canFly,
 		"canDragonride =", context.canDragonride,
+		"isInSkyridingMode =", context.isInSkyridingMode,
 		"isUnderwater =", context.isUnderwater,
 		"zone =", context.inZone)
 	return context
@@ -672,6 +728,27 @@ function addon:SummonRandomMount(useContext)
 		if context.isUnderwater then
 			poolName = "underwater"
 		elseif context.canFly then
+			if context.isInSkyridingMode and context.canDragonride then
+				-- If player is in skyriding mode and can dragonride in this zone
+				-- Only use skyriding mounts
+				poolName = "flying"
+				-- Filter only skyriding mounts
+				local mountID, mountName = self:SelectSpecificMountTypeFromPool(poolName, "skyriding")
+				if mountID then
+					return self:SummonMount(mountID)
+				end
+			else
+				-- If in steady flight mode or can't dragonride here
+				-- Only use steady flight mounts
+				poolName = "flying"
+				-- Filter only steady flight mounts
+				local mountID, mountName = self:SelectSpecificMountTypeFromPool(poolName, "steadyflight")
+				if mountID then
+					return self:SummonMount(mountID)
+				end
+			end
+
+			-- Fallback to any flying mount if specific type selection failed
 			poolName = "flying"
 		else
 			poolName = "ground"
@@ -690,6 +767,161 @@ function addon:SummonRandomMount(useContext)
 		print("RMB_SUMMON: No eligible mounts found in " .. poolName .. " pool")
 		return false
 	end
+end
+
+-- New function to select only specific mount types (steady flight or skyriding)
+-- Refactored function to select specific mount types while respecting weight hierarchy
+function addon:SelectSpecificMountTypeFromPool(poolName, mountType)
+	local pool = self.mountPools[poolName]
+	if not pool then
+		print("RMB_SUMMON_ERROR: Invalid pool name:", poolName)
+		return nil, nil
+	end
+
+	-- Build list of eligible groups first (respecting the hierarchy)
+	local eligibleGroups = {}
+	-- Add supergroups with weight > 0
+	for sgName, families in pairs(pool.superGroups) do
+		local superGroupWeight = self:GetGroupWeight(sgName)
+		if superGroupWeight > 0 then
+			-- This supergroup is eligible
+			table.insert(eligibleGroups, {
+				name = sgName,
+				type = "superGroup",
+				weight = self:MapWeightToProbability(superGroupWeight),
+			})
+		end
+	end
+
+	-- Add standalone families with weight > 0
+	for familyName, _ in pairs(pool.families) do
+		local familyWeight = self:GetGroupWeight(familyName)
+		if familyWeight > 0 then
+			-- This standalone family is eligible
+			table.insert(eligibleGroups, {
+				name = familyName,
+				type = "family",
+				weight = self:MapWeightToProbability(familyWeight),
+			})
+		end
+	end
+
+	-- If no eligible groups, return nil
+	if #eligibleGroups == 0 then
+		print("RMB_SUMMON: No eligible groups found for " .. mountType .. " mount selection")
+		return nil, nil
+	end
+
+	-- Try each eligible group until we find one with matching mount type
+	-- Randomize the order to prevent always checking the same groups first
+	-- Shuffle the groups randomly (Lua 5.1 compatible)
+	for i = #eligibleGroups, 2, -1 do
+		local j = math.random(i)
+		eligibleGroups[i], eligibleGroups[j] = eligibleGroups[j], eligibleGroups[i]
+	end
+
+	for groupIndex, group in ipairs(eligibleGroups) do
+		local eligibleFamilies = {}
+		if group.type == "superGroup" then
+			-- Get all families in this supergroup
+			for _, familyName in ipairs(pool.superGroups[group.name] or {}) do
+				local familyWeight = self:GetGroupWeight(familyName)
+				if familyWeight > 0 then
+					table.insert(eligibleFamilies, {
+						name = familyName,
+						weight = self:MapWeightToProbability(familyWeight),
+					})
+				end
+			end
+		else
+			-- Just the standalone family
+			table.insert(eligibleFamilies, {
+				name = group.name,
+				weight = group.weight,
+			})
+		end
+
+		-- If no eligible families in this group, skip to next group
+		if #eligibleFamilies == 0 then
+			-- Skip to next iteration (no goto in Lua 5.1)
+		else
+			-- Randomize family order (Lua 5.1 compatible)
+			for i = #eligibleFamilies, 2, -1 do
+				local j = math.random(i)
+				eligibleFamilies[i], eligibleFamilies[j] = eligibleFamilies[j], eligibleFamilies[i]
+			end
+
+			-- Try each family until we find one with matching mount type
+			for _, family in ipairs(eligibleFamilies) do
+				local eligibleMounts = {}
+				local totalWeight = 0
+				-- Get all mounts in this family
+				for _, mountID in ipairs(pool.mountsByFamily[family.name] or {}) do
+					local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
+					-- Skip unusable mounts
+					if isUsable then
+						local traits = self:GetMountTypeTraits(mountID)
+						local isEligible = false
+						-- Check if this mount matches the desired type
+						if mountType == "skyriding" and traits.isSkyriding then
+							isEligible = true
+						elseif mountType == "steadyflight" and traits.isSteadyFly then
+							isEligible = true
+						end
+
+						if isEligible then
+							-- Get mount weight
+							local mountKey = "mount_" .. mountID
+							local mountWeight = self:GetGroupWeight(mountKey)
+							-- Skip mounts with explicit weight 0
+							if mountWeight ~= 0 then
+								-- If mount has no specific weight, use family weight
+								if mountWeight == nil or mountWeight == 0 then
+									mountWeight = self:GetGroupWeight(family.name)
+								end
+
+								-- Only include if weight > 0
+								if mountWeight > 0 then
+									local probWeight = self:MapWeightToProbability(mountWeight)
+									table.insert(eligibleMounts, {
+										id = mountID,
+										name = name,
+										weight = probWeight,
+									})
+									totalWeight = totalWeight + probWeight
+									print("RMB_SUMMON: Added eligible " .. mountType .. " mount from "
+										.. family.name .. ":", name, "Weight:", mountWeight)
+								end
+							end
+						end
+					end
+				end
+
+				-- If eligible mounts found in this family, make a selection
+				if #eligibleMounts > 0 and totalWeight > 0 then
+					-- Weighted random selection
+					local roll = math.random(1, totalWeight)
+					local currentSum = 0
+					for _, mount in ipairs(eligibleMounts) do
+						currentSum = currentSum + mount.weight
+						if roll <= currentSum then
+							print("RMB_SUMMON: Selected " .. mountType .. " mount:", mount.name,
+								"from family:", family.name,
+								group.type == "superGroup" and "in supergroup: " .. group.name or "")
+							return mount.id, mount.name
+						end
+					end
+
+					-- Fallback
+					return eligibleMounts[1].id, eligibleMounts[1].name
+				end
+			end
+		end
+	end
+
+	-- If we got here, no eligible mounts were found
+	print("RMB_SUMMON: No eligible " .. mountType .. " mounts found in any group")
+	return nil, nil
 end
 
 -- =============================
@@ -749,6 +981,10 @@ local originalOnEnable = addon.OnEnable
 addon.OnEnable = function(self)
 	-- Call the original OnEnable
 	originalOnEnable(self)
+	-- Check flight style
+	self:CheckCurrentFlightStyle()
+	-- Register for flight style events
+	self:RegisterFlightStyleEvents()
 	-- Initialize mount summoning
 	self:InitializeMountSummoning()
 end

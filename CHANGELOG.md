@@ -1,3 +1,6 @@
+# 0.6.3
+Added flight style check for mounts that only support one flight style.
+
 # 0.6.2
 Added two more data files to help identify mount types for contextual summoning.
 Added contextual summoning - no flying mounts in ground-only areas, no ground mounts in flying areas etc.
