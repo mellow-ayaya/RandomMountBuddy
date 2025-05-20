@@ -51,11 +51,8 @@ print("RMB_DEBUG: NewAddon SUCCEEDED. Addon valid: " ..
 addon.RMB_DataReadyForUI = false -- Flag
 addon.fmCurrentPage = 1          -- Initialize current page here
 addon.fmItemsPerPage = 15        -- Initialize items per page here (will be loaded from DB in OnInitialize)
--- Binding globals for keybindings
 BINDING_HEADER_RANDOMMOUNTBUDDY = "Random Mount Buddy"
-BINDING_NAME_CLICK_RMBTravelFormButton_LeftButton = "Cast Travel Form"
-BINDING_NAME_CLICK_RMBMountButton_LeftButton = "Summon Mount"
-BINDING_NAME_CLICK_RMBStateHandler_LeftButton = "Smart Mount/Travel Form"
+BINDING_NAME_CLICK_RMBSmartButton_LeftButton = "Smart Mount/Travel Form"
 function addon:GetFamilyInfoForMountID(mountID)
 	if not mountID then return nil end; local id = tonumber(mountID); if not id then return nil end
 

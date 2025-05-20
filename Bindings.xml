@@ -1,13 +1,5 @@
 <Bindings>
-  <!-- Travel Form keybind -->
-  <Binding name="CLICK RMBTravelFormButton:LeftButton" header="RANDOMMOUNTBUDDY" category="ADDONS">
-  </Binding>
-
-  <!-- Mount keybind -->
-  <Binding name="CLICK RMBMountButton:LeftButton" category="ADDONS">
-  </Binding>
-
-  <!-- Smart keybind (state-aware) -->
-  <Binding name="CLICK RMBStateHandler:LeftButton" category="ADDONS">
+  <!-- Smart button -->
+  <Binding name="CLICK RMBSmartButton:LeftButton" header="RANDOMMOUNTBUDDY" category="ADDONS">
   </Binding>
 </Bindings>
