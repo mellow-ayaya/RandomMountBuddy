@@ -1,3 +1,6 @@
+# 0.6.5
+Keybind support now allows summoning a mount when sitting still or casting a spell (travel form, ghost wolf, zen flight) while moving.
+
 # 0.6.4
 Added semi functional keybind support.
 

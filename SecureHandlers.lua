@@ -7,7 +7,7 @@ function addonTable:SetupSecureHandlers()
 	local eventFrame = CreateFrame("Frame")
 	eventFrame:RegisterEvent("ADDON_LOADED")
 	-- Prepare for button creation
-	local travelButton, mountButton, visibleButton, combinedButton
+	local travelButton, mountButton, visibleButton, smartButton, updateFrame
 	-- Initialize on addon load
 	eventFrame:SetScript("OnEvent", function(self, event, addonNameLoaded)
 		if addonNameLoaded ~= "RandomMountBuddy" then return end
@@ -40,6 +40,7 @@ function addonTable:SetupSecureHandlers()
 		mountButton:SetPoint("CENTER")
 		mountButton:SetAttribute("type", "macro")
 		mountButton:SetAttribute("macrotext", "/script RandomMountBuddy:SummonRandomMount(true)")
+		mountButton:RegisterForClicks("AnyUp", "AnyDown")
 		-- Create visible button
 		visibleButton = CreateFrame("Button", "RMBVisibleButton", UIParent)
 		visibleButton:SetSize(40, 40)
@@ -80,111 +81,79 @@ function addonTable:SetupSecureHandlers()
 		visibleButton:SetScript("OnLeave", function()
 			GameTooltip:Hide()
 		end)
-		-- DIRECT APPROACH: Create a direct command button for the keybind
+		-- SIMPLIFIED APPROACH: Create a smart button that directly switches between Travel Form and mounting
 		local _, playerClass = UnitClass("player")
 		local isDruid = (playerClass == "DRUID")
 		if isDruid then
-			-- For druids, we'll create a new combined secure action button
-			-- This will handle both the Travel Form and mount summoning
-			-- We'll create it with a secure action type that works directly
-			-- Create a new secure macro text for the summon mount function
-			local mountMacro = "/script RandomMountBuddy:SummonRandomMount(true)"
-			-- Create a custom CombinedButtonPreClick handler
-			-- This detects if the player is moving and sets the button attributes accordingly
-			visibleButton:HookScript("PreClick", function(self)
-				if InCombatLockdown() then return end
+			-- Create simple smart button
+			-- Create simple smart button
+			smartButton = CreateFrame("Button", "RMBSmartButton", UIParent, "SecureActionButtonTemplate")
+			smartButton:SetSize(1, 1)
+			smartButton:SetPoint("CENTER")
+			smartButton:RegisterForClicks("AnyUp", "AnyDown")
+			-- Set initial state to mount (instead of Travel Form)
+			smartButton:SetAttribute("type", "macro")
+			smartButton:SetAttribute("macrotext", "/script RandomMountBuddy:SummonRandomMount(true)")
+			-- Create a frame to monitor player movement
+			updateFrame = CreateFrame("Frame")
+			updateFrame.elapsed = 0
+			updateFrame.lastMoving = false
+			-- Update the button's attributes based on movement
+			updateFrame:SetScript("OnUpdate", function(self, elapsed)
+				self.elapsed = self.elapsed + elapsed
+				-- Check movement state every 0.1 seconds
+				if self.elapsed > 0.1 then
+					self.elapsed = 0
+					-- Skip in combat
+					if InCombatLockdown() then return end
 
-				local isMoving = IsPlayerMoving()
-				print("RMB_DEBUG: PreClick check - Moving: " .. tostring(isMoving))
-				-- Update combined button attributes based on movement state
-				if isMoving then
-					combinedButton:SetAttribute("type", "spell")
-					combinedButton:SetAttribute("spell", travelFormName)
-					print("RMB_DEBUG: Combined button set to cast Travel Form")
-				else
-					combinedButton:SetAttribute("type", "macro")
-					combinedButton:SetAttribute("macrotext", mountMacro)
-					print("RMB_DEBUG: Combined button set to summon mount")
+					-- Check if player is moving
+					local isMoving = IsPlayerMoving()
+					-- Only update if state changed
+					if isMoving ~= self.lastMoving then
+						self.lastMoving = isMoving
+						-- Update button based on movement
+						if isMoving then
+							print("RMB_SMART: Moving - switching to Travel Form")
+							smartButton:SetAttribute("type", "spell")
+							smartButton:SetAttribute("spell", travelFormName)
+						else
+							print("RMB_SMART: Stationary - switching to mount")
+							smartButton:SetAttribute("type", "macro")
+							smartButton:SetAttribute("macrotext", "/script RandomMountBuddy:SummonRandomMount(true)")
+						end
+					end
 				end
 			end)
-			-- Create the combined button
-			combinedButton = CreateFrame("Button", "RMBCombinedButton", UIParent, "SecureActionButtonTemplate")
-			combinedButton:SetSize(1, 1)
-			combinedButton:SetPoint("CENTER")
-			combinedButton:RegisterForClicks("AnyUp", "AnyDown")
-			-- Initial setup - we'll update this in the PreClick hook
-			combinedButton:SetAttribute("type", "spell")
-			combinedButton:SetAttribute("spell", travelFormName)
-			print("RMB_SECURE: Created druid combined button with dynamic attributes")
+			print("RMB_SECURE: Set up smart button with movement tracking for druids")
 		else
-			-- For non-druids, just duplicate the mount button's functionality
-			combinedButton = CreateFrame("Button", "RMBCombinedButton", UIParent, "SecureActionButtonTemplate")
-			combinedButton:SetSize(1, 1)
-			combinedButton:SetPoint("CENTER")
-			combinedButton:RegisterForClicks("AnyUp", "AnyDown")
-			combinedButton:SetAttribute("type", "macro")
-			combinedButton:SetAttribute("macrotext", "/script RandomMountBuddy:SummonRandomMount(true)")
-			print("RMB_SECURE: Created non-druid combined button")
+			-- For non-druids, just set to use the mount button
+			smartButton = CreateFrame("Button", "RMBSmartButton", UIParent, "SecureActionButtonTemplate")
+			smartButton:SetSize(1, 1)
+			smartButton:SetPoint("CENTER")
+			smartButton:RegisterForClicks("AnyUp", "AnyDown")
+			smartButton:SetAttribute("type", "macro")
+			smartButton:SetAttribute("macrotext", "/script RandomMountBuddy:SummonRandomMount(true)")
+			print("RMB_SECURE: Set up mount-only button for non-druids")
 		end
 
-		-- Add slash command to test the combined button
-		SLASH_TESTCOMBINED1 = "/testcombined"
-		SlashCmdList["TESTCOMBINED"] = function()
-			print("RMB_DEBUG: Testing combined button - Current attributes:")
-			print("Type: " .. (combinedButton:GetAttribute("type") or "nil"))
-			if combinedButton:GetAttribute("type") == "spell" then
-				print("Spell: " .. (combinedButton:GetAttribute("spell") or "nil"))
-			elseif combinedButton:GetAttribute("type") == "macro" then
-				print("Macro: " .. (combinedButton:GetAttribute("macrotext") or "nil"))
-			end
-
-			-- Try to click it
-			if not InCombatLockdown() then
-				print("RMB_DEBUG: Updating attributes based on movement")
-				local isMoving = IsPlayerMoving()
-				print("RMB_DEBUG: Moving: " .. tostring(isMoving))
-				if isDruid and isMoving then
-					combinedButton:SetAttribute("type", "spell")
-					combinedButton:SetAttribute("spell", travelFormName)
-					print("RMB_DEBUG: Set to cast Travel Form")
-				else
-					combinedButton:SetAttribute("type", "macro")
-					combinedButton:SetAttribute("macrotext", "/script RandomMountBuddy:SummonRandomMount(true)")
-					print("RMB_DEBUG: Set to summon mount")
-				end
-			else
-				print("RMB_DEBUG: In combat, can't update attributes")
-			end
-
-			print("RMB_DEBUG: Clicking combined button")
-			combinedButton:Click()
-		end
 		-- Store references
 		addonTable.travelButton = travelButton
 		addonTable.mountButton = mountButton
 		addonTable.visibleButton = visibleButton
-		addonTable.combinedButton = combinedButton
+		addonTable.smartButton = smartButton
+		addonTable.updateFrame = updateFrame
 		-- Also store references on the main addon object
 		RandomMountBuddy.travelButton = travelButton
 		RandomMountBuddy.mountButton = mountButton
 		RandomMountBuddy.visibleButton = visibleButton
-		RandomMountBuddy.combinedButton = combinedButton
+		RandomMountBuddy.smartButton = smartButton
+		RandomMountBuddy.updateFrame = updateFrame
 		-- Create click method on the main addon object
 		RandomMountBuddy.ClickMountButton = function(self)
-			-- Update combined button attributes based on current state
-			if not InCombatLockdown() and isDruid then
-				local isMoving = IsPlayerMoving()
-				if isMoving then
-					self.combinedButton:SetAttribute("type", "spell")
-					self.combinedButton:SetAttribute("spell", travelFormName)
-				else
-					self.combinedButton:SetAttribute("type", "macro")
-					self.combinedButton:SetAttribute("macrotext", "/script RandomMountBuddy:SummonRandomMount(true)")
-				end
-			end
-
-			if self.combinedButton then
-				self.combinedButton:Click()
+			if self.visibleButton then
+				self.visibleButton:Click()
+				print("RMB_DEBUG: Clicked visible button")
 				return true
 			end
 
@@ -209,6 +178,18 @@ function addonTable:SetupSecureHandlers()
 				_G["RMBTravelFormButton"]:Click()
 			else
 				print("RMB_DEBUG: Travel Form button not found in global scope")
+			end
+		end
+		-- Add a test slash command for the smart button
+		SLASH_SMARTBUTTON1 = "/smartbutton"
+		SlashCmdList["SMARTBUTTON"] = function()
+			print("RMB_DEBUG: Testing smart button...")
+			if _G["RMBSmartButton"] then
+				local isMoving = IsPlayerMoving()
+				print("RMB_DEBUG: Smart button found, clicking. isMoving:", isMoving)
+				_G["RMBSmartButton"]:Click()
+			else
+				print("RMB_DEBUG: Smart button not found in global scope")
 			end
 		end
 		print("RMB_SECURE: Secure handlers initialized")

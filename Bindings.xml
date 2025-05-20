@@ -1,9 +1,13 @@
 <Bindings>
-  <!-- Convert original keybind to use CLICK pattern -->
-  <Binding name="CLICK RMBCombinedButton:LeftButton" header="RANDOMMOUNTBUDDY" category="ADDONS">
+  <!-- Travel Form keybind -->
+  <Binding name="CLICK RMBTravelFormButton:LeftButton" header="RANDOMMOUNTBUDDY" category="ADDONS">
   </Binding>
 
-  <!-- Direct Travel Form keybind -->
-  <Binding name="CLICK RMBTravelFormButton:LeftButton" category="ADDONS">
+  <!-- Mount keybind -->
+  <Binding name="CLICK RMBMountButton:LeftButton" category="ADDONS">
+  </Binding>
+
+  <!-- Smart button -->
+  <Binding name="CLICK RMBSmartButton:LeftButton" category="ADDONS">
   </Binding>
 </Bindings>
