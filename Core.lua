@@ -51,6 +51,14 @@ print("RMB_DEBUG: NewAddon SUCCEEDED. Addon valid: " ..
 addon.RMB_DataReadyForUI = false -- Flag
 addon.fmCurrentPage = 1          -- Initialize current page here
 addon.fmItemsPerPage = 15        -- Initialize items per page here (will be loaded from DB in OnInitialize)
+-- Update binding globals
+BINDING_HEADER_RANDOMMOUNTBUDDY = "Random Mount Buddy"
+-- For the combined button
+BINDING_NAME_CLICK_RMBCombinedButton_LeftButton = "Summon Mount or Travel Form"
+-- For the direct travel form button
+BINDING_NAME_CLICK_RMBTravelFormButton_LeftButton = "Cast Travel Form (Direct)"
+_G["BINDING_HEADER_RANDOMMOUNTBUDDY"] = "Random Mount Buddy"
+_G["BINDING_NAME_RANDOMMOUNTBUDDY_SUMMON"] = "Summon Mount or Cast Travel Form"
 function addon:GetFamilyInfoForMountID(mountID)
 	if not mountID then return nil end; local id = tonumber(mountID); if not id then return nil end
 
@@ -273,6 +281,18 @@ function addon:OnInitialize()
 		print("RMB_DEBUG: self:RegisterEvent missing!")
 	end
 
+	if LibAceConsole then
+		self:RegisterChatCommand("rmm", function()
+			print("RMB_SECURE: 'rmm' slash command executed from Core.lua")
+			if self.ClickSecureButton then
+				self:ClickSecureButton()
+			else
+				print("RMB_SECURE_ERROR: ClickSecureButton method not found!")
+			end
+		end)
+		print("RMB_DEBUG: Registered 'rmm' slash command from Core.lua")
+	end
+
 	-- Initialize mount pools data structure
 	self.mountPools = {
 		flying = { superGroups = {}, families = {}, mountsByFamily = {} },
@@ -298,6 +318,14 @@ function addon:OnEnable()
 	print("RMB_DEBUG: OnEnable CALLED.")
 	-- Initialize the mount UI system
 	self:InitializeMountUI()
+	print("RMB_DEBUG: OnEnable - About to initialize secure handlers")
+	if self.InitializeSecureHandlers then
+		self:InitializeSecureHandlers()
+		print("RMB_DEBUG: OnEnable - Secure handlers initialization called")
+	else
+		print("RMB_DEBUG_ERROR: InitializeSecureHandlers function not found!")
+	end
+
 	print("RMB_DEBUG: OnEnable END.")
 end
 

@@ -1,3 +1,6 @@
+# 0.6.4
+Added semi functional keybind support.
+
 # 0.6.3
 Added flight style check for mounts that only support one flight style.
 
