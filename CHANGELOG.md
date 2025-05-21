@@ -1,3 +1,7 @@
+# 0.6.8
+Added support and toggles for ghost wolf.
+Added support and toggles for zen flight.
+
 # 0.6.7
 Added toggle for using travel form while moving and not cancelling travel form when it's already active.
 
