@@ -4,15 +4,25 @@ RandomMountBuddy = addonTableProvidedByWoW
 local dbDefaults = {
 	profile = {
 		overrideBlizzardButton = true,
-		useSuperGrouping = true,
+		-- Summoning
 		contextualSummoning = true,
+		-- Class Spells
 		useTravelFormWhileMoving = true,
 		keepTravelFormActive = true,
+		useGhostWolfWhileMoving = true,
+		keepGhostWolfActive = true,
+		useZenFlightWhileMoving = true,
+		keepZenFlightActive = true,
+		-- Mount list related
+		-- Mount traits
 		treatMinorArmorAsDistinct = false,
 		treatMajorArmorAsDistinct = false,
 		treatModelVariantsAsDistinct = false,
 		treatUniqueEffectsOrSkin = true,
+		-- Mount list options
+		useSuperGrouping = true,
 		showUncollectedMounts = true,
+		--
 		expansionStates = {},
 		groupWeights = {},
 		groupEnabledStates = {},
