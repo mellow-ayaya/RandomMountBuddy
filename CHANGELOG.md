@@ -1,3 +1,6 @@
+# 0.6.7
+Added toggle for using travel form while moving and not cancelling travel form when it's already active.
+
 # 0.6.6
 Optimizations for keybind.
 

@@ -115,7 +115,43 @@ local rootOptionsTable = {
 				end
 			end,
 		},
+		useTravelFormWhileMoving = {
+			order = 7,
+			type = "toggle",
+			name = "Use Travel Form While Moving",
+			desc = "If checked, the keybind will use Travel Form while moving (Druids only).",
+			get = function() return addon:GetSetting("useTravelFormWhileMoving") end,
+			set = function(i, v)
+				addon:SetSetting("useTravelFormWhileMoving", v)
+				-- Force an update of smartButton if it exists and we're not in combat
+				if RandomMountBuddy.smartButton and not InCombatLockdown() then
+					local isMoving = IsPlayerMoving()
+					if isMoving and v then
+						-- If moving and setting turned ON, use Travel Form
+						RandomMountBuddy.smartButton:SetAttribute("type", "spell")
+						RandomMountBuddy.smartButton:SetAttribute("spell",
+							C_Spell.GetSpellInfo(783) and C_Spell.GetSpellInfo(783).name or "Travel Form")
+					else
+						-- Otherwise use mount
+						RandomMountBuddy.smartButton:SetAttribute("type", "macro")
+						RandomMountBuddy.smartButton:SetAttribute("macrotext", "/run RandomMountBuddy:SummonRandomMount(true)")
+					end
 
+					-- Update lastMoving value in updateFrame if it exists
+					if RandomMountBuddy.updateFrame then
+						RandomMountBuddy.updateFrame.lastMoving = isMoving
+					end
+				end
+			end,
+		},
+		keepTravelFormActive = {
+			order = 8,
+			type = "toggle",
+			name = "Keep Travel Form When Already Active",
+			desc = "If checked, pressing the keybind while already in Travel Form won't cancel the form.",
+			get = function() return addon:GetSetting("keepTravelFormActive") end,
+			set = function(i, v) addon:SetSetting("keepTravelFormActive", v) end,
+		},
 		traitStrictnessHeader = {
 			order = 10,
 			type = "header",
