@@ -1,3 +1,6 @@
+# 0.6.11
+Added G-99 Breakneck support for both areas.
+
 # 0.6.10
 Refactored SecureHandlers and removed falling macro conditional, which is now handled by lua.
 
