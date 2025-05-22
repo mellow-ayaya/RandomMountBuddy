@@ -1,3 +1,6 @@
+# 0.6.10
+Refactored SecureHandlers and removed falling macro conditional, which is now handled by lua.
+
 # 0.6.9
 Added support and toggles for Levitate and Slow Fall.
 Added support for casting Ghost Wolf and Cat form while indoors.
