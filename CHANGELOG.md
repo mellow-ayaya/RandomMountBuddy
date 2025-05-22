@@ -1,6 +1,11 @@
+# 0.6.9
+Added support and toggles for Levitate and Slow Fall.
+Added support for casting Ghost Wolf and Cat form while indoors.
+Resolved issue with unknown macro conditional falling for Zen flight.
+
 # 0.6.8
-Added support and toggles for ghost wolf.
-Added support and toggles for zen flight.
+Added support and toggles for Ghost Wolf.
+Added support and toggles for Zen Flight.
 
 # 0.6.7
 Added toggle for using travel form while moving and not cancelling travel form when it's already active.

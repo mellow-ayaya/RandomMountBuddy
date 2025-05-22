@@ -152,6 +152,21 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("keepTravelFormActive") end,
 			set = function(i, v) addon:SetSetting("keepTravelFormActive", v) end,
 		},
+		useSmartFormSwitching = {
+			order = 8.5,
+			type = "toggle",
+			name = "Use Smart Form Switching",
+			desc =
+			"If checked, intelligently switches between Travel Form (outdoors/swimming) and Cat Form (indoors) based on context.",
+			get = function() return addon:GetSetting("useSmartFormSwitching") end,
+			set = function(i, v)
+				addon:SetSetting("useSmartFormSwitching", v)
+				-- Force an update of the macros if not in combat
+				if not InCombatLockdown() then
+					RandomMountBuddy:UpdateShapeshiftMacros()
+				end
+			end,
+		},
 		useGhostWolfWhileMoving = {
 			order = 9,
 			type = "toggle",
@@ -185,8 +200,42 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("keepZenFlightActive") end,
 			set = function(i, v) addon:SetSetting("keepZenFlightActive", v) end,
 		},
+		-- Add after the existing Monk options
+		useSlowFallWhileFalling = {
+			order = 9.7,
+			type = "toggle",
+			name = "Use Slow Fall While Falling",
+			desc = "If checked, the keybind will use Slow Fall while falling (Mages only).",
+			get = function() return addon:GetSetting("useSlowFallWhileFalling") end,
+			set = function(i, v) addon:SetSetting("useSlowFallWhileFalling", v) end,
+		},
+		useSlowFallOnOthers = {
+			order = 9.8,
+			type = "toggle",
+			name = "Cast Slow Fall on Others",
+			desc = "If checked, Slow Fall will try to cast on your target or mouseover first, before falling back to yourself.",
+			get = function() return addon:GetSetting("useSlowFallOnOthers") end,
+			set = function(i, v) addon:SetSetting("useSlowFallOnOthers", v) end,
+		},
+		useLevitateWhileFalling = {
+			order = 9.9,
+			type = "toggle",
+			name = "Use Levitate While Falling",
+			desc = "If checked, the keybind will use Levitate while falling (Priests only).",
+			get = function() return addon:GetSetting("useLevitateWhileFalling") end,
+			set = function(i, v) addon:SetSetting("useLevitateWhileFalling", v) end,
+		},
+		useLevitateOnOthers = {
+			order = 10.0,
+			type = "toggle",
+			name = "Cast Levitate on Others",
+			desc = "If checked, Levitate will try to cast on your target or mouseover first, before falling back to yourself.",
+			get = function() return addon:GetSetting("useLevitateOnOthers") end,
+			set = function(i, v) addon:SetSetting("useLevitateOnOthers", v) end,
+		},
+
 		traitStrictnessHeader = {
-			order = 10,
+			order = 10.1,
 			type = "header",
 			name = "Trait-Based Strictness (if Super-Grouping is enabled)",
 		},

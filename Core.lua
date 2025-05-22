@@ -7,12 +7,22 @@ local dbDefaults = {
 		-- Summoning
 		contextualSummoning = true,
 		-- Class Spells
+		-- Druid
 		useTravelFormWhileMoving = true,
 		keepTravelFormActive = true,
+		useSmartFormSwitching = true,
+		-- Shaman
 		useGhostWolfWhileMoving = true,
 		keepGhostWolfActive = true,
+		-- Mage Spells
+		useSlowFallWhileFalling = true,
+		useSlowFallOnOthers = false,
+		-- Monk
 		useZenFlightWhileMoving = true,
 		keepZenFlightActive = true,
+		-- Priest Spells
+		useLevitateWhileFalling = true,
+		useLevitateOnOthers = false,
 		-- Mount list related
 		-- Mount traits
 		treatMinorArmorAsDistinct = false,
@@ -65,6 +75,13 @@ addon.fmCurrentPage = 1          -- Initialize current page here
 addon.fmItemsPerPage = 15        -- Initialize items per page here (will be loaded from DB in OnInitialize)
 BINDING_HEADER_RANDOMMOUNTBUDDY = "Random Mount Buddy"
 BINDING_NAME_CLICK_RMBSmartButton_LeftButton = "Smart Mount/Travel Form"
+-- Add a short alias for the addon global
+RMB = RandomMountBuddy
+-- Add shorthand method for SummonRandomMount
+function RMB:SRM(useContext)
+	return self:SummonRandomMount(useContext)
+end
+
 function addon:GetFamilyInfoForMountID(mountID)
 	if not mountID then return nil end; local id = tonumber(mountID); if not id then return nil end
 
