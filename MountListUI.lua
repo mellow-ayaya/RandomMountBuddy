@@ -517,7 +517,7 @@ function addon:BuildFamilyManagementArgs()
 		currentPage = 1; self.fmCurrentPage = currentPage;
 	end
 
-	-- Pagination Controls Group (Top)
+	-- Pagination Controls Group (Top) -- edited into description group
 	pageArgs["pagination_controls_group_top"] = {
 		order = displayOrder,
 		type = "group",
@@ -528,25 +528,25 @@ function addon:BuildFamilyManagementArgs()
 			previewHeader = {
 				order = 1,
 				type = "description",
-				name = "  Preview",
+				name = "  |cffffd700Preview|r",
 				width = 0.3,
 			},
 			mountHeader = {
 				order = 2,
 				type = "description",
-				name = "   Super Group/Family/Mount name",
+				name = "   |cffffd700Super Group/Family/Mount name|r",
 				width = 1.1,
 			},
 			summonchanceHeader = {
 				order = 3,
 				type = "description",
-				name = "     Summon Chance",
+				name = "     |cffffd700Summon Chance|r",
 				width = 0.8,
 			},
 			traitsHeader = {
 				order = 4,
 				type = "description",
-				name = "                           Traits",
+				name = "                           |cffffd700Traits|r",
 				width = 0.8,
 			},
 			expandSpacer = {
@@ -558,7 +558,7 @@ function addon:BuildFamilyManagementArgs()
 			expandHeader = {
 				order = 6,
 				type = "description",
-				name = "  Expand",
+				name = "  |cffffd700Expand|r",
 				width = 0.3,
 			},
 		},
@@ -738,13 +738,7 @@ function addon:BuildFamilyManagementArgs()
 						name = " ",
 						width = 0.12,
 					},
-					spacerHiddenExpand = {
-						order = 6,
-						type = "description",
-						name = " ",
-						width = 0.15,
-						hidden = not isSingleMountFamily,
-					},
+					-- Trait Toggles
 					toggleMinorArmor = {
 						order = 7,
 						type = "toggle",
@@ -1279,6 +1273,7 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 						name = " ",
 						width = 0.12,
 					}
+					-- Trait Toggles
 					displayOrder = displayOrder + 1
 					detailsArgs["fam_" .. fn .. "_toggleMinorArmor"] = {
 						order = displayOrder,
@@ -1500,6 +1495,7 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 									name = "",
 									width = 0.12,
 								}
+								-- Trait Toggles
 								displayOrder = displayOrder + 1
 								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_toggleMinorArmor"] = {
 									order = displayOrder,
@@ -1645,23 +1641,61 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 				-- Create a display name with appropriate color based on collection status
 				local nameColor = mountData.isCollected and "ffffff" or "9d9d9d"
 				local collectionStatus = mountData.isCollected and "" or " (Mount)"
+				-- Preview button (for mounts only)
+				detailsArgs["mount_" .. mountID .. "_preview"] = {
+					order = displayOrder,
+					type = "execute",
+					name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
+					-- Use a SIMPLE STRING for tooltip
+					desc = function()
+						return self:GetMountPreviewTooltip("mount_" .. mountID, "mountID")
+					end,
+					func = function()
+						-- Store the exact mount ID and name in local variables to avoid closure issues
+						local thisID = mountID
+						local thisName = mountData.name
+						local isUncollected = not mountData.isCollected
+						-- Use these local variables directly
+						print("RMB_DEBUG_MOUNT_PREVIEW: Direct preview for " .. thisName)
+						self:ShowMountPreview(thisID, thisName, nil, nil, isUncollected)
+					end,
+					width = 0.3,
+				}
+				displayOrder = displayOrder + 1
+				detailsArgs["mount_" .. mountID .. "_spacerBeforeName"] = {
+					order = displayOrder,
+					type = "description",
+					name = "",
+					width = 0.05,
+				}
+				displayOrder = displayOrder + 1
 				-- Mount name
 				detailsArgs["mount_" .. mountID .. "_name"] = {
 					order = displayOrder,
 					type = "description",
 					name = "|cff" .. nameColor .. "  > " .. mountData.name .. collectionStatus .. "|r",
-					fontSize = "medium",
-					width = 1.38,
+					fontSize = "small",
+					width = 1.00,
+				}
+				displayOrder = displayOrder + 1
+				detailsArgs["mount_" .. mountID .. "_spacerAfterName"] = {
+					order = displayOrder,
+					type = "description",
+					name = "",
+					width = 0.08,
 				}
 				displayOrder = displayOrder + 1
 				-- Weight decrement button
 				detailsArgs["mount_" .. mountID .. "_weightDec"] = {
 					order = displayOrder,
 					type = "execute",
-					name = "-",
+					name = "",
 					func = function() self:DecrementGroupWeight("mount_" .. mountID) end,
-					width = 0.1,
 					disabled = function() return self:GetGroupWeight("mount_" .. mountID) == 0 end,
+					width = 0.05,
+					image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
+					imageWidth = 16,
+					imageHeight = 20,
 				}
 				displayOrder = displayOrder + 1
 				-- Weight display
@@ -1676,45 +1710,61 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 				detailsArgs["mount_" .. mountID .. "_weightInc"] = {
 					order = displayOrder,
 					type = "execute",
-					name = "+",
+					name = "",
 					func = function() self:IncrementGroupWeight("mount_" .. mountID) end,
-					width = 0.1,
 					disabled = function() return self:GetGroupWeight("mount_" .. mountID) == 6 end,
+					width = 0.05,
+					image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
+					imageWidth = 16,
+					imageHeight = 20,
 				}
 				displayOrder = displayOrder + 1
 				-- Spacer
-				detailsArgs["mount_" .. mountID .. "_spacer"] = {
+				detailsArgs["mount_" .. mountID .. "_spacerToggles"] = {
 					order = displayOrder,
 					type = "description",
-					name = "",
-					width = 0.42,
+					name = " ",
+					width = 0.12,
 				}
-				detailsArgs["mount_" .. mountID .. "_spacerHiddenExpand"] = {
+				-- Trait Toggles
+				detailsArgs["mount_" .. mountID .. "_toggleMinorArmor"] = {
 					order = displayOrder,
-					type = "description",
-					name = "",
-					width = 0.60,
+					type = "toggle",
+					name = "|TInterface\\ICONS\\Garrison_GreenArmor:20:20:0:-2|t",
+					desc = "Small armor or ornaments",
+					get = function() end,
+					set = function() end,
+					width = 0.30,
 				}
 				displayOrder = displayOrder + 1
-				-- Preview button (for collected mounts only)
-				detailsArgs["mount_" .. mountID .. "_preview"] = {
+				detailsArgs["mount_" .. mountID .. "_toggleMajorArmor"] = {
 					order = displayOrder,
-					type = "execute",
-					name = "|TInterface\\CURSOR\\Crosshair\\Inspect:20:20:0:-2|t",
-					-- Use a SIMPLE STRING for tooltip
-					desc = function()
-						return self:GetMountPreviewTooltip("mount_" .. mountID, "mountID")
-					end,
-					func = function()
-						-- Store the exact mount ID and name in local variables to avoid closure issues
-						local thisID = mountID
-						local thisName = mountData.name
-						local isUncollected = not mountData.isCollected
-						-- Use these local variables directly
-						print("RMB_DEBUG_MOUNT_PREVIEW: Direct preview for " .. thisName)
-						self:ShowMountPreview(thisID, thisName, nil, nil, isUncollected)
-					end,
-					width = 0.5,
+					type = "toggle",
+					name = "|TInterface\\ICONS\\Garrison_BlueArmor:20:20:0:-2|t",
+					desc = "Bulky armor or many ornaments",
+					get = function() end,
+					set = function() end,
+					width = 0.30,
+				}
+				displayOrder = displayOrder + 1
+				detailsArgs["mount_" .. mountID .. "_toggleModelVariant"] = {
+					order = displayOrder,
+					type = "toggle",
+					name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:20:20:0:-2|t",
+					desc = "Updated texture/slightly different model",
+					get = function() end,
+					set = function() end,
+					width = 0.30,
+				}
+				displayOrder = displayOrder + 1
+				detailsArgs["mount_" .. mountID .. "_toggleUniqueEffect"] = {
+					order = displayOrder,
+					type = "toggle",
+					name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:20:20:0:-2|t",
+					desc = "Unique variant, stands out from the rest",
+					get = function() end,
+					set = function() end,
+					width = 0.30,
 				}
 				displayOrder = displayOrder + 1
 				-- Line break after each mount
