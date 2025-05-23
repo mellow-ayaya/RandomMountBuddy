@@ -77,7 +77,75 @@ function addon:GetWeightDisplayString(weight)
 	return "|cff" .. colorCode .. fullText .. "|r"
 end
 
--- Add these helper functions for getting mount information
+-- Helper functions for getting mount information
+-- Get traits for a family (only families have traits)
+function addon:GetFamilyTraits(familyName)
+	if not familyName then return {} end
+
+	-- Get traits from the first mount in the family (they should all be the same for a family)
+	local mountIDs = self.processedData.familyToMountIDsMap and
+			self.processedData.familyToMountIDsMap[familyName]
+	if mountIDs and #mountIDs > 0 then
+		local mountID = mountIDs[1]
+		local mountInfo = self.processedData.allCollectedMountFamilyInfo and
+				self.processedData.allCollectedMountFamilyInfo[mountID]
+		if mountInfo and mountInfo.traits then
+			return mountInfo.traits
+		end
+	end
+
+	-- If no collected mounts, try uncollected
+	local uncollectedIDs = self.processedData.familyToUncollectedMountIDsMap and
+			self.processedData.familyToUncollectedMountIDsMap[familyName]
+	if uncollectedIDs and #uncollectedIDs > 0 then
+		local mountID = uncollectedIDs[1]
+		local mountInfo = self.processedData.allUncollectedMountFamilyInfo and
+				self.processedData.allUncollectedMountFamilyInfo[mountID]
+		if mountInfo and mountInfo.traits then
+			return mountInfo.traits
+		end
+	end
+
+	return {}
+end
+
+-- Check if traits should be shown for a group
+function addon:ShouldShowTraits(groupKey, groupType)
+	if groupType == "familyName" then
+		-- Families have traits if:
+		-- 1. They have an original superGroup assignment (not nil), OR
+		-- 2. They have been dynamically extracted to standalone due to trait filtering
+		-- Check if this family was originally assigned to a supergroup
+		local mountIDs = self.processedData.familyToMountIDsMap and
+				self.processedData.familyToMountIDsMap[groupKey]
+		if not mountIDs or #mountIDs == 0 then
+			-- Try uncollected if no collected mounts
+			mountIDs = self.processedData.familyToUncollectedMountIDsMap and
+					self.processedData.familyToUncollectedMountIDsMap[groupKey]
+		end
+
+		if mountIDs and #mountIDs > 0 then
+			local mountID = mountIDs[1]
+			local mountInfo = self.processedData.allCollectedMountFamilyInfo and
+					self.processedData.allCollectedMountFamilyInfo[mountID]
+			if not mountInfo then
+				mountInfo = self.processedData.allUncollectedMountFamilyInfo and
+						self.processedData.allUncollectedMountFamilyInfo[mountID]
+			end
+
+			if mountInfo and mountInfo.superGroup then
+				-- This family has/had a supergroup assignment, so it should show traits
+				return true
+			end
+		end
+
+		return false
+	end
+
+	-- Supergroups and individual mounts don't have traits
+	return false
+end
+
 -- Gets a random mount from a group (for previewing or summoning)
 function addon:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
 	print("RMB_DEBUG_MOUNT: GetRandomMountFromGroup called for " .. tostring(groupKey) ..
@@ -517,8 +585,8 @@ function addon:BuildFamilyManagementArgs()
 		currentPage = 1; self.fmCurrentPage = currentPage;
 	end
 
-	-- Pagination Controls Group (Top) -- edited into description group
-	pageArgs["pagination_controls_group_top"] = {
+	-- Description Group (Top)
+	pageArgs["column_headers_group"] = {
 		order = displayOrder,
 		type = "group",
 		inline = true,
@@ -655,6 +723,13 @@ function addon:BuildFamilyManagementArgs()
 				end
 			end
 
+			-- Check if we should show traits for this group
+			local shouldShowTraits = self:ShouldShowTraits(groupKey, groupInfo.type)
+			local familyTraits = {}
+			if shouldShowTraits then
+				familyTraits = self:GetFamilyTraits(groupKey)
+			end
+
 			local detailArgsForThisGroup = (isExpanded and self:GetExpandedGroupDetailsArgs(groupKey, groupInfo.type)) or
 					{}
 			pageArgs["entry_" .. groupKey] = {
@@ -738,46 +813,65 @@ function addon:BuildFamilyManagementArgs()
 						name = " ",
 						width = 0.12,
 					},
+					spacerNoToggles = {
+						order = 6,
+						type = "description",
+						name = " ",
+						hidden = shouldShowTraits,
+						width = 1.2,
+					},
 					-- Trait Toggles
 					toggleMinorArmor = {
 						order = 7,
 						type = "toggle",
 						name = "|TInterface\\ICONS\\Garrison_GreenArmor:20:20:0:-2|t",
 						desc = "Small armor or ornaments",
-						get = function() end,
-						set = function() end,
+						get = function()
+							return familyTraits.hasMinorArmor or false
+						end,
+						set = function() end, -- Read-only for now
 						width = 0.30,
-						hidden = false, -- hide if super group
+						hidden = not shouldShowTraits,
+						disabled = true,
 					},
 					toggleMajorArmor = {
 						order = 7.1,
 						type = "toggle",
 						name = "|TInterface\\ICONS\\Garrison_BlueArmor:20:20:0:-2|t",
 						desc = "Bulky armor or many ornaments",
-						get = function() end,
+						get = function()
+							return familyTraits.hasMajorArmor or false
+						end,
 						set = function() end,
 						width = 0.30,
-						hidden = false, -- hide if super group
+						hidden = not shouldShowTraits,
+						disabled = true,
 					},
 					toggleModelVariant = {
 						order = 7.2,
 						type = "toggle",
 						name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:20:20:0:-2|t",
 						desc = "Updated texture/slightly different model",
-						get = function() end,
+						get = function()
+							return familyTraits.hasModelVariant or false
+						end,
 						set = function() end,
 						width = 0.30,
-						hidden = false, -- hide if super group
+						hidden = not shouldShowTraits,
+						disabled = true,
 					},
 					toggleUniqueEffect = {
 						order = 7.3,
 						type = "toggle",
 						name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:20:20:0:-2|t",
 						desc = "Unique variant, stands out from the rest",
-						get = function() end,
+						get = function()
+							return familyTraits.isUniqueEffect or false
+						end,
 						set = function() end,
 						width = 0.30,
-						hidden = false, -- hide if super group
+						hidden = not shouldShowTraits,
+						disabled = true,
 					},
 					expandCollapse = {
 						order = 8,
@@ -1189,6 +1283,13 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 						familyDisplayName = fn .. " (" .. mcCollected .. uncollectedText .. ")"
 					end
 
+					-- Check if we should show traits for this family
+					local shouldShowTraits = self:ShouldShowTraits(fn, "familyName")
+					local familyTraits = {}
+					if shouldShowTraits then
+						familyTraits = self:GetFamilyTraits(fn)
+					end
+
 					-- Make sure to align each family's controls properly in a row
 					-- Preview button
 					detailsArgs["fam_" .. fn .. "_preview"] = {
@@ -1273,16 +1374,28 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 						name = " ",
 						width = 0.12,
 					}
-					-- Trait Toggles
 					displayOrder = displayOrder + 1
+					detailsArgs["fam_" .. fn .. "_spacerNoToggles"] = {
+						order = displayOrder,
+						type = "description",
+						name = " ",
+						width = 1.2,
+						hidden = shouldShowTraits,
+					}
+					displayOrder = displayOrder + 1
+					-- Trait Toggles
 					detailsArgs["fam_" .. fn .. "_toggleMinorArmor"] = {
 						order = displayOrder,
 						type = "toggle",
 						name = "|TInterface\\ICONS\\Garrison_GreenArmor:20:20:0:-2|t",
 						desc = "Small armor or ornaments",
-						get = function() end,
+						get = function()
+							return familyTraits.hasMinorArmor or false
+						end,
 						set = function() end,
 						width = 0.30,
+						hidden = not shouldShowTraits,
+						disabled = true,
 					}
 					displayOrder = displayOrder + 1
 					detailsArgs["fam_" .. fn .. "_toggleMajorArmor"] = {
@@ -1290,9 +1403,13 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 						type = "toggle",
 						name = "|TInterface\\ICONS\\Garrison_BlueArmor:20:20:0:-2|t",
 						desc = "Bulky armor or many ornaments",
-						get = function() end,
+						get = function()
+							return familyTraits.hasMajorArmor or false
+						end,
 						set = function() end,
 						width = 0.30,
+						hidden = not shouldShowTraits,
+						disabled = true,
 					}
 					displayOrder = displayOrder + 1
 					detailsArgs["fam_" .. fn .. "_toggleModelVariant"] = {
@@ -1300,9 +1417,13 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 						type = "toggle",
 						name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:20:20:0:-2|t",
 						desc = "Updated texture/slightly different model",
-						get = function() end,
+						get = function()
+							return familyTraits.hasModelVariant or false
+						end,
 						set = function() end,
 						width = 0.30,
+						hidden = not shouldShowTraits,
+						disabled = true,
 					}
 					displayOrder = displayOrder + 1
 					detailsArgs["fam_" .. fn .. "_toggleUniqueEffect"] = {
@@ -1310,9 +1431,13 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 						type = "toggle",
 						name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:20:20:0:-2|t",
 						desc = "Unique variant, stands out from the rest",
-						get = function() end,
+						get = function()
+							return familyTraits.hasUniqueEffect or false
+						end,
 						set = function() end,
 						width = 0.30,
+						hidden = not shouldShowTraits,
+						disabled = true,
 					}
 					displayOrder = displayOrder + 1
 					-- Expand/Collapse button
@@ -1486,55 +1611,6 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 									image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
 									imageWidth = 16,
 									imageHeight = 20,
-								}
-								displayOrder = displayOrder + 1
-								-- Spacer
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_spacerToggles"] = {
-									order = displayOrder,
-									type = "description",
-									name = "",
-									width = 0.12,
-								}
-								-- Trait Toggles
-								displayOrder = displayOrder + 1
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_toggleMinorArmor"] = {
-									order = displayOrder,
-									type = "toggle",
-									name = "|TInterface\\ICONS\\Garrison_GreenArmor:20:20:0:-2|t",
-									desc = "Small armor or ornaments",
-									get = function() end,
-									set = function() end,
-									width = 0.30,
-								}
-								displayOrder = displayOrder + 1
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_toggleMajorArmor"] = {
-									order = displayOrder,
-									type = "toggle",
-									name = "|TInterface\\ICONS\\Garrison_BlueArmor:20:20:0:-2|t",
-									desc = "Bulky armor or many ornaments",
-									get = function() end,
-									set = function() end,
-									width = 0.30,
-								}
-								displayOrder = displayOrder + 1
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_toggleModelVariant"] = {
-									order = displayOrder,
-									type = "toggle",
-									name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:20:20:0:-2|t",
-									desc = "Updated texture/slightly different model",
-									get = function() end,
-									set = function() end,
-									width = 0.30,
-								}
-								displayOrder = displayOrder + 1
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_toggleUniqueEffect"] = {
-									order = displayOrder,
-									type = "toggle",
-									name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:20:20:0:-2|t",
-									desc = "Unique variant, stands out from the rest",
-									get = function() end,
-									set = function() end,
-									width = 0.30,
 								}
 								displayOrder = displayOrder + 1
 								-- Line break after each mount
@@ -1717,54 +1793,6 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 					image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
 					imageWidth = 16,
 					imageHeight = 20,
-				}
-				displayOrder = displayOrder + 1
-				-- Spacer
-				detailsArgs["mount_" .. mountID .. "_spacerToggles"] = {
-					order = displayOrder,
-					type = "description",
-					name = " ",
-					width = 0.12,
-				}
-				-- Trait Toggles
-				detailsArgs["mount_" .. mountID .. "_toggleMinorArmor"] = {
-					order = displayOrder,
-					type = "toggle",
-					name = "|TInterface\\ICONS\\Garrison_GreenArmor:20:20:0:-2|t",
-					desc = "Small armor or ornaments",
-					get = function() end,
-					set = function() end,
-					width = 0.30,
-				}
-				displayOrder = displayOrder + 1
-				detailsArgs["mount_" .. mountID .. "_toggleMajorArmor"] = {
-					order = displayOrder,
-					type = "toggle",
-					name = "|TInterface\\ICONS\\Garrison_BlueArmor:20:20:0:-2|t",
-					desc = "Bulky armor or many ornaments",
-					get = function() end,
-					set = function() end,
-					width = 0.30,
-				}
-				displayOrder = displayOrder + 1
-				detailsArgs["mount_" .. mountID .. "_toggleModelVariant"] = {
-					order = displayOrder,
-					type = "toggle",
-					name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:20:20:0:-2|t",
-					desc = "Updated texture/slightly different model",
-					get = function() end,
-					set = function() end,
-					width = 0.30,
-				}
-				displayOrder = displayOrder + 1
-				detailsArgs["mount_" .. mountID .. "_toggleUniqueEffect"] = {
-					order = displayOrder,
-					type = "toggle",
-					name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:20:20:0:-2|t",
-					desc = "Unique variant, stands out from the rest",
-					get = function() end,
-					set = function() end,
-					width = 0.30,
 				}
 				displayOrder = displayOrder + 1
 				-- Line break after each mount

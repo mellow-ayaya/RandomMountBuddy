@@ -1,3 +1,6 @@
+# 0.6.13
+Added functionality for trait checkboxes.
+
 # 0.6.12
 Rearranged Mount list elements again and added checkboxes to preview/edit the traits, actual implementation of toggles to follow.
 

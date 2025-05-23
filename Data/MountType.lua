@@ -1,3 +1,4 @@
+-- Mount Type
 -- Helper for assigning custom traits to MountTypeIDs
 -- Manually create a Lua table: MountTypeTraits = { [MountTypeID] = {isGround=bool, isAquatic=bool,... derivedMovementType="YOUR_TYPE"} }
 MountTypeTraits_Input_Helper = {
