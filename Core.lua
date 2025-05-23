@@ -183,8 +183,7 @@ function addon:InitializeProcessedData()
 						local found = false
 						for _, eFN in ipairs(self.processedData.superGroupMap[sg]) do
 							if eFN == fn then
-								found = true
-								break
+								found = true; break
 							end
 						end
 
@@ -220,8 +219,7 @@ function addon:InitializeProcessedData()
 						local found = false
 						for _, eFN in ipairs(self.processedData.superGroupMap[sg]) do
 							if eFN == fn then
-								found = true
-								break
+								found = true; break
 							end
 						end
 
@@ -239,113 +237,28 @@ function addon:InitializeProcessedData()
 					end
 				end
 			end
-		else
-			if scannedCount <= 10 then
-				print("RMB_DATA_SCAN_WARN: Bad data for ID " .. tostring(mountID) ..
-					", NameType:" .. type(name) .. ", CollType:" .. type(isCollected))
-			end
 		end
 	end
 
 	print("RMB_DEBUG_DATA: Scanned:" .. scannedCount .. ", APICollected:" .. collectedCount ..
 		", APIUncollected:" .. uncollectedCount .. ", ProcessedFamilyInfo:" .. processedCount)
-	local sgC = 0
-	for k in pairs(self.processedData.superGroupMap) do sgC = sgC + 1 end
+	local sgC = 0; for k in pairs(self.processedData.superGroupMap) do sgC = sgC + 1 end
 
 	print("RMB_DEBUG_DATA: SuperGroups:" .. sgC)
-	local fnC = 0
-	for k in pairs(self.processedData.standaloneFamilyNames) do fnC = fnC + 1 end
+	local fnC = 0; for k in pairs(self.processedData.standaloneFamilyNames) do fnC = fnC + 1 end
 
 	print("RMB_DEBUG_DATA: StandaloneFams:" .. fnC)
 	print("RMB_DEBUG_DATA: Init COMPLETE.")
 	self.RMB_DataReadyForUI = true
 	print("RMB_DEBUG_DATA: Set RMB_DataReadyForUI to true.")
-	-- Initialize the new mount system after data is ready
-	if self.InitializeMountUI then
-		self:InitializeMountUI()
-	end
-
 	-- Rebuild mount grouping for trait-based filtering
 	self:RebuildMountGrouping()
-	-- Initialize mount summoning pools now that data is ready
-	if self.OnMountSummonDataReady then
-		self:OnMountSummonDataReady()
-	end
-
-	-- Populate UI now that everything is ready
+	-- Notify all modules that data is ready
+	self:NotifyModulesDataReady()
+	-- Initialize UI last
 	if self.PopulateFamilyManagementUI then
 		self:PopulateFamilyManagementUI()
 	end
-end
-
--- Method to refresh mount pools when settings change
-function addon:RefreshMountPools()
-	print("RMB_POOLS: Refreshing mount pools from Core.lua")
-	-- Rebuild dynamic grouping if needed
-	self:RebuildMountGrouping()
-	-- Rebuild the mount pools if the function exists
-	if self.BuildMountPools then
-		self:BuildMountPools()
-	end
-end
-
--- ============================================================================
--- compatibility FUNCTIONS
--- ============================================================================
--- Add these methods to Core.lua to ensure MountSummon.lua compatibility
--- Method to safely register chat commands (in case it's called multiple times)
-function addon:RegisterChatCommand(command, handler)
-	if LibAceConsole and LibAceConsole.RegisterChatCommand then
-		LibAceConsole.RegisterChatCommand(self, command, handler)
-	elseif self.RegisterChatCommand_Original then
-		self:RegisterChatCommand_Original(command, handler)
-	else
-		print("RMB_DEBUG: Cannot register chat command: " .. tostring(command))
-	end
-end
-
--- Method to handle secure button clicking (if needed by MountSummon)
-function addon:ClickSecureButton()
-	if self.visibleButton then
-		self.visibleButton:Click()
-		return true
-	elseif self.smartButton then
-		self.smartButton:Click()
-		return true
-	end
-
-	return false
-end
-
--- Method to get mount summoning settings
-function addon:GetMountSummoningSetting(key, default)
-	local value = self:GetSetting(key)
-	if value == nil then
-		return default
-	end
-
-	return value
-end
-
--- Method to safely call mount summoning functions
-function addon:SummonRandomMount(useContext)
-	if not self.RMB_DataReadyForUI then
-		print("RMB_SUMMON: Data not ready for summoning")
-		return false
-	end
-
-	-- Call the actual summoning function if it exists
-	if self.SummonRandomMount_Actual then
-		return self:SummonRandomMount_Actual(useContext)
-	else
-		print("RMB_SUMMON: SummonRandomMount_Actual method not found")
-		return false
-	end
-end
-
--- Alias for compatibility with old code
-function addon:SRM(useContext)
-	return self:SummonRandomMount(useContext)
 end
 
 -- ============================================================================
@@ -445,16 +358,9 @@ end
 
 function addon:OnEnable()
 	print("RMB_DEBUG: OnEnable CALLED.")
-	-- Initialize mount summoning system first (before secure handlers)
-	if self.InitializeMountSummoning then
-		self:InitializeMountSummoning()
-		print("RMB_DEBUG: OnEnable - Mount summoning initialization called")
-	else
-		print("RMB_DEBUG_ERROR: InitializeMountSummoning function not found!")
-	end
-
-	-- Initialize secure handlers
-	print("RMB_DEBUG: OnEnable - About to initialize secure handlers")
+	-- Initialize all mount system modules in proper dependency order
+	self:InitializeAllMountModules()
+	-- Initialize secure handlers last (they depend on mount modules)
 	if self.InitializeSecureHandlers then
 		self:InitializeSecureHandlers()
 		print("RMB_DEBUG: OnEnable - Secure handlers initialization called")
@@ -463,6 +369,34 @@ function addon:OnEnable()
 	end
 
 	print("RMB_DEBUG: OnEnable END.")
+end
+
+-- NEW: Centralized module initialization
+function addon:InitializeAllMountModules()
+	print("RMB_DEBUG: Initializing all mount system modules...")
+	-- Initialize in dependency order
+	if self.InitializeMountDataManager then
+		self:InitializeMountDataManager()
+	end
+
+	if self.InitializeMountTooltips then
+		self:InitializeMountTooltips()
+	end
+
+	if self.InitializeMountPreview then
+		self:InitializeMountPreview()
+	end
+
+	if self.InitializeMountSummon then
+		self:InitializeMountSummon()
+	end
+
+	-- UI components come last as they depend on everything else
+	if self.InitializeMountUI then
+		self:InitializeMountUI()
+	end
+
+	print("RMB_DEBUG: All mount modules initialized")
 end
 
 function addon:OnPlayerLoginAttemptProcessData(eventArg)
@@ -616,18 +550,29 @@ function addon:SetSetting(key, value)
 
 	self.db.profile[key] = value
 	print("RMB_SETTING: K:'" .. key .. "',V:'" .. tostring(value) .. "'")
-	-- Notify mount system components of setting changes
-	if self.MountDataManager then
-		self.MountDataManager:OnSettingChanged(key, value)
-	end
-
-	if self.MountTooltips then
-		self.MountTooltips:OnSettingChanged(key, value)
-	end
-
+	-- Notify all modules of setting changes
+	self:NotifyModulesSettingChanged(key, value)
 	-- Trigger grouping rebuild for trait-related settings
 	if key:find("treat") and key:find("AsDistinct") then
 		self:RebuildMountGrouping()
+	end
+end
+
+function addon:NotifyModulesSettingChanged(key, value)
+	if self.MountDataManager and self.MountDataManager.OnSettingChanged then
+		self.MountDataManager:OnSettingChanged(key, value)
+	end
+
+	if self.MountSummon and self.MountSummon.OnSettingChanged then
+		self.MountSummon:OnSettingChanged(key, value)
+	end
+
+	if self.MountTooltips and self.MountTooltips.OnSettingChanged then
+		self.MountTooltips:OnSettingChanged(key, value)
+	end
+
+	if self.MountPreview and self.MountPreview.OnSettingChanged then
+		self.MountPreview:OnSettingChanged(key, value)
 	end
 end
 
@@ -675,6 +620,73 @@ function addon:SetGroupEnabled(gk, e)
 	local be = (e == true)
 	self.db.profile.groupEnabledStates[gk] = be
 	print("RMB_SET:SetGE K:'" .. tostring(gk) .. "',E:" .. tostring(be))
+end
+
+-- ============================================================================
+-- CLEAN PUBLIC INTERFACE
+-- ============================================================================
+-- Main summoning interface
+function addon:SummonRandomMount(useContext)
+	if not self.RMB_DataReadyForUI then
+		print("RMB_SUMMON: Data not ready for summoning")
+		return false
+	end
+
+	if not self.MountSummon then
+		print("RMB_ERROR: MountSummon module not initialized")
+		return false
+	end
+
+	return self.MountSummon:SummonRandomMount(useContext)
+end
+
+-- Shorthand alias
+function addon:SRM(useContext)
+	return self:SummonRandomMount(useContext)
+end
+
+-- Clean method for refreshing mount pools
+function addon:RefreshMountPools()
+	print("RMB_POOLS: Refreshing mount pools from Core.lua")
+	-- Rebuild dynamic grouping if needed
+	self:RebuildMountGrouping()
+	-- Refresh the mount pools if the module exists
+	if self.MountSummon and self.MountSummon.RefreshMountPools then
+		self.MountSummon:RefreshMountPools()
+	end
+end
+
+-- Clean interface for secure handlers
+function addon:GetSmartButtonAction()
+	if self.MountSummon and self.MountSummon.GetSmartButtonAction then
+		return self.MountSummon:GetSmartButtonAction()
+	end
+
+	return "/run RMB:SRM(true)" -- Fallback
+end
+
+function addon:NotifyModulesDataReady()
+	print("RMB_DEBUG: Notifying modules that data is ready...")
+	-- Notify each module that data is ready
+	if self.MountDataManager and self.MountDataManager.OnDataReady then
+		self.MountDataManager:OnDataReady()
+		print("RMB_DEBUG: Notified MountDataManager")
+	end
+
+	if self.MountSummon and self.MountSummon.OnDataReady then
+		self.MountSummon:OnDataReady()
+		print("RMB_DEBUG: Notified MountSummon - this builds mount pools!")
+	end
+
+	if self.MountTooltips and self.MountTooltips.OnDataReady then
+		self.MountTooltips:OnDataReady()
+		print("RMB_DEBUG: Notified MountTooltips")
+	end
+
+	if self.MountPreview and self.MountPreview.OnDataReady then
+		self.MountPreview:OnDataReady()
+		print("RMB_DEBUG: Notified MountPreview")
+	end
 end
 
 -- ============================================================================

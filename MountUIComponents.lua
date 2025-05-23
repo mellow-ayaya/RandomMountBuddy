@@ -1,14 +1,14 @@
--- MountUIComponents.lua
+-- MountUIComponents.lua - Fixed for Clean Module Architecture
 -- Reusable UI component builders for mount interface
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
-print("RMB_DEBUG: MountUIComponents.lua START.")
+print("RMB_DEBUG: MountUIComponents.lua (Fixed) START.")
 -- ============================================================================
 -- UI COMPONENT BUILDER CLASS
 -- ============================================================================
 local MountUIComponents = {}
 addon.MountUIComponents = MountUIComponents
--- Weight display mapping (moved from main file)
+-- Weight display mapping
 local WeightDisplayMapping = {
 	[0] = { text = "         Never", color = "ff3e00" }, -- Red
 	[1] = { text = "     Occasional", color = "9d9d9d" }, -- Grey
@@ -28,14 +28,15 @@ function MountUIComponents:CreatePreviewButton(groupKey, groupType, order)
 		type = "execute",
 		name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
 		desc = function()
-			return addon.MountTooltips:GetMountPreviewTooltip(groupKey, groupType)
+			-- Use clean module interface
+			return addon:GetMountPreviewTooltip(groupKey, groupType)
 		end,
 		func = function(info)
 			local includeUncollected = addon:GetSetting("showUncollectedMounts")
-			local mountID, mountName, isUncollected = addon.MountDataManager:GetRandomMountFromGroup(
+			local mountID, mountName, isUncollected = addon:GetRandomMountFromGroup(
 				groupKey, groupType, includeUncollected)
 			if mountID then
-				addon.MountPreview:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncollected)
+				addon:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncollected)
 			else
 				print("RMB_PREVIEW: No mount available to preview from this group")
 			end
@@ -188,13 +189,29 @@ end
 -- Build a complete group entry (main level - supergroup or standalone family)
 function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetails)
 	local groupKey = groupData.key
-	local shouldShowTraits = groupData.shouldShowTraits or false
-	local traits = groupData.traits or {}
+	-- Get traits and display info safely
+	local shouldShowTraits = false
+	local traits = {}
+	-- Use MountDataManager if available, otherwise fallback
+	if addon.MountDataManager and addon.MountDataManager.ShouldShowTraits then
+		shouldShowTraits = addon.MountDataManager:ShouldShowTraits(groupKey, groupData.type)
+		if shouldShowTraits and addon.MountDataManager.GetFamilyTraits then
+			traits = addon.MountDataManager:GetFamilyTraits(groupKey) or {}
+		end
+	end
+
 	-- Check if single mount family
 	local totalMountCount = (groupData.mountCount or 0) + (groupData.uncollectedCount or 0)
 	local isSingleMountFamily = (groupData.type == "familyName" and totalMountCount == 1)
-	-- Get display name
-	local displayName = addon.MountDataManager:GetGroupDisplayName(groupData)
+	-- Get display name safely
+	local displayName = groupData.displayName or groupKey
+	if addon.MountDataManager and addon.MountDataManager.GetGroupDisplayName then
+		displayName = addon.MountDataManager:GetGroupDisplayName(groupData)
+	else
+		-- Fallback display name creation
+		displayName = self:CreateFallbackDisplayName(groupData)
+	end
+
 	-- Build entry components
 	local entry = {
 		previewButton = self:CreatePreviewButton(groupKey, groupData.type, 0.2),
@@ -252,9 +269,16 @@ end
 -- ============================================================================
 -- Build family entry within a supergroup
 function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExpanded, order)
-	-- Get family data
-	local shouldShowTraits = addon.MountDataManager:ShouldShowTraits(familyName, "familyName")
-	local traits = shouldShowTraits and addon.MountDataManager:GetFamilyTraits(familyName) or {}
+	-- Get family data safely
+	local shouldShowTraits = false
+	local traits = {}
+	if addon.MountDataManager and addon.MountDataManager.ShouldShowTraits then
+		shouldShowTraits = addon.MountDataManager:ShouldShowTraits(familyName, "familyName")
+		if shouldShowTraits and addon.MountDataManager.GetFamilyTraits then
+			traits = addon.MountDataManager:GetFamilyTraits(familyName) or {}
+		end
+	end
+
 	local entry = {
 		preview = self:CreatePreviewButton(familyName, "familyName", order),
 		spacerBeforeName = {
@@ -282,7 +306,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			name = "",
 			func = function() addon:ToggleExpansionState(familyName) end,
 			width = 0.3,
-			hidden = false, -- Will be set based on mount count
+			hidden = false,
 			image = isExpanded and "Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonUpLargev11" or
 					"Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonDownLargev11",
 			imageWidth = 40,
@@ -315,7 +339,6 @@ function MountUIComponents:BuildMountEntry(mountData, order, familyPrefix)
 	local mountID = mountData.id
 	local mountName = mountData.name
 	local isCollected = mountData.isCollected
-	local prefix = familyPrefix or ""
 	-- Create display name with color
 	local nameColor = isCollected and "ffffff" or "9d9d9d"
 	local collectionStatus = isCollected and "" or ""
@@ -326,10 +349,10 @@ function MountUIComponents:BuildMountEntry(mountData, order, familyPrefix)
 			type = "execute",
 			name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
 			desc = function()
-				return addon.MountTooltips:GetMountPreviewTooltip("mount_" .. mountID, "mountID")
+				return addon:GetMountPreviewTooltip("mount_" .. mountID, "mountID")
 			end,
 			func = function()
-				addon.MountPreview:ShowMountPreview(mountID, mountName, nil, nil, not isCollected)
+				addon:ShowMountPreview(mountID, mountName, nil, nil, not isCollected)
 			end,
 			width = 0.3,
 		},
@@ -421,7 +444,7 @@ function MountUIComponents:CreatePaginationControls(currentPage, totalPages, ord
 				page_info = {
 					order = 3,
 					type = "description",
-					name = string.format("Page %d / %d", currentPage, totalPages),
+					name = string.format("                                    %d / %d", currentPage, totalPages),
 					width = 1.6,
 				},
 				next_button = {
@@ -491,7 +514,7 @@ function MountUIComponents:CreateColumnHeaders(order)
 					order = 6,
 					type = "description",
 					name = "  |cffffd700Expand|r",
-					width = 0.65,
+					width = 0.3,
 				},
 			},
 		},
@@ -501,7 +524,7 @@ end
 -- ============================================================================
 -- UTILITY FUNCTIONS
 -- ============================================================================
--- Get weight display string (moved from original file)
+-- Get weight display string
 function MountUIComponents:GetWeightDisplayString(weight)
 	local w = tonumber(weight) or 1
 	if w < 0 or w > 6 then w = 1 end
@@ -512,6 +535,30 @@ function MountUIComponents:GetWeightDisplayString(weight)
 	end
 
 	return "|cff" .. info.color .. info.text .. "|r"
+end
+
+-- Create fallback display name when MountDataManager isn't available
+function MountUIComponents:CreateFallbackDisplayName(groupData)
+	local collectedCount = groupData.mountCount or 0
+	local uncollectedCount = groupData.uncollectedCount or 0
+	-- Special handling for single mount families
+	if groupData.type == "familyName" and (collectedCount + uncollectedCount) == 1 then
+		if collectedCount == 1 then
+			return groupData.displayName .. " (Mount)"
+		else
+			return "|cff9d9d9d" .. groupData.displayName .. " (Mount)|r"
+		end
+	else
+		-- Multi-mount family or supergroup
+		if collectedCount > 0 and uncollectedCount > 0 then
+			return groupData.displayName .. " (" .. collectedCount ..
+					" + |cff9d9d9d" .. uncollectedCount .. "|r)"
+		elseif collectedCount > 0 then
+			return groupData.displayName .. " (" .. collectedCount .. ")"
+		else
+			return "|cff9d9d9d" .. groupData.displayName .. " (" .. uncollectedCount .. ")|r"
+		end
+	end
 end
 
 -- Create mount list for family or supergroup
@@ -569,4 +616,4 @@ function MountUIComponents:BuildMountList(groupKey, groupType, startOrder)
 	return entries
 end
 
-print("RMB_DEBUG: MountUIComponents.lua END.")
+print("RMB_DEBUG: MountUIComponents.lua (Fixed) END.")

@@ -91,14 +91,9 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("contextualSummoning") end,
 			set = function(i, v)
 				addon:SetSetting("contextualSummoning", v)
-				-- Refresh mount pools if needed
-				if addon.RefreshMountPools then
-					addon:RefreshMountPools()
-				end
 			end,
 		},
 
-		-- New checkbox for showing uncollected mounts
 		showUncollectedMounts = {
 			order = 6,
 			type = "toggle",
@@ -107,14 +102,9 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("showUncollectedMounts") end,
 			set = function(i, v)
 				addon:SetSetting("showUncollectedMounts", v)
-				-- Refresh the Family Management UI to reflect the new setting
-				if addon.PopulateFamilyManagementUI then
-					addon:PopulateFamilyManagementUI()
-				else
-					print("RMB_OPTIONS: Cannot refresh mount list - PopulateFamilyManagementUI missing")
-				end
 			end,
 		},
+
 		useTravelFormWhileMoving = {
 			order = 7,
 			type = "toggle",
@@ -123,27 +113,9 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("useTravelFormWhileMoving") end,
 			set = function(i, v)
 				addon:SetSetting("useTravelFormWhileMoving", v)
-				-- Force an update of smartButton if it exists and we're not in combat
-				if RandomMountBuddy.smartButton and not InCombatLockdown() then
-					local isMoving = IsPlayerMoving()
-					if isMoving and v then
-						-- If moving and setting turned ON, use Travel Form
-						RandomMountBuddy.smartButton:SetAttribute("type", "spell")
-						RandomMountBuddy.smartButton:SetAttribute("spell",
-							C_Spell.GetSpellInfo(783) and C_Spell.GetSpellInfo(783).name or "Travel Form")
-					else
-						-- Otherwise use mount
-						RandomMountBuddy.smartButton:SetAttribute("type", "macro")
-						RandomMountBuddy.smartButton:SetAttribute("macrotext", "/run RandomMountBuddy:SummonRandomMount(true)")
-					end
-
-					-- Update lastMoving value in updateFrame if it exists
-					if RandomMountBuddy.updateFrame then
-						RandomMountBuddy.updateFrame.lastMoving = isMoving
-					end
-				end
 			end,
 		},
+
 		keepTravelFormActive = {
 			order = 8,
 			type = "toggle",
@@ -248,7 +220,6 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("treatMinorArmorAsDistinct") end,
 			set = function(i, v)
 				addon:SetSetting("treatMinorArmorAsDistinct", v)
-				addon:RebuildMountGrouping() -- Rebuild the grouping
 			end,
 			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
 		},
@@ -261,7 +232,6 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("treatMajorArmorAsDistinct") end,
 			set = function(i, v)
 				addon:SetSetting("treatMajorArmorAsDistinct", v)
-				addon:RebuildMountGrouping() -- Rebuild the grouping
 			end,
 			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
 		},
@@ -274,7 +244,6 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("treatModelVariantsAsDistinct") end,
 			set = function(i, v)
 				addon:SetSetting("treatModelVariantsAsDistinct", v)
-				addon:RebuildMountGrouping() -- Rebuild the grouping
 			end,
 			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
 		},
@@ -287,7 +256,6 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("treatUniqueEffectsAsDistinct") end,
 			set = function(i, v)
 				addon:SetSetting("treatUniqueEffectsAsDistinct", v)
-				addon:RebuildMountGrouping() -- Rebuild the grouping
 			end,
 			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
 		},
@@ -456,6 +424,10 @@ local initialFamilyManagementArgs = {
 		type = "execute",
 		name = "Load / Refresh Mount Groups",
 		func = function()
+			if addon.MountDataManager then
+				addon.MountDataManager:InvalidateCache("manual_refresh")
+			end
+
 			if addon.PopulateFamilyManagementUI then
 				addon:PopulateFamilyManagementUI()
 			else

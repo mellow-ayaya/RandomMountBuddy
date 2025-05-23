@@ -1,18 +1,13 @@
--- MountListUI.lua - Refactored for Lua 5.1
+-- MountListUI.lua - Properly Integrated with MountUIComponents and Clean Architecture
 -- Main UI controller for mount list interface
 local addonName, addonTable = ...
-local addon = RandomMountBuddy -- Assuming RandomMountBuddy is the global addon table
-print("RMB_DEBUG: MountListUI.lua (Refactored) START.")
+local addon = RandomMountBuddy
+print("RMB_DEBUG: MountListUI.lua (Properly Integrated) START.")
 -- ============================================================================
 -- MAIN UI CONTROLLER
 -- ============================================================================
--- Initialize all UI systems
 function addon:InitializeMountUI()
 	print("RMB_UI: Initializing mount UI systems...")
-	-- Initialize all subsystems
-	self:InitializeMountDataManager()
-	self:InitializeMountTooltips()
-	self:InitializeMountPreview()
 	-- Initialize UI state
 	self.fmCurrentPage = 1
 	self.fmItemsPerPage = self.fmItemsPerPage or 15
@@ -20,10 +15,10 @@ function addon:InitializeMountUI()
 end
 
 -- ============================================================================
--- MAIN UI BUILDING FUNCTION (Greatly Simplified)
+-- MAIN UI BUILDING FUNCTION
 -- ============================================================================
 function addon:BuildFamilyManagementArgs()
-	print("RMB_UI: BuildFamilyManagementArgs called (Refactored)")
+	print("RMB_UI: BuildFamilyManagementArgs called (Properly Integrated)")
 	local pageArgs = {}
 	local displayOrder = 1
 	-- Check if data is ready
@@ -37,7 +32,7 @@ function addon:BuildFamilyManagementArgs()
 	end
 
 	-- Get displayable groups from data manager
-	local allDisplayableGroups = self.MountDataManager:GetDisplayableGroups()
+	local allDisplayableGroups = self:GetDisplayableGroups()
 	if not allDisplayableGroups or #allDisplayableGroups == 0 then
 		pageArgs["no_groups_msg"] = {
 			order = displayOrder,
@@ -53,22 +48,25 @@ function addon:BuildFamilyManagementArgs()
 	local totalPages = math.max(1, math.ceil(totalGroups / itemsPerPage))
 	local currentPage = math.max(1, math.min(self.fmCurrentPage or 1, totalPages))
 	self.fmCurrentPage = currentPage
-	-- Add column headers
-	local headerComponents = self.MountUIComponents:CreateColumnHeaders(displayOrder)
-	for k, v in pairs(headerComponents) do
-		pageArgs[k] = v
+	-- Add column headers using MountUIComponents
+	if self.MountUIComponents then
+		local headerComponents = self.MountUIComponents:CreateColumnHeaders(displayOrder)
+		for k, v in pairs(headerComponents) do
+			pageArgs[k] = v
+		end
+
+		displayOrder = displayOrder + 1
+	else
+		print("RMB_UI_ERROR: MountUIComponents not available")
+		return pageArgs
 	end
 
-	-- Assuming CreateColumnHeaders handles its own internal ordering and the overall
-	-- 'displayOrder' here is for the next major block. If headers consume more than
-	-- one logical "slot", this might need adjustment based on CreateColumnHeaders' behavior.
-	displayOrder = displayOrder + 1
 	-- Calculate page bounds
 	local startIndex = (currentPage - 1) * itemsPerPage + 1
 	local endIndex = math.min(startIndex + itemsPerPage - 1, totalGroups)
 	print("RMB_UI: Building page " .. currentPage .. " (" .. startIndex .. "-" .. endIndex .. " of " .. totalGroups .. ")")
 	-- Build group entries
-	local groupEntryOrder = displayOrder -- Use a separate order counter for main group entries
+	local groupEntryOrder = displayOrder
 	for i = startIndex, endIndex do
 		local groupData = allDisplayableGroups[i]
 		if groupData then
@@ -80,7 +78,7 @@ function addon:BuildFamilyManagementArgs()
 				expandedDetails = self:GetExpandedGroupDetailsArgs(groupKey, groupData.type)
 			end
 
-			-- Build complete group entry using components
+			-- Build complete group entry using MountUIComponents
 			local groupEntry = self.MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetails)
 			pageArgs["entry_" .. groupKey] = {
 				order = groupEntryOrder,
@@ -94,24 +92,21 @@ function addon:BuildFamilyManagementArgs()
 		end
 	end
 
-	-- Add pagination controls
-	-- Pass the current groupEntryOrder so pagination controls can be ordered after the group entries
-	local paginationComponents = self.MountUIComponents:CreatePaginationControls(currentPage, totalPages, groupEntryOrder)
-	for k, v in pairs(paginationComponents) do
-		pageArgs[k] = v
+	-- Add pagination controls using MountUIComponents
+	if self.MountUIComponents then
+		local paginationComponents = self.MountUIComponents:CreatePaginationControls(currentPage, totalPages, groupEntryOrder)
+		for k, v in pairs(paginationComponents) do
+			pageArgs[k] = v
+		end
 	end
 
-	-- The next available order slot would be groupEntryOrder + number of pagination controls
-	-- if manual_refresh_button was to follow them directly.
-	-- However, manual_refresh_button uses a high fixed order.
 	-- Add refresh button
 	pageArgs["manual_refresh_button"] = {
-		order = 9999, -- High order to place it at the end
+		order = 9999,
 		type = "execute",
 		name = "Refresh List",
 		func = function()
-			self.MountDataManager:InvalidateCache("manual_refresh")
-			self:PopulateFamilyManagementUI()
+			self:TriggerFamilyManagementUIRefresh()
 		end,
 		width = 3.6,
 	}
@@ -120,7 +115,7 @@ function addon:BuildFamilyManagementArgs()
 end
 
 -- ============================================================================
--- EXPANDED DETAILS BUILDER (Simplified)
+-- EXPANDED DETAILS BUILDER
 -- ============================================================================
 function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 	print("RMB_UI_DETAILS: GetExpandedGroupDetailsArgs for " .. tostring(groupKey) .. " (" .. tostring(groupType) .. ")")
@@ -154,13 +149,13 @@ function addon:BuildSuperGroupDetails(groupKey, startOrder, showUncollected)
 	local displayOrder = startOrder
 	-- Get families in this supergroup
 	local familyNamesInSG = self.processedData.superGroupMap and self.processedData.superGroupMap[groupKey]
-	if not familyNamesInSG or #familyNamesInSG == 0 then -- # is fine if familyNamesInSG is an array
+	if not familyNamesInSG or #familyNamesInSG == 0 then
 		return { no_families = { order = 1, type = "description", name = "No families found in this supergroup.", width = "full" } }
 	end
 
 	-- Sort families for consistent display
 	local sortedFamilies = {}
-	for _, familyName in ipairs(familyNamesInSG) do -- ipairs is fine for arrays
+	for _, familyName in ipairs(familyNamesInSG) do
 		table.insert(sortedFamilies, familyName)
 	end
 
@@ -178,22 +173,23 @@ function addon:BuildSuperGroupDetails(groupKey, startOrder, showUncollected)
 				#(self.processedData.familyToUncollectedMountIDsMap[familyName])) or 0
 		end
 
-		-- Process only if there are mounts (Replaces goto continue)
-		if not (collectedCount == 0 and uncollectedCount == 0) then
+		-- Process only if there are mounts
+		if collectedCount > 0 or uncollectedCount > 0 then
 			-- Create family display name
 			local familyDisplayName = self:CreateFamilyDisplayName(familyName, collectedCount, uncollectedCount)
 			-- Is family expanded?
 			local isFamilyExpanded = self:IsGroupExpanded(familyName)
-			-- Build family entry
-			-- MountUIComponents:BuildFamilyEntry is expected to set internal orders based on `displayOrder`
-			local familyEntry = self.MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isFamilyExpanded,
-				displayOrder)
-			-- Add family entry to details
-			for k, v in pairs(familyEntry) do
-				detailsArgs["fam_" .. familyName .. "_" .. k] = v
+			-- Build family entry using MountUIComponents
+			if self.MountUIComponents then
+				local familyEntry = self.MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isFamilyExpanded,
+					displayOrder)
+				-- Add family entry to details
+				for k, v in pairs(familyEntry) do
+					detailsArgs["fam_" .. familyName .. "_" .. k] = v
+				end
 			end
 
-			displayOrder = displayOrder + 2 -- Increment for the family entry block
+			displayOrder = displayOrder + 2
 			-- Add mount details if family is expanded
 			if isFamilyExpanded then
 				detailsArgs["fam_" .. familyName .. "_mountsheader"] = {
@@ -202,35 +198,27 @@ function addon:BuildSuperGroupDetails(groupKey, startOrder, showUncollected)
 					name = "Mounts",
 					width = "full",
 				}
-				displayOrder = displayOrder + 1     -- Increment for the "Mounts" header
-				local mountListBaseOrder = displayOrder -- Base order for mount list items
-				-- Build mount list
-				-- MountUIComponents:BuildMountList is expected to set internal orders based on `mountListBaseOrder`
-				local mountEntries = self.MountUIComponents:BuildMountList(familyName, "familyName", mountListBaseOrder)
-				local mountItemCount = 0
-				for k, v_mount_entry in pairs(mountEntries) do -- pairs is fine for dictionaries
-					detailsArgs["fam_" .. familyName .. "_" .. k] = v_mount_entry
-					mountItemCount = mountItemCount + 1
-				end
+				displayOrder = displayOrder + 1
+				-- Build mount list using MountUIComponents
+				if self.MountUIComponents then
+					local mountEntries = self.MountUIComponents:BuildMountList(familyName, "familyName", displayOrder)
+					local mountItemCount = 0
+					for k, v_mount_entry in pairs(mountEntries) do
+						detailsArgs["fam_" .. familyName .. "_" .. k] = v_mount_entry
+						mountItemCount = mountItemCount + 1
+					end
 
-				-- Advance displayOrder by the estimated number of "slots" consumed by mountEntries.
-				-- Original code used (#mountEntries * 2). We use mountItemCount * 2.
-				-- This assumes each "item" in mountEntries effectively takes 2 order slots,
-				-- and BuildMountList sets its children's orders accordingly.
-				if mountItemCount > 0 then
-					displayOrder = mountListBaseOrder + (mountItemCount * 2)
+					if mountItemCount > 0 then
+						displayOrder = displayOrder + (mountItemCount * 2)
+					end
 				end
-
-				-- If mountItemCount is 0, displayOrder remains as it was after the header.
 			end
 		end
-
-		-- End of loop iteration (was ::continue:: point)
 	end
 
 	-- Add bottom border
 	detailsArgs["supergroup_bottom_border"] = {
-		order = displayOrder, -- Use the final displayOrder
+		order = displayOrder,
 		type = "header",
 		name = "",
 		width = "full",
@@ -240,14 +228,17 @@ end
 
 function addon:BuildFamilyDetails(groupKey, startOrder, showUncollected)
 	local detailsArgs = {}
-	-- Build mount list for this family
-	-- MountUIComponents:BuildMountList is expected to set internal orders based on `startOrder`
+	-- Build mount list using MountUIComponents
+	if not self.MountUIComponents then
+		return { no_components = { order = 1, type = "description", name = "MountUIComponents not available.", width = "full" } }
+	end
+
 	local mountEntries = self.MountUIComponents:BuildMountList(groupKey, "familyName", startOrder)
-	if not mountEntries or not next(mountEntries) then -- next() is a robust way to check for empty table
+	if not mountEntries or not next(mountEntries) then
 		return { no_mounts = { order = 1, type = "description", name = "No mounts in this family.", width = "full" } }
 	end
 
-	local maxOrderUsed = startOrder - 1 -- Initialize to be less than any valid order
+	local maxOrderUsed = startOrder - 1
 	-- Add all mount entries
 	for k, v_entry in pairs(mountEntries) do
 		detailsArgs[k] = v_entry
@@ -256,7 +247,7 @@ function addon:BuildFamilyDetails(groupKey, startOrder, showUncollected)
 		end
 	end
 
-	-- Add bottom border, ensuring it's after all mount entries
+	-- Add bottom border
 	detailsArgs["bottom_border"] = {
 		order = maxOrderUsed + 1,
 		type = "header",
@@ -293,38 +284,38 @@ end
 -- UI REFRESH AND POPULATION
 -- ============================================================================
 function addon:PopulateFamilyManagementUI()
-	print("RMB_UI: PopulateFamilyManagementUI called (Refactored)")
+	print("RMB_UI: PopulateFamilyManagementUI called (Properly Integrated)")
 	if not self.fmArgsRef then
 		print("RMB_UI_ERROR: self.fmArgsRef is nil! Options.lua problem.")
 		return
 	end
 
 	-- Measure performance
-	local startTime = debugprofilestop() -- WoW API function
-	-- Build new UI arguments using optimized system
+	local startTime = debugprofilestop()
+	-- Build new UI arguments
 	local newPageContentArgs = self:BuildFamilyManagementArgs()
 	-- Update the options table
-	wipe(self.fmArgsRef) -- WoW API function or common utility
+	wipe(self.fmArgsRef)
 	for k, v in pairs(newPageContentArgs) do
 		self.fmArgsRef[k] = v
 	end
 
 	-- Notify AceConfig of changes
-	if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then -- Check LibStub exists and get library safely
+	if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then
 		LibStub("AceConfigRegistry-3.0"):NotifyChange(addonName)
 	else
 		print("RMB_UI_ERROR: AceConfigRegistry missing or LibStub not available.")
 	end
 
 	-- Clean up tooltips
-	if GameTooltip and GameTooltip.Hide then GameTooltip:Hide() end -- WoW API
+	if GameTooltip and GameTooltip.Hide then GameTooltip:Hide() end
 
 	if _G["AceConfigDialogTooltip"] and _G["AceConfigDialogTooltip"].Hide then
 		_G["AceConfigDialogTooltip"]:Hide()
 	end
 
 	-- Performance logging
-	local endTime = debugprofilestop() -- WoW API function
+	local endTime = debugprofilestop()
 	local elapsed = endTime - startTime
 	if elapsed > 50 then
 		print(string.format("RMB_PERF: UI build took %.2fms", elapsed))
@@ -334,7 +325,7 @@ function addon:PopulateFamilyManagementUI()
 end
 
 -- ============================================================================
--- WEIGHT MANAGEMENT (Moved from original file)
+-- WEIGHT MANAGEMENT
 -- ============================================================================
 function addon:DecrementGroupWeight(groupKey)
 	if not (self.db and self.db.profile and self.db.profile.groupWeights) then
@@ -347,7 +338,7 @@ function addon:DecrementGroupWeight(groupKey)
 	if newWeight ~= currentWeight then
 		self.db.profile.groupWeights[groupKey] = newWeight
 		print("RMB_WEIGHT: Decremented " .. tostring(groupKey) .. " to " .. tostring(newWeight))
-		self:PopulateFamilyManagementUI()
+		self:TriggerFamilyManagementUIRefresh()
 	end
 end
 
@@ -362,7 +353,7 @@ function addon:IncrementGroupWeight(groupKey)
 	if newWeight ~= currentWeight then
 		self.db.profile.groupWeights[groupKey] = newWeight
 		print("RMB_WEIGHT: Incremented " .. tostring(groupKey) .. " to " .. tostring(newWeight))
-		self:PopulateFamilyManagementUI()
+		self:TriggerFamilyManagementUIRefresh()
 	end
 end
 
@@ -378,7 +369,7 @@ function addon:ToggleExpansionState(groupKey)
 	self.db.profile.expansionStates[groupKey] = not self.db.profile.expansionStates[groupKey]
 	print("RMB_UI: Toggled expansion for '" .. tostring(groupKey) .. "' to " ..
 		tostring(self.db.profile.expansionStates[groupKey]))
-	self:PopulateFamilyManagementUI()
+	self:TriggerFamilyManagementUIRefresh()
 end
 
 function addon:IsGroupExpanded(groupKey)
@@ -392,7 +383,7 @@ end
 function addon:CollapseAllExpanded()
 	print("RMB_UI: Collapsing all expanded groups")
 	if not (self.db and self.db.profile and self.db.profile.expansionStates) then
-		return false -- Return false if unable to perform action
+		return false
 	end
 
 	local changed = false
@@ -407,7 +398,7 @@ function addon:CollapseAllExpanded()
 end
 
 -- ============================================================================
--- PAGINATION FUNCTIONS (Simplified)
+-- PAGINATION FUNCTIONS
 -- ============================================================================
 function addon:FMG_GetItemsPerPage()
 	return self.fmItemsPerPage or 15
@@ -422,33 +413,33 @@ function addon:FMG_SetItemsPerPage(items)
 		end
 
 		self.fmCurrentPage = 1
-		self:PopulateFamilyManagementUI()
+		self:TriggerFamilyManagementUIRefresh()
 	end
 end
 
 function addon:FMG_GoToPage(pageNumber)
 	if not self.RMB_DataReadyForUI then return end
 
-	local allGroups = self.MountDataManager:GetDisplayableGroups()
-	if not allGroups then return end -- Guard against nil
+	local allGroups = self:GetDisplayableGroups()
+	if not allGroups then return end
 
 	local totalPages = math.max(1, math.ceil(#allGroups / self:FMG_GetItemsPerPage()))
 	local targetPage = tonumber(pageNumber)
 	if targetPage and targetPage >= 1 and targetPage <= totalPages then
 		self.fmCurrentPage = targetPage
-		self:PopulateFamilyManagementUI()
+		self:TriggerFamilyManagementUIRefresh()
 	end
 end
 
 function addon:FMG_NextPage()
 	if not self.RMB_DataReadyForUI then return end
 
-	local allGroups = self.MountDataManager:GetDisplayableGroups()
+	local allGroups = self:GetDisplayableGroups()
 	if not allGroups then return end
 
 	local totalPages = math.max(1, math.ceil(#allGroups / self:FMG_GetItemsPerPage()))
 	if self.fmCurrentPage < totalPages then
-		self:CollapseAllExpanded() -- Consider if this should only happen if page actually changes
+		self:CollapseAllExpanded()
 		self:FMG_GoToPage(self.fmCurrentPage + 1)
 	end
 end
@@ -457,22 +448,22 @@ function addon:FMG_PrevPage()
 	if not self.RMB_DataReadyForUI then return end
 
 	if self.fmCurrentPage > 1 then
-		self:CollapseAllExpanded() -- Consider if this should only happen if page actually changes
+		self:CollapseAllExpanded()
 		self:FMG_GoToPage(self.fmCurrentPage - 1)
 	end
 end
 
 function addon:FMG_GoToFirstPage()
-	if not self.RMB_DataReadyForUI then return end -- Added guard
+	if not self.RMB_DataReadyForUI then return end
 
 	self:CollapseAllExpanded()
 	self:FMG_GoToPage(1)
 end
 
 function addon:FMG_GoToLastPage()
-	if not self.RMB_DataReadyForUI then return end -- Added guard
+	if not self.RMB_DataReadyForUI then return end
 
-	local allGroups = self.MountDataManager:GetDisplayableGroups()
+	local allGroups = self:GetDisplayableGroups()
 	if not allGroups then return end
 
 	local totalPages = math.max(1, math.ceil(#allGroups / self:FMG_GetItemsPerPage()))
@@ -481,16 +472,15 @@ function addon:FMG_GoToLastPage()
 end
 
 -- ============================================================================
--- LEGACY COMPATIBILITY FUNCTIONS
+-- CLEAN MODULE INTERFACE FUNCTIONS
 -- ============================================================================
--- These functions maintain compatibility with existing code
 function addon:GetDisplayableGroups()
-	-- Ensure MountDataManager exists and has the method
 	if self.MountDataManager and self.MountDataManager.GetDisplayableGroups then
 		return self.MountDataManager:GetDisplayableGroups()
 	end
 
-	return {} -- Return an empty table if not available
+	print("RMB_UI_ERROR: MountDataManager not available for GetDisplayableGroups")
+	return {}
 end
 
 function addon:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
@@ -498,7 +488,8 @@ function addon:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
 		return self.MountDataManager:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
 	end
 
-	return nil -- Or appropriate default
+	print("RMB_UI_ERROR: MountDataManager not available for GetRandomMountFromGroup")
+	return nil
 end
 
 function addon:GetGroupTypeFromKey(groupKey)
@@ -506,6 +497,7 @@ function addon:GetGroupTypeFromKey(groupKey)
 		return self.MountDataManager:GetGroupTypeFromKey(groupKey)
 	end
 
+	print("RMB_UI_ERROR: MountDataManager not available for GetGroupTypeFromKey")
 	return nil
 end
 
@@ -514,7 +506,8 @@ function addon:GetMountPreviewTooltip(groupKey, groupType)
 		return self.MountTooltips:GetMountPreviewTooltip(groupKey, groupType)
 	end
 
-	return nil
+	print("RMB_UI_ERROR: MountTooltips not available for GetMountPreviewTooltip")
+	return "Tooltip not available"
 end
 
 function addon:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncollected)
@@ -522,18 +515,19 @@ function addon:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncol
 		return self.MountPreview:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncollected)
 	end
 
-	-- This function might not have a sensible default return, or could return false
+	print("RMB_UI_ERROR: MountPreview not available for ShowMountPreview")
+	return false
 end
 
--- Trigger UI refresh
 function addon:TriggerFamilyManagementUIRefresh()
+	print("RMB_UI: Manual refresh triggered")
 	if self.MountDataManager and self.MountDataManager.InvalidateCache then
 		self.MountDataManager:InvalidateCache("manual_refresh")
 	else
-		print("RMB_WARN: MountDataManager or InvalidateCache not found for TriggerFamilyManagementUIRefresh")
+		print("RMB_UI_WARN: MountDataManager or InvalidateCache not found for refresh")
 	end
 
 	self:PopulateFamilyManagementUI()
 end
 
-print("RMB_DEBUG: MountListUI.lua (Refactored) END.")
+print("RMB_DEBUG: MountListUI.lua (Properly Integrated) END.")

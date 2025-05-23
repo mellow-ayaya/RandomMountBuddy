@@ -1,16 +1,52 @@
--- MountSummon.lua
+-- MountSummon.lua - Refactored as Clean Module
+-- Handles all mount summoning logic and contextual selection
 local addonName, addonTable = ...
-local addon = RandomMountBuddy -- Reference to the addon from global
-print("RMB_DEBUG: MountSummon.lua START.")
--- Flight style tracking
-local isInSkyridingMode = false
--- =============================
+local addon = RandomMountBuddy
+print("RMB_DEBUG: MountSummon.lua START (Clean Module).")
+-- ============================================================================
+-- MOUNT SUMMON CLASS
+-- ============================================================================
+local MountSummon = {}
+addon.MountSummon = MountSummon
+-- ============================================================================
+-- INITIALIZATION
+-- ============================================================================
+function MountSummon:Initialize()
+	print("RMB_SUMMON: Initializing mount summoning system...")
+	-- Flight style tracking
+	self.isInSkyridingMode = false
+	-- Initialize mount pools
+	self.mountPools = {
+		flying = { superGroups = {}, families = {}, mountsByFamily = {}, mountWeights = {} },
+		ground = { superGroups = {}, families = {}, mountsByFamily = {}, mountWeights = {} },
+		underwater = { superGroups = {}, families = {}, mountsByFamily = {}, mountWeights = {} },
+	}
+	-- Zone-specific configuration for G-99 abilities using location IDs
+	self.G99_ZONES = {
+		[2346] = 1215279, -- Undermine - Original G-99 zone
+		[2406] = 1218373, -- Nerub-ar Palace - Raid zone
+		-- Add more location IDs here as needed
+	}
+	-- Cache system for zone abilities
+	self.zoneAbilityCache = {
+		currentLocationID = nil,
+		cachedSpellID = nil,
+		hasZoneAbility = false,
+		lastUpdateTime = 0,
+	}
+	-- Set up flight style tracking
+	self:CheckCurrentFlightStyle()
+	self:RegisterFlightStyleEvents()
+	print("RMB_SUMMON: Initialized successfully")
+end
+
+-- ============================================================================
 -- MOUNT TYPE & CAPABILITY DETECTION
--- =============================
+-- ============================================================================
 -- Get mount type traits for a given mount ID
-function addon:GetMountTypeTraits(mountID)
+function MountSummon:GetMountTypeTraits(mountID)
 	-- Get the mount's type ID
-	local typeID = self.mountIDtoTypeID[mountID]
+	local typeID = addon.mountIDtoTypeID[mountID]
 	if not typeID then
 		-- If mount ID not in our mapping, get it from API
 		local _, _, _, _, mountType = C_MountJournal.GetMountInfoExtraByID(mountID)
@@ -18,7 +54,7 @@ function addon:GetMountTypeTraits(mountID)
 	end
 
 	-- Get traits for this type
-	local traits = self.mountTypeTraits[typeID]
+	local traits = addon.mountTypeTraits[typeID]
 	-- Return found traits or default
 	return traits or {
 		isGround = true, -- Default to ground mount
@@ -30,25 +66,25 @@ function addon:GetMountTypeTraits(mountID)
 end
 
 -- Check if a mount can fly (either steady flying or skyriding)
-function addon:CanMountFly(mountID)
+function MountSummon:CanMountFly(mountID)
 	local traits = self:GetMountTypeTraits(mountID)
 	return traits.isSteadyFly or traits.isSkyriding
 end
 
 -- Check if a mount can do dragonriding/skyriding
-function addon:CanMountSkyriding(mountID)
+function MountSummon:CanMountSkyriding(mountID)
 	local traits = self:GetMountTypeTraits(mountID)
 	return traits.isSkyriding
 end
 
 -- Check if a mount can swim underwater
-function addon:CanMountSwim(mountID)
+function MountSummon:CanMountSwim(mountID)
 	local traits = self:GetMountTypeTraits(mountID)
 	return traits.isAquatic
 end
 
 -- Function to check current flight style using C_Spell.GetSpellInfo
-function addon:CheckCurrentFlightStyle()
+function MountSummon:CheckCurrentFlightStyle()
 	-- Check for "Switch to Steady Flight" (460002) spell - if present, player is in skyriding mode
 	-- Check for "Switch to Dragonriding" (460003) spell - if present, player is in steady flight mode
 	local steadySpellID = 460003   -- Switch TO skyriding (player is currently in steady flight)
@@ -58,24 +94,24 @@ function addon:CheckCurrentFlightStyle()
 	local steadySpellInfo = C_Spell.GetSpellInfo(steadySpellID)
 	if skyridingSpellInfo then
 		-- If "Switch to Steady Flight" spell is known, player is in skyriding mode
-		isInSkyridingMode = true
+		self.isInSkyridingMode = true
 		print("RMB_DEBUG: Flight style check - Player is in SKYRIDING mode")
 		return true
 	elseif steadySpellInfo then
 		-- If "Switch to Dragonriding" spell is known, player is in steady flight mode
-		isInSkyridingMode = false
+		self.isInSkyridingMode = false
 		print("RMB_DEBUG: Flight style check - Player is in STEADY FLIGHT mode")
 		return false
 	else
 		-- If neither spell is known, default to steady flight
-		isInSkyridingMode = false
+		self.isInSkyridingMode = false
 		print("RMB_DEBUG: Flight style check - Could not determine style, defaulting to STEADY FLIGHT")
 		return false
 	end
 end
 
 -- Register for events to track flight style changes
-function addon:RegisterFlightStyleEvents()
+function MountSummon:RegisterFlightStyleEvents()
 	if not self.eventFrame then
 		self.eventFrame = CreateFrame("Frame")
 		self.eventFrame:SetScript("OnEvent", function(frame, event, ...)
@@ -83,10 +119,10 @@ function addon:RegisterFlightStyleEvents()
 				local unit, castGUID, spellID = ...
 				if unit == "player" then
 					if spellID == 460003 then -- Switch TO skyriding
-						isInSkyridingMode = true
+						self.isInSkyridingMode = true
 						print("RMB_DEBUG: Switched TO skyriding mode")
 					elseif spellID == 460002 then -- Switch TO steady flight
-						isInSkyridingMode = false
+						self.isInSkyridingMode = false
 						print("RMB_DEBUG: Switched TO steady flight mode")
 					end
 				end
@@ -98,17 +134,17 @@ function addon:RegisterFlightStyleEvents()
 	print("RMB_DEBUG: Registered for flight style change events")
 end
 
--- =============================
+-- ============================================================================
 -- CONTEXT DETECTION
--- =============================
+-- ============================================================================
 -- Determine the current player context for contextual summoning
-function addon:GetCurrentContext()
+function MountSummon:GetCurrentContext()
 	local context = {
 		canFly = false,
 		canDragonride = false,
 		isUnderwater = false,
 		inZone = nil,
-		isInSkyridingMode = isInSkyridingMode,
+		isInSkyridingMode = self.isInSkyridingMode,
 	}
 	-- Check if player can fly in current zone
 	context.canFly = IsFlyableArea()
@@ -149,68 +185,25 @@ function addon:GetCurrentContext()
 	return context
 end
 
--- Add this after BuildMountPools
-function addon:ValidateMountPools()
-	print("RMB_POOLS: Validating mount pools to remove empty groups")
+-- ============================================================================
+-- MOUNT POOL MANAGEMENT
+-- ============================================================================
+-- Build mount pools for different contexts
+function MountSummon:BuildMountPools()
+	print("RMB_SUMMON: Building context-based mount pools")
+	-- Reset the pools
 	for poolName, pool in pairs(self.mountPools) do
-		-- Remove supergroups with no valid families
-		local invalidSuperGroups = {}
-		for sgName, families in pairs(pool.superGroups) do
-			local hasValidFamilies = false
-			for _, familyName in ipairs(families) do
-				if pool.mountsByFamily[familyName] and #pool.mountsByFamily[familyName] > 0 then
-					hasValidFamilies = true
-					break
-				end
-			end
-
-			if not hasValidFamilies then
-				table.insert(invalidSuperGroups, sgName)
-			end
-		end
-
-		-- Remove invalid supergroups
-		for _, sgName in ipairs(invalidSuperGroups) do
-			print("RMB_POOLS: Removing invalid supergroup from " .. poolName .. " pool: " .. sgName)
-			pool.superGroups[sgName] = nil
-		end
-
-		-- Remove families with no mounts
-		local invalidFamilies = {}
-		for familyName, _ in pairs(pool.families) do
-			if not pool.mountsByFamily[familyName] or #pool.mountsByFamily[familyName] == 0 then
-				table.insert(invalidFamilies, familyName)
-			end
-		end
-
-		-- Remove invalid families
-		for _, familyName in ipairs(invalidFamilies) do
-			print("RMB_POOLS: Removing invalid family from " .. poolName .. " pool: " .. familyName)
-			pool.families[familyName] = nil
-		end
+		pool.superGroups = {}
+		pool.families = {}
+		pool.mountsByFamily = {}
+		pool.mountWeights = {}
 	end
 
-	-- Log updated pool stats
-	self:LogPoolStats()
-end
-
--- =============================
--- MOUNT POOL MANAGEMENT
--- =============================
--- Build mount pools for different contexts
-function addon:BuildMountPools()
-	print("RMB_POOLS: Building context-based mount pools")
-	-- Reset the pools
-	self.mountPools = {
-		flying = { superGroups = {}, families = {}, mountsByFamily = {}, mountWeights = {} },
-		ground = { superGroups = {}, families = {}, mountsByFamily = {}, mountWeights = {} },
-		underwater = { superGroups = {}, families = {}, mountsByFamily = {}, mountWeights = {} },
-	}
 	-- Process all collected mounts
 	local mountsProcessed = 0
-	for mountID, mountInfo in pairs(self.processedData.allCollectedMountFamilyInfo) do
+	for mountID, mountInfo in pairs(addon.processedData.allCollectedMountFamilyInfo) do
 		local familyName = mountInfo.familyName
-		local superGroup = self:GetDynamicSuperGroup(familyName)
+		local superGroup = addon:GetDynamicSuperGroup(familyName)
 		local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
 		if isUsable then
 			mountsProcessed = mountsProcessed + 1
@@ -219,7 +212,7 @@ function addon:BuildMountPools()
 			-- 2. Family weight (medium specific)
 			-- 3. Supergroup weight (least specific)
 			local mountKey = "mount_" .. mountID
-			local mountWeight = self:GetGroupWeight(mountKey)
+			local mountWeight = addon:GetGroupWeight(mountKey)
 			-- Mount weight of 0 means explicitly excluded, no matter what family/supergroup says
 			if mountWeight ~= 0 then
 				-- Get mount capabilities
@@ -241,12 +234,12 @@ function addon:BuildMountPools()
 					self:AddMountToPool("underwater", mountID, name, familyName, superGroup, mountWeight)
 				end
 			else
-				print("RMB_POOLS_DEBUG: Mount " .. name .. " explicitly excluded (weight 0)")
+				print("RMB_SUMMON_DEBUG: Mount " .. name .. " explicitly excluded (weight 0)")
 			end
 		end
 	end
 
-	print("RMB_POOLS: Processed " .. mountsProcessed .. " mounts into context pools")
+	print("RMB_SUMMON: Processed " .. mountsProcessed .. " mounts into context pools")
 	-- Now handle family and supergroup-level weights
 	self:ApplyFamilyAndSuperGroupWeights()
 	-- Log pool sizes
@@ -256,8 +249,7 @@ function addon:BuildMountPools()
 end
 
 -- Helper to add a mount to a specific pool
--- Modified AddMountToPool function
-function addon:AddMountToPool(poolName, mountID, mountName, familyName, superGroup, mountWeight)
+function MountSummon:AddMountToPool(poolName, mountID, mountName, familyName, superGroup, mountWeight)
 	local pool = self.mountPools[poolName]
 	-- Store the mount's weight
 	pool.mountWeights[mountID] = mountWeight
@@ -267,13 +259,13 @@ function addon:AddMountToPool(poolName, mountID, mountName, familyName, superGro
 	end
 
 	table.insert(pool.mountsByFamily[familyName], mountID)
-	print("RMB_POOLS_DEBUG: Added " .. mountName .. " to " .. poolName .. " pool for family " .. familyName)
+	print("RMB_SUMMON_DEBUG: Added " .. mountName .. " to " .. poolName .. " pool for family " .. familyName)
 	-- Note: We'll handle families and supergroups in ApplyFamilyAndSuperGroupWeights
 	-- to properly handle weight inheritance
 end
 
 -- Apply family and supergroup weights after all mounts are processed
-function addon:ApplyFamilyAndSuperGroupWeights()
+function MountSummon:ApplyFamilyAndSuperGroupWeights()
 	for poolName, pool in pairs(self.mountPools) do
 		-- First, determine which families have usable mounts
 		local familiesWithUsableMounts = {}
@@ -288,29 +280,29 @@ function addon:ApplyFamilyAndSuperGroupWeights()
 			end
 
 			-- If family has no usable mounts, check if family weight > 0
-			local familyWeight = self:GetGroupWeight(familyName)
+			local familyWeight = addon:GetGroupWeight(familyName)
 			if familyHasUsableMounts or familyWeight > 0 then
 				familiesWithUsableMounts[familyName] = true
 			else
-				print("RMB_POOLS_DEBUG: Family " .. familyName .. " in " .. poolName ..
+				print("RMB_SUMMON_DEBUG: Family " .. familyName .. " in " .. poolName ..
 					" pool has no usable mounts and weight 0, skipping")
 			end
 		end
 
 		-- Add standalone families to the pool
 		for familyName in pairs(familiesWithUsableMounts) do
-			local superGroup = self:GetDynamicSuperGroup(familyName)
+			local superGroup = addon:GetDynamicSuperGroup(familyName)
 			if not superGroup then
 				pool.families[familyName] = true
-				print("RMB_POOLS_DEBUG: Added standalone family " .. familyName .. " to " .. poolName .. " pool")
+				print("RMB_SUMMON_DEBUG: Added standalone family " .. familyName .. " to " .. poolName .. " pool")
 			end
 		end
 
 		-- Add supergroups and their families
 		for familyName in pairs(familiesWithUsableMounts) do
-			local superGroup = self:GetDynamicSuperGroup(familyName)
+			local superGroup = addon:GetDynamicSuperGroup(familyName)
 			if superGroup then
-				local superGroupWeight = self:GetGroupWeight(superGroup)
+				local superGroupWeight = addon:GetGroupWeight(superGroup)
 				if superGroupWeight > 0 then
 					if not pool.superGroups[superGroup] then
 						pool.superGroups[superGroup] = {}
@@ -327,19 +319,19 @@ function addon:ApplyFamilyAndSuperGroupWeights()
 
 					-- Add family to supergroup if not already there
 					if not found then
-						local familyWeight = self:GetGroupWeight(familyName)
+						local familyWeight = addon:GetGroupWeight(familyName)
 						if familyWeight > 0 then
 							table.insert(pool.superGroups[superGroup], familyName)
-							print("RMB_POOLS_DEBUG: Added family " .. familyName ..
+							print("RMB_SUMMON_DEBUG: Added family " .. familyName ..
 								" to supergroup " .. superGroup .. " in " .. poolName .. " pool")
 						else
-							print("RMB_POOLS_DEBUG: Family " .. familyName ..
+							print("RMB_SUMMON_DEBUG: Family " .. familyName ..
 								" in supergroup " .. superGroup ..
 								" has weight 0, not adding to " .. poolName .. " pool")
 						end
 					end
 				else
-					print("RMB_POOLS_DEBUG: Supergroup " .. superGroup ..
+					print("RMB_SUMMON_DEBUG: Supergroup " .. superGroup ..
 						" has weight 0, not adding to " .. poolName .. " pool")
 				end
 			end
@@ -347,8 +339,53 @@ function addon:ApplyFamilyAndSuperGroupWeights()
 	end
 end
 
+-- Validate mount pools to remove empty groups
+function MountSummon:ValidateMountPools()
+	print("RMB_SUMMON: Validating mount pools to remove empty groups")
+	for poolName, pool in pairs(self.mountPools) do
+		-- Remove supergroups with no valid families
+		local invalidSuperGroups = {}
+		for sgName, families in pairs(pool.superGroups) do
+			local hasValidFamilies = false
+			for _, familyName in ipairs(families) do
+				if pool.mountsByFamily[familyName] and #pool.mountsByFamily[familyName] > 0 then
+					hasValidFamilies = true
+					break
+				end
+			end
+
+			if not hasValidFamilies then
+				table.insert(invalidSuperGroups, sgName)
+			end
+		end
+
+		-- Remove invalid supergroups
+		for _, sgName in ipairs(invalidSuperGroups) do
+			print("RMB_SUMMON: Removing invalid supergroup from " .. poolName .. " pool: " .. sgName)
+			pool.superGroups[sgName] = nil
+		end
+
+		-- Remove families with no mounts
+		local invalidFamilies = {}
+		for familyName, _ in pairs(pool.families) do
+			if not pool.mountsByFamily[familyName] or #pool.mountsByFamily[familyName] == 0 then
+				table.insert(invalidFamilies, familyName)
+			end
+		end
+
+		-- Remove invalid families
+		for _, familyName in ipairs(invalidFamilies) do
+			print("RMB_SUMMON: Removing invalid family from " .. poolName .. " pool: " .. familyName)
+			pool.families[familyName] = nil
+		end
+	end
+
+	-- Log updated pool stats
+	self:LogPoolStats()
+end
+
 -- Log statistics about the mount pools
-function addon:LogPoolStats()
+function MountSummon:LogPoolStats()
 	for poolName, pool in pairs(self.mountPools) do
 		local superGroupCount = 0
 		local familiesInSuperGroups = 0
@@ -370,24 +407,15 @@ function addon:LogPoolStats()
 			totalMounts = totalMounts + #mounts
 		end
 
-		print("RMB_POOLS: " .. poolName .. " pool has " .. superGroupCount ..
+		print("RMB_SUMMON: " .. poolName .. " pool has " .. superGroupCount ..
 			" supergroups with " .. familiesInSuperGroups .. " families, " ..
 			standaloneFamilies .. " standalone families, and " ..
 			totalMounts .. " total mounts")
 	end
 end
 
--- Refresh mount pools when settings change
-function addon:RefreshMountPools()
-	print("RMB_POOLS: Refreshing mount pools")
-	-- Rebuild dynamic grouping if needed
-	self:RebuildMountGrouping()
-	-- Rebuild the mount pools
-	self:BuildMountPools()
-end
-
 -- Map user-facing weights (0-6) to actual probability weights
-function addon:MapWeightToProbability(userWeight)
+function MountSummon:MapWeightToProbability(userWeight)
 	-- Map from user weights to probability weights
 	local weightMap = {
 		[0] = 0, -- 0%
@@ -404,11 +432,11 @@ function addon:MapWeightToProbability(userWeight)
 	return weightMap[userWeight] or 0
 end
 
--- =============================
+-- ============================================================================
 -- POOL-BASED MOUNT SELECTION
--- =============================
+-- ============================================================================
 -- Select a mount from a specific pool
-function addon:SelectMountFromPool(poolName)
+function MountSummon:SelectMountFromPool(poolName)
 	local pool = self.mountPools[poolName]
 	if not pool then
 		print("RMB_SUMMON_ERROR: Invalid pool name:", poolName)
@@ -438,163 +466,8 @@ function addon:SelectMountFromPool(poolName)
 	return self:SelectMountFromPoolFamily(pool, familyName)
 end
 
--- Refactored function to select specific mount types while respecting weight hierarchy
-function addon:SelectSpecificMountTypeFromPool(poolName, mountType)
-	local pool = self.mountPools[poolName]
-	if not pool then
-		print("RMB_SUMMON_ERROR: Invalid pool name:", poolName)
-		return nil, nil
-	end
-
-	-- Build list of eligible groups first (respecting the hierarchy)
-	local eligibleGroups = {}
-	-- Add supergroups with weight > 0
-	for sgName, families in pairs(pool.superGroups) do
-		local superGroupWeight = self:GetGroupWeight(sgName)
-		if superGroupWeight > 0 then
-			-- This supergroup is eligible
-			table.insert(eligibleGroups, {
-				name = sgName,
-				type = "superGroup",
-				weight = self:MapWeightToProbability(superGroupWeight),
-			})
-		end
-	end
-
-	-- Add standalone families with weight > 0
-	for familyName, _ in pairs(pool.families) do
-		local familyWeight = self:GetGroupWeight(familyName)
-		if familyWeight > 0 then
-			-- This standalone family is eligible
-			table.insert(eligibleGroups, {
-				name = familyName,
-				type = "family",
-				weight = self:MapWeightToProbability(familyWeight),
-			})
-		end
-	end
-
-	-- If no eligible groups, return nil
-	if #eligibleGroups == 0 then
-		print("RMB_SUMMON: No eligible groups found for " .. mountType .. " mount selection")
-		return nil, nil
-	end
-
-	-- Try each eligible group until we find one with matching mount type
-	-- Randomize the order to prevent always checking the same groups first
-	-- Shuffle the groups randomly (Lua 5.1 compatible)
-	for i = #eligibleGroups, 2, -1 do
-		local j = math.random(i)
-		eligibleGroups[i], eligibleGroups[j] = eligibleGroups[j], eligibleGroups[i]
-	end
-
-	for groupIndex, group in ipairs(eligibleGroups) do
-		local eligibleFamilies = {}
-		if group.type == "superGroup" then
-			-- Get all families in this supergroup
-			for _, familyName in ipairs(pool.superGroups[group.name] or {}) do
-				local familyWeight = self:GetGroupWeight(familyName)
-				if familyWeight > 0 then
-					table.insert(eligibleFamilies, {
-						name = familyName,
-						weight = self:MapWeightToProbability(familyWeight),
-					})
-				end
-			end
-		else
-			-- Just the standalone family
-			table.insert(eligibleFamilies, {
-				name = group.name,
-				weight = group.weight,
-			})
-		end
-
-		-- If no eligible families in this group, skip to next group
-		if #eligibleFamilies == 0 then
-			-- Skip to next iteration (no goto in Lua 5.1)
-		else
-			-- Randomize family order (Lua 5.1 compatible)
-			for i = #eligibleFamilies, 2, -1 do
-				local j = math.random(i)
-				eligibleFamilies[i], eligibleFamilies[j] = eligibleFamilies[j], eligibleFamilies[i]
-			end
-
-			-- Try each family until we find one with matching mount type
-			for _, family in ipairs(eligibleFamilies) do
-				local eligibleMounts = {}
-				local totalWeight = 0
-				-- Get all mounts in this family
-				for _, mountID in ipairs(pool.mountsByFamily[family.name] or {}) do
-					local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
-					-- Skip unusable mounts
-					if isUsable then
-						local traits = self:GetMountTypeTraits(mountID)
-						local isEligible = false
-						-- Check if this mount matches the desired type
-						if mountType == "skyriding" and traits.isSkyriding then
-							isEligible = true
-						elseif mountType == "steadyflight" and traits.isSteadyFly then
-							isEligible = true
-						end
-
-						if isEligible then
-							-- Get mount weight
-							local mountKey = "mount_" .. mountID
-							local mountWeight = self:GetGroupWeight(mountKey)
-							-- Skip mounts with explicit weight 0
-							if mountWeight ~= 0 then
-								-- If mount has no specific weight, use family weight
-								if mountWeight == nil or mountWeight == 0 then
-									mountWeight = self:GetGroupWeight(family.name)
-								end
-
-								-- Only include if weight > 0
-								if mountWeight > 0 then
-									local probWeight = self:MapWeightToProbability(mountWeight)
-									table.insert(eligibleMounts, {
-										id = mountID,
-										name = name,
-										weight = probWeight,
-									})
-									totalWeight = totalWeight + probWeight
-									print("RMB_SUMMON: Added eligible " .. mountType .. " mount from "
-										.. family.name .. ":", name, "Weight:", mountWeight)
-								end
-							end
-						end
-					end
-				end
-
-				-- If eligible mounts found in this family, make a selection
-				if #eligibleMounts > 0 and totalWeight > 0 then
-					-- Weighted random selection
-					local roll = math.random(1, totalWeight)
-					local currentSum = 0
-					for _, mount in ipairs(eligibleMounts) do
-						currentSum = currentSum + mount.weight
-						if roll <= currentSum then
-							print("RMB_SUMMON: Selected " .. mountType .. " mount:", mount.name,
-								"from family:", family.name,
-								group.type == "superGroup" and "in supergroup: " .. group.name or "")
-							return mount.id, mount.name
-						end
-					end
-
-					-- Fallback
-					return eligibleMounts[1].id, eligibleMounts[1].name
-				end
-			end
-		end
-	end
-
-	-- If we got here, no eligible mounts were found
-	print("RMB_SUMMON: No eligible " .. mountType .. " mounts found in any group")
-	return nil, nil
-end
-
 -- Select a group from a pool
--- Select a group from a pool
-function addon:SelectGroupFromPool(pool)
+function MountSummon:SelectGroupFromPool(pool)
 	-- Build list of eligible groups
 	local eligibleGroups = {}
 	local totalWeight = 0
@@ -613,7 +486,7 @@ function addon:SelectGroupFromPool(pool)
 			end
 
 			if sgHasValidFamilies then
-				local groupWeight = self:GetGroupWeight(sgName)
+				local groupWeight = addon:GetGroupWeight(sgName)
 				if groupWeight > 0 then
 					if groupWeight == 6 then
 						table.insert(priority6Groups, {
@@ -645,7 +518,7 @@ function addon:SelectGroupFromPool(pool)
 	for familyName, _ in pairs(pool.families) do
 		-- Make sure the family actually has mounts in this pool
 		if pool.mountsByFamily[familyName] and #pool.mountsByFamily[familyName] > 0 then
-			local groupWeight = self:GetGroupWeight(familyName)
+			local groupWeight = addon:GetGroupWeight(familyName)
 			if groupWeight > 0 then
 				if groupWeight == 6 then
 					table.insert(priority6Groups, {
@@ -702,7 +575,7 @@ function addon:SelectGroupFromPool(pool)
 end
 
 -- Select a family from a supergroup in a specific pool
-function addon:SelectFamilyFromPoolSuperGroup(pool, superGroupName)
+function MountSummon:SelectFamilyFromPoolSuperGroup(pool, superGroupName)
 	-- Get families in this supergroup for this pool
 	local families = pool.superGroups[superGroupName] or {}
 	if #families == 0 then
@@ -718,7 +591,7 @@ function addon:SelectFamilyFromPoolSuperGroup(pool, superGroupName)
 	for _, familyName in ipairs(families) do
 		-- Make sure family has mounts in this pool
 		if pool.mountsByFamily[familyName] and #pool.mountsByFamily[familyName] > 0 then
-			local familyWeight = self:GetGroupWeight(familyName)
+			local familyWeight = addon:GetGroupWeight(familyName)
 			if familyWeight > 0 then
 				if familyWeight == 6 then
 					table.insert(priority6Families, {
@@ -770,7 +643,7 @@ function addon:SelectFamilyFromPoolSuperGroup(pool, superGroupName)
 end
 
 -- Select a mount from a family in a specific pool
-function addon:SelectMountFromPoolFamily(pool, familyName)
+function MountSummon:SelectMountFromPoolFamily(pool, familyName)
 	-- Get mounts in this family for this pool
 	local familyMounts = pool.mountsByFamily[familyName] or {}
 	if #familyMounts == 0 then
@@ -789,12 +662,12 @@ function addon:SelectMountFromPoolFamily(pool, familyName)
 		if isUsable then
 			-- Get mount weight - if it's explicitly set to 0, EXCLUDE this mount
 			local mountKey = "mount_" .. mountID
-			local mountWeight = self:GetGroupWeight(mountKey)
+			local mountWeight = addon:GetGroupWeight(mountKey)
 			-- Skip mounts with explicit 0 weight
 			if mountWeight ~= 0 then
 				-- If mount has no specific weight, use family weight
 				if mountWeight == 0 then
-					mountWeight = self:GetGroupWeight(familyName)
+					mountWeight = addon:GetGroupWeight(familyName)
 				end
 
 				-- Only include if mount has weight > 0
@@ -855,11 +728,160 @@ function addon:SelectMountFromPoolFamily(pool, familyName)
 	return eligibleMounts[1].id, eligibleMounts[1].name
 end
 
--- =============================
+-- Refactored function to select specific mount types while respecting weight hierarchy
+function MountSummon:SelectSpecificMountTypeFromPool(poolName, mountType)
+	local pool = self.mountPools[poolName]
+	if not pool then
+		print("RMB_SUMMON_ERROR: Invalid pool name:", poolName)
+		return nil, nil
+	end
+
+	-- Build list of eligible groups first (respecting the hierarchy)
+	local eligibleGroups = {}
+	-- Add supergroups with weight > 0
+	for sgName, families in pairs(pool.superGroups) do
+		local superGroupWeight = addon:GetGroupWeight(sgName)
+		if superGroupWeight > 0 then
+			table.insert(eligibleGroups, {
+				name = sgName,
+				type = "superGroup",
+				weight = self:MapWeightToProbability(superGroupWeight),
+			})
+		end
+	end
+
+	-- Add standalone families with weight > 0
+	for familyName, _ in pairs(pool.families) do
+		local familyWeight = addon:GetGroupWeight(familyName)
+		if familyWeight > 0 then
+			table.insert(eligibleGroups, {
+				name = familyName,
+				type = "family",
+				weight = self:MapWeightToProbability(familyWeight),
+			})
+		end
+	end
+
+	-- If no eligible groups, return nil
+	if #eligibleGroups == 0 then
+		print("RMB_SUMMON: No eligible groups found for " .. mountType .. " mount selection")
+		return nil, nil
+	end
+
+	-- Try each eligible group until we find one with matching mount type
+	-- Randomize the order to prevent always checking the same groups first
+	for i = #eligibleGroups, 2, -1 do
+		local j = math.random(i)
+		eligibleGroups[i], eligibleGroups[j] = eligibleGroups[j], eligibleGroups[i]
+	end
+
+	for _, group in ipairs(eligibleGroups) do
+		local eligibleFamilies = {}
+		if group.type == "superGroup" then
+			-- Get all families in this supergroup
+			for _, familyName in ipairs(pool.superGroups[group.name] or {}) do
+				local familyWeight = addon:GetGroupWeight(familyName)
+				if familyWeight > 0 then
+					table.insert(eligibleFamilies, {
+						name = familyName,
+						weight = self:MapWeightToProbability(familyWeight),
+					})
+				end
+			end
+		else
+			-- Just the standalone family
+			table.insert(eligibleFamilies, {
+				name = group.name,
+				weight = group.weight,
+			})
+		end
+
+		-- If no eligible families in this group, skip
+		if #eligibleFamilies > 0 then
+			-- Randomize family order
+			for i = #eligibleFamilies, 2, -1 do
+				local j = math.random(i)
+				eligibleFamilies[i], eligibleFamilies[j] = eligibleFamilies[j], eligibleFamilies[i]
+			end
+
+			-- Try each family until we find one with matching mount type
+			for _, family in ipairs(eligibleFamilies) do
+				local eligibleMounts = {}
+				local totalWeight = 0
+				-- Get all mounts in this family
+				for _, mountID in ipairs(pool.mountsByFamily[family.name] or {}) do
+					local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
+					-- Skip unusable mounts
+					if isUsable then
+						local traits = self:GetMountTypeTraits(mountID)
+						local isEligible = false
+						-- Check if this mount matches the desired type
+						if mountType == "skyriding" and traits.isSkyriding then
+							isEligible = true
+						elseif mountType == "steadyflight" and traits.isSteadyFly then
+							isEligible = true
+						end
+
+						if isEligible then
+							-- Get mount weight
+							local mountKey = "mount_" .. mountID
+							local mountWeight = addon:GetGroupWeight(mountKey)
+							-- Skip mounts with explicit weight 0
+							if mountWeight ~= 0 then
+								-- If mount has no specific weight, use family weight
+								if mountWeight == nil or mountWeight == 0 then
+									mountWeight = addon:GetGroupWeight(family.name)
+								end
+
+								-- Only include if weight > 0
+								if mountWeight > 0 then
+									local probWeight = self:MapWeightToProbability(mountWeight)
+									table.insert(eligibleMounts, {
+										id = mountID,
+										name = name,
+										weight = probWeight,
+									})
+									totalWeight = totalWeight + probWeight
+									print("RMB_SUMMON: Added eligible " .. mountType .. " mount from "
+										.. family.name .. ":", name, "Weight:", mountWeight)
+								end
+							end
+						end
+					end
+				end
+
+				-- If eligible mounts found in this family, make a selection
+				if #eligibleMounts > 0 and totalWeight > 0 then
+					-- Weighted random selection
+					local roll = math.random(1, totalWeight)
+					local currentSum = 0
+					for _, mount in ipairs(eligibleMounts) do
+						currentSum = currentSum + mount.weight
+						if roll <= currentSum then
+							print("RMB_SUMMON: Selected " .. mountType .. " mount:", mount.name,
+								"from family:", family.name,
+								group.type == "superGroup" and "in supergroup: " .. group.name or "")
+							return mount.id, mount.name
+						end
+					end
+
+					-- Fallback
+					return eligibleMounts[1].id, eligibleMounts[1].name
+				end
+			end
+		end
+	end
+
+	-- If we got here, no eligible mounts were found
+	print("RMB_SUMMON: No eligible " .. mountType .. " mounts found in any group")
+	return nil, nil
+end
+
+-- ============================================================================
 -- MOUNT SUMMONING
--- =============================
+-- ============================================================================
 -- Summon a specific mount by ID
-function addon:SummonMount(mountID)
+function MountSummon:SummonMount(mountID)
 	if not mountID then
 		print("RMB_SUMMON_ERROR: No mount ID provided.")
 		return false
@@ -873,10 +895,10 @@ function addon:SummonMount(mountID)
 end
 
 -- Main function to pick and summon a random mount
-function addon:SummonRandomMount_Actual(useContext)
+function MountSummon:SummonRandomMount(useContext)
 	-- Determine which pool to use
 	local poolName = "ground" -- Default to ground
-	if useContext and self:GetSetting("contextualSummoning") then
+	if useContext and addon:GetSetting("contextualSummoning") then
 		local context = self:GetCurrentContext()
 		if context.isUnderwater then
 			poolName = "underwater"
@@ -922,13 +944,13 @@ function addon:SummonRandomMount_Actual(useContext)
 	end
 end
 
--- =============================
+-- ============================================================================
 -- INTEGRATION WITH BLIZZARD UI
--- =============================
+-- ============================================================================
 -- Hook into Blizzard's Random Favorite Mount button
-function addon:HookRandomFavoriteButton()
+function MountSummon:HookRandomFavoriteButton()
 	-- Only hook if the setting is enabled
-	if not self:GetSetting("overrideBlizzardButton") then
+	if not addon:GetSetting("overrideBlizzardButton") then
 		print("RMB_SUMMON: Not hooking random favorite button (setting disabled).")
 		return
 	end
@@ -943,7 +965,7 @@ function addon:HookRandomFavoriteButton()
 				-- Prevent the original handler from running
 				self:SetAttribute("macrotext", "")
 				-- Call our random mount function
-				addon:SummonRandomMount(true)
+				addon.MountSummon:SummonRandomMount(true)
 				-- Return true to indicate we handled the click
 				return true
 			end
@@ -954,74 +976,59 @@ function addon:HookRandomFavoriteButton()
 	end
 end
 
--- =============================
--- INITIALIZATION
--- =============================
--- Initialize the mount summoning system
--- Initialize the mount summoning system
-function addon:InitializeMountSummoning()
-	print("RMB_SUMMON: Initializing mount summoning system")
-	-- Check flight style at login
-	self:CheckCurrentFlightStyle()
-	-- Register for flight style events
-	self:RegisterFlightStyleEvents()
-	-- Initialize pools after data is loaded (only if data is ready)
-	if self.RMB_DataReadyForUI then
-		self:BuildMountPools()
-	end
-
-	-- Hook the random favorite button
-	self:HookRandomFavoriteButton()
-	-- Register slash command for testing
-	if self.RegisterChatCommand then
-		self:RegisterChatCommand("randommount", function()
-			self:SummonRandomMount_Actual(true)
-		end)
-	end
-
-	print("RMB_SUMMON: Mount summoning system initialized")
-end
-
--- Function to be called after processed data is initialized
-function addon:InitializeMountSummoningPools()
-	print("RMB_SUMMON: Initializing mount pools after data processing")
-	if self.RMB_DataReadyForUI then
-		self:BuildMountPools()
-	else
-		print("RMB_SUMMON: Data not ready for mount pools")
-	end
-end
-
--- Remove the old hooks and replace with this integration point
--- This will be called from Core.lua
-function addon:OnMountSummonDataReady()
+-- ============================================================================
+-- PUBLIC INTERFACE METHODS
+-- ============================================================================
+-- Called when data is ready
+function MountSummon:OnDataReady()
 	print("RMB_SUMMON: Data ready, building mount pools")
 	self:BuildMountPools()
 end
 
--- =============================
--- HOOKS AND CALLBACKS
--- =============================
--- Add this to the addon's OnEnable function
-local originalOnEnable = addon.OnEnable
-addon.OnEnable = function(self)
-	-- Call the original OnEnable
-	originalOnEnable(self)
-	-- Check flight style at login
-	self:CheckCurrentFlightStyle()
-	-- Register for flight style events
-	self:RegisterFlightStyleEvents()
-	-- Initialize mount summoning
-	self:InitializeMountSummoning()
+-- Called when settings change
+function MountSummon:OnSettingChanged(key, value)
+	-- Refresh mount pools if needed
+	if key == "contextualSummoning" or
+			key:find("treat") and key:find("AsDistinct") then
+		print("RMB_SUMMON: Setting changed, refreshing mount pools")
+		self:BuildMountPools()
+	end
 end
--- Add this to perform rebuild when data is processed
-local originalInitializeProcessedData = addon.InitializeProcessedData
-addon.InitializeProcessedData = function(self)
-	-- Call the original function
-	originalInitializeProcessedData(self)
-	-- Rebuild grouping after data is processed
-	self:RebuildMountGrouping()
-	-- Build mount pools
+
+-- Refresh mount pools when needed
+function MountSummon:RefreshMountPools()
+	print("RMB_SUMMON: Refreshing mount pools")
 	self:BuildMountPools()
 end
-print("RMB_DEBUG: MountSummon.lua END.")
+
+-- Get action for smart button (used by SecureHandlers)
+function MountSummon:GetSmartButtonAction()
+	-- This could return different actions based on context
+	-- For now, just return the basic mount summoning macro
+	return "/run RMB:SRM(true)"
+end
+
+-- ============================================================================
+-- AUTO-INITIALIZATION
+-- ============================================================================
+-- Auto-initialize when addon loads
+function addon:InitializeMountSummon()
+	if not self.MountSummon then
+		print("RMB_SUMMON: ERROR - MountSummon not found!")
+		return
+	end
+
+	self.MountSummon:Initialize()
+	-- Hook the random favorite button
+	self.MountSummon:HookRandomFavoriteButton()
+	-- Register slash commands
+	if self.RegisterChatCommand then
+		self:RegisterChatCommand("randommount", function()
+			self.MountSummon:SummonRandomMount(true)
+		end)
+	end
+
+	print("RMB_SUMMON: Integration complete")
+end
+
+print("RMB_DEBUG: MountSummon.lua END (Clean Module).")

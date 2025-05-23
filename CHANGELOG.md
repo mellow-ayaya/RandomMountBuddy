@@ -1,3 +1,6 @@
+# 0.7.1
+Finished integration of new modules from 0.7.0.
+
 # 0.7.0
 Split MountListUI into MountListUI, MountDataManager, MountPreview, MountTooltips, MountUIComponents.
 

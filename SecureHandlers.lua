@@ -186,7 +186,13 @@ local function buildMountMacro()
 		-- Don't use macro for zone abilities - they need direct spell casting
 		return "/run RMB:SRM(true)" -- Fallback to RMB if zone ability button fails
 	else
-		return "/run RMB:SRM(true)"
+		-- Use the clean interface from Core.lua
+		local action = RandomMountBuddy:GetSmartButtonAction()
+		if action then
+			return action
+		else
+			return "/run RMB:SRM(true)" -- Fallback
+		end
 	end
 end
 
@@ -324,7 +330,8 @@ function addonTable:updateSmartButton(travelFormName, catFormName, ghostWolfName
 	local isMoving = self.updateFrame.lastMoving
 	local isFalling = self.updateFrame.lastFalling
 	local isIndoors = IsIndoors()
-	local macro = "/run RMB:SRM(true)" -- Default
+	-- Use clean interface instead of hardcoded macro
+	local macro = RandomMountBuddy:GetSmartButtonAction() -- Default from clean interface
 	if playerClass == "DRUID" and ((isMoving and settings.useTravelFormWhileMoving) or
 				(isIndoors and settings.useSmartFormSwitching)) then
 		macro = buildDruidMacro(travelFormName, catFormName,
@@ -425,7 +432,9 @@ function addonTable:createSecureButtons()
 		button:RegisterForClicks("AnyUp", "AnyDown")
 		if config.name == "mountButton" then
 			button:SetAttribute("type", "macro")
-			button:SetAttribute("macrotext", "/run RMB:SRM(true)")
+			-- Use clean interface instead of hardcoded macro
+			local mountMacro = RandomMountBuddy:GetSmartButtonAction()
+			button:SetAttribute("macrotext", mountMacro)
 		end
 
 		buttons[config.name] = button
@@ -445,7 +454,7 @@ function addonTable:createVisibleButton()
 	-- Optimized drag handlers
 	visibleButton:SetScript("OnDragStart", visibleButton.StartMoving)
 	visibleButton:SetScript("OnDragStop", visibleButton.StopMovingOrSizing)
-	-- Optimized click handler with zone ability support
+	-- Updated click handler with clean module interface
 	local _, playerClass = UnitClass("player")
 	visibleButton:SetScript("OnClick", function()
 		-- Check for zone abilities first
