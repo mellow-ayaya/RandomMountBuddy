@@ -473,7 +473,7 @@ local initialFamilyManagementArgs = {
 }
 addon.fmArgsRef = initialFamilyManagementArgs -- Core.lua will use this reference
 local familyManagementOptionsTable = {
-	name = familyManagement_DisplayName,
+	name = "",
 	handler = addon,
 	type = "group",
 	order = 2,
@@ -552,7 +552,7 @@ end
 local groupWeights_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_GroupWeights"
 local groupWeights_DisplayName = "Group Weights"
 local groupWeightsOptionsTable = {
-	name = groupWeights_DisplayName,
+	name = "",
 	handler = addon,
 	type = "group",
 	order = 4,

@@ -1,3 +1,6 @@
+# 0.6.12
+Rearranged Mount list elements again and added checkboxes to preview/edit the traits, actual implementation of toggles to follow.
+
 # 0.6.11
 Added G-99 Breakneck support for both areas.
 

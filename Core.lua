@@ -37,7 +37,7 @@ local dbDefaults = {
 		groupWeights = {},
 		groupEnabledStates = {},
 		familyOverrides = {},
-		fmItemsPerPage = 15,
+		fmItemsPerPage = 14,
 	},
 }
 print("RMB_DEBUG: Core.lua START. Addon Name: " .. tostring(addonNameFromToc) .. ". Time: " .. tostring(time()))

@@ -374,7 +374,7 @@ function addon:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncol
 		frame.nextButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 		frame.nextButton:SetSize(120, 22)
 		frame.nextButton:SetPoint("BOTTOMRIGHT", -20, 15)
-		frame.nextButton:SetText("Next Mount")
+		frame.nextButton:SetText("Random Preview")
 		-- Create Summon button
 		frame.summonButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 		frame.summonButton:SetSize(120, 22)
@@ -525,43 +525,41 @@ function addon:BuildFamilyManagementArgs()
 		name = "",
 		width = "full",
 		args = {
-			first_button = {
+			previewHeader = {
 				order = 1,
-				type = "execute",
-				name = "<<",
-				disabled = (currentPage <= 1),
-				func = function() self:FMG_GoToFirstPage() end,
-				width = 0.5,
+				type = "description",
+				name = "  Preview",
+				width = 0.3,
 			},
-			prev_button = {
+			mountHeader = {
 				order = 2,
-				type = "execute",
-				name = "<",
-				disabled = (currentPage <= 1),
-				func = function() self:FMG_PrevPage() end,
-				width = 0.5,
+				type = "description",
+				name = "   Super Group/Family/Mount name",
+				width = 1.1,
 			},
-			page_info = {
+			summonchanceHeader = {
 				order = 3,
 				type = "description",
-				name = string.format("                                    %d / %d", currentPage, totalPages),
-				width = 1.6,
+				name = "     Summon Chance",
+				width = 0.8,
 			},
-			next_button = {
+			traitsHeader = {
 				order = 4,
-				type = "execute",
-				name = ">",
-				disabled = (currentPage >= totalPages),
-				func = function() self:FMG_NextPage() end,
-				width = 0.5,
+				type = "description",
+				name = "                           Traits",
+				width = 0.8,
 			},
-			last_button = {
+			expandSpacer = {
 				order = 5,
-				type = "execute",
-				name = ">>",
-				disabled = (currentPage >= totalPages),
-				func = function() self:FMG_GoToLastPage() end,
-				width = 0.5,
+				type = "description",
+				name = " ",
+				width = 0.35,
+			},
+			expandHeader = {
+				order = 6,
+				type = "description",
+				name = "  Expand",
+				width = 0.3,
 			},
 		},
 	}; displayOrder = displayOrder + 1
@@ -666,71 +664,10 @@ function addon:BuildFamilyManagementArgs()
 				inline = true,
 				handler = self,
 				args = {
-					group_name = {
-						order = 1,
-						type = "description",
-						name = groupDisplayName,
-						width = 1.38,
-						fontSize = "medium",
-					},
-					-- Weight controls
-					weightDecrement = {
-						order = 2,
-						type = "execute",
-						name = "",
-						func = function() self:DecrementGroupWeight(groupKey) end,
-						width = 0.1,
-						disabled = function() return self:GetGroupWeight(groupKey) == 0 end,
-						image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
-						imageWidth = 16,
-						imageHeight = 20,
-					},
-					weightDisplay = {
-						order = 3,
-						type = "description",
-						name = self:GetWeightDisplayString(self:GetGroupWeight(groupKey)),
-						width = 0.5,
-					},
-					weightIncrement = {
-						order = 4,
-						type = "execute",
-						name = "",
-						func = function() self:IncrementGroupWeight(groupKey) end,
-						width = 0.1,
-						disabled = function() return self:GetGroupWeight(groupKey) == 6 end,
-						image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
-						imageWidth = 16,
-						imageHeight = 20,
-					},
-					spacerWeightPreview = {
-						order = 5,
-						type = "description",
-						name = " ",
-						width = 1.05,
-					},
-					spacerHiddenExpand = {
-						order = 6,
-						type = "description",
-						name = " ",
-						width = 0.15,
-						hidden = not isSingleMountFamily,
-					},
-					expandCollapse = {
-						order = 7,
-						type = "execute",
-						name = "",
-						func = function() self:ToggleExpansionState(groupKey) end,
-						width = 0.15,
-						hidden = isSingleMountFamily,
-						image = isExpanded and "Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonUpv10" or
-								"Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonDownv10",
-						imageWidth = 20,
-						imageHeight = 20,
-					},
 					previewButton = {
-						order = 9,
+						order = 0.2,
 						type = "execute",
-						name = "|TInterface\\CURSOR\\Crosshair\\Inspect:20:20:0:-2|t",
+						name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
 						desc = function() return self:GetMountPreviewTooltip(groupKey, groupInfo.type) end,
 						func = function(info)
 							-- Pass the include uncollected setting to ensure we match what the tooltip shows
@@ -746,6 +683,119 @@ function addon:BuildFamilyManagementArgs()
 							end
 						end,
 						width = 0.3,
+					},
+					spacerBeforeName = {
+						order = 0.3,
+						type = "description",
+						name = " ",
+						width = 0.05,
+					},
+					group_name = {
+						order = 1,
+						type = "description",
+						name = groupDisplayName,
+						width = 1.0,
+						fontSize = "medium",
+					},
+					spaceAfterName = {
+						order = 1.1,
+						type = "description",
+						name = " ",
+						width = 0.08,
+					},
+					-- Weight controls
+					weightDecrement = {
+						order = 2,
+						type = "execute",
+						name = "",
+						func = function() self:DecrementGroupWeight(groupKey) end,
+						disabled = function() return self:GetGroupWeight(groupKey) == 0 end,
+						width = 0.05,
+						image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
+						imageWidth = 16,
+						imageHeight = 20,
+					},
+					weightDisplay = {
+						order = 3,
+						type = "description",
+						name = self:GetWeightDisplayString(self:GetGroupWeight(groupKey)),
+						width = 0.5,
+					},
+					weightIncrement = {
+						order = 4,
+						type = "execute",
+						name = "",
+						func = function() self:IncrementGroupWeight(groupKey) end,
+						disabled = function() return self:GetGroupWeight(groupKey) == 6 end,
+						width = 0.05,
+						image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
+						imageWidth = 16,
+						imageHeight = 20,
+					},
+					spacerToggles = {
+						order = 6,
+						type = "description",
+						name = " ",
+						width = 0.12,
+					},
+					spacerHiddenExpand = {
+						order = 6,
+						type = "description",
+						name = " ",
+						width = 0.15,
+						hidden = not isSingleMountFamily,
+					},
+					toggleMinorArmor = {
+						order = 7,
+						type = "toggle",
+						name = "|TInterface\\ICONS\\Garrison_GreenArmor:20:20:0:-2|t",
+						desc = "Small armor or ornaments",
+						get = function() end,
+						set = function() end,
+						width = 0.30,
+						hidden = false, -- hide if super group
+					},
+					toggleMajorArmor = {
+						order = 7.1,
+						type = "toggle",
+						name = "|TInterface\\ICONS\\Garrison_BlueArmor:20:20:0:-2|t",
+						desc = "Bulky armor or many ornaments",
+						get = function() end,
+						set = function() end,
+						width = 0.30,
+						hidden = false, -- hide if super group
+					},
+					toggleModelVariant = {
+						order = 7.2,
+						type = "toggle",
+						name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:20:20:0:-2|t",
+						desc = "Updated texture/slightly different model",
+						get = function() end,
+						set = function() end,
+						width = 0.30,
+						hidden = false, -- hide if super group
+					},
+					toggleUniqueEffect = {
+						order = 7.3,
+						type = "toggle",
+						name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:20:20:0:-2|t",
+						desc = "Unique variant, stands out from the rest",
+						get = function() end,
+						set = function() end,
+						width = 0.30,
+						hidden = false, -- hide if super group
+					},
+					expandCollapse = {
+						order = 8,
+						type = "execute",
+						name = "",
+						func = function() self:ToggleExpansionState(groupKey) end,
+						width = 0.3,
+						hidden = isSingleMountFamily,
+						image = isExpanded and "Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonUpLargev11" or
+								"Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonDownLargev11",
+						imageWidth = 40,
+						imageHeight = 20,
 					},
 					-- The critical change is here - we're not putting expanded content in a group
 					-- but instead directly adding the header and details
@@ -773,7 +823,7 @@ function addon:BuildFamilyManagementArgs()
 		end
 	end
 
-	-- Bottom pagination controls
+	-- Pagination Controls Group (Bottom)
 	if totalPages > 1 then
 		pageArgs["pagination_controls_group_bottom"] = {
 			order = groupEntryOrder,
@@ -1146,78 +1196,11 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 					end
 
 					-- Make sure to align each family's controls properly in a row
-					-- Family name
-					detailsArgs["fam_" .. fn .. "_name"] = {
-						order = displayOrder,
-						type = "description",
-						name = "> " .. familyDisplayName,
-						width = 1.38,
-						fontSize = "medium",
-					}
-					displayOrder = displayOrder + 1
-					-- Weight controls
-					detailsArgs["fam_" .. fn .. "_weightDec"] = {
-						order = displayOrder,
-						type = "execute",
-						name = "-",
-						func = function() self:DecrementGroupWeight(fn) end,
-						width = 0.1,
-						disabled = function() return self:GetGroupWeight(fn) == 0 end,
-					}
-					displayOrder = displayOrder + 1
-					detailsArgs["fam_" .. fn .. "_weightDisp"] = {
-						order = displayOrder,
-						type = "description",
-						name = function() return self:GetWeightDisplayString(self:GetGroupWeight(fn)) end,
-						width = 0.5,
-					}
-					displayOrder = displayOrder + 1
-					detailsArgs["fam_" .. fn .. "_weightInc"] = {
-						order = displayOrder,
-						type = "execute",
-						name = "+",
-						func = function() self:IncrementGroupWeight(fn) end,
-						width = 0.1,
-						disabled = function() return self:GetGroupWeight(fn) == 6 end,
-					}
-					displayOrder = displayOrder + 1
-					detailsArgs["fam_" .. fn .. "_spacerWeightPreview"] = {
-						order = displayOrder,
-						type = "description",
-						name = " ",
-						width = 0.42,
-					}
-					detailsArgs["fam_" .. fn .. "_spacerHiddenExpand"] = {
-						order = displayOrder,
-						type = "description",
-						name = " ",
-						width = 0.50,
-						hidden = not isSingleMountFamily,
-					}
-					displayOrder = displayOrder + 1
-					-- Expand/Collapse button
-					local isFamExpanded = self:IsGroupExpanded(fn)
-					detailsArgs["fam_" .. fn .. "_expand"] = {
-						order = displayOrder,
-						type = "execute",
-						name = isFamExpanded and "Collapse" or "Expand",
-						func = function() self:ToggleExpansionState(fn) end,
-						width = 0.5,
-						hidden = isSingleMountFamily,
-					}
-					displayOrder = displayOrder + 1
-					detailsArgs["fam_" .. fn .. "_spacerExpandPreview"] = {
-						order = displayOrder,
-						type = "description",
-						name = " ",
-						width = 0.1,
-					}
-					displayOrder = displayOrder + 1
 					-- Preview button
 					detailsArgs["fam_" .. fn .. "_preview"] = {
 						order = displayOrder,
 						type = "execute",
-						name = "Preview",
+						name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
 						desc = function()
 							-- Add a tooltip function here
 							return self:GetMountPreviewTooltip(fn, "familyName")
@@ -1232,7 +1215,124 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 								print("RMB_PREVIEW: No mount available to preview from this family")
 							end
 						end,
+						width = 0.3,
+					}
+					displayOrder = displayOrder + 1
+					detailsArgs["fam_" .. fn .. "_spacerBeforeName"] = {
+						order = displayOrder,
+						type = "description",
+						name = " ",
+						width = 0.05,
+					}
+					displayOrder = displayOrder + 1
+					-- Family name
+					detailsArgs["fam_" .. fn .. "_name"] = {
+						order = displayOrder,
+						type = "description",
+						name = "> " .. familyDisplayName,
+						width = 1.0,
+						fontSize = "small",
+					}
+					displayOrder = displayOrder + 1
+					detailsArgs["fam_" .. fn .. "_spacerAfterName"] = {
+						order = displayOrder,
+						type = "description",
+						name = " ",
+						width = 0.08,
+					}
+					displayOrder = displayOrder + 1
+					-- Weight controls
+					detailsArgs["fam_" .. fn .. "_weightDec"] = {
+						order = displayOrder,
+						type = "execute",
+						name = "",
+						func = function() self:DecrementGroupWeight(fn) end,
+						disabled = function() return self:GetGroupWeight(fn) == 0 end,
+						width = 0.05,
+						image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
+						imageWidth = 16,
+						imageHeight = 20,
+					}
+					displayOrder = displayOrder + 1
+					detailsArgs["fam_" .. fn .. "_weightDisp"] = {
+						order = displayOrder,
+						type = "description",
+						name = function() return self:GetWeightDisplayString(self:GetGroupWeight(fn)) end,
 						width = 0.5,
+					}
+					displayOrder = displayOrder + 1
+					detailsArgs["fam_" .. fn .. "_weightInc"] = {
+						order = displayOrder,
+						type = "execute",
+						name = "",
+						func = function() self:IncrementGroupWeight(fn) end,
+						disabled = function() return self:GetGroupWeight(fn) == 6 end,
+						width = 0.05,
+						image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
+						imageWidth = 16,
+						imageHeight = 20,
+					}
+					displayOrder = displayOrder + 1
+					detailsArgs["fam_" .. fn .. "_spacerToggles"] = {
+						order = displayOrder,
+						type = "description",
+						name = " ",
+						width = 0.12,
+					}
+					displayOrder = displayOrder + 1
+					detailsArgs["fam_" .. fn .. "_toggleMinorArmor"] = {
+						order = displayOrder,
+						type = "toggle",
+						name = "|TInterface\\ICONS\\Garrison_GreenArmor:20:20:0:-2|t",
+						desc = "Small armor or ornaments",
+						get = function() end,
+						set = function() end,
+						width = 0.30,
+					}
+					displayOrder = displayOrder + 1
+					detailsArgs["fam_" .. fn .. "_toggleMajorArmor"] = {
+						order = displayOrder,
+						type = "toggle",
+						name = "|TInterface\\ICONS\\Garrison_BlueArmor:20:20:0:-2|t",
+						desc = "Bulky armor or many ornaments",
+						get = function() end,
+						set = function() end,
+						width = 0.30,
+					}
+					displayOrder = displayOrder + 1
+					detailsArgs["fam_" .. fn .. "_toggleModelVariant"] = {
+						order = displayOrder,
+						type = "toggle",
+						name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:20:20:0:-2|t",
+						desc = "Updated texture/slightly different model",
+						get = function() end,
+						set = function() end,
+						width = 0.30,
+					}
+					displayOrder = displayOrder + 1
+					detailsArgs["fam_" .. fn .. "_toggleUniqueEffect"] = {
+						order = displayOrder,
+						type = "toggle",
+						name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:20:20:0:-2|t",
+						desc = "Unique variant, stands out from the rest",
+						get = function() end,
+						set = function() end,
+						width = 0.30,
+					}
+					displayOrder = displayOrder + 1
+					-- Expand/Collapse button
+					local isFamExpanded = self:IsGroupExpanded(fn)
+					detailsArgs["fam_" .. fn .. "_expand"] = {
+						order = displayOrder,
+						type = "execute",
+						name = "",
+						func = function() self:ToggleExpansionState(fn) end,
+						width = 0.3,
+						hidden = isSingleMountFamily,
+						image = isFamExpanded and "Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonUpLargev11" or
+								"Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonDownLargev11",
+						imageWidth = 40,
+						imageHeight = 20,
 					}
 					displayOrder = displayOrder + 1
 					-- Add a line break after each family
@@ -1304,23 +1404,61 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 								-- Create a display name with appropriate color based on collection status
 								local nameColor = mountData.isCollected and "ffffff" or "9d9d9d"
 								local collectionStatus = mountData.isCollected and "" or ""
+								-- Preview button (for all mounts)
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_preview"] = {
+									order = displayOrder,
+									type = "execute",
+									name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
+									-- Use the same tooltip function as level 1 mounts
+									desc = function()
+										return self:GetMountPreviewTooltip("mount_" .. mountID, "mountID")
+									end,
+									func = function()
+										-- Store the exact mount ID and name in local variables to avoid closure issues
+										local thisID = mountID
+										local thisName = mountData.name
+										local isUncollected = not mountData.isCollected
+										-- Use these local variables directly
+										print("RMB_DEBUG_MOUNT_PREVIEW: Direct preview for " .. thisName)
+										self:ShowMountPreview(thisID, thisName, nil, nil, isUncollected)
+									end,
+									width = 0.3,
+								}
+								displayOrder = displayOrder + 1
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_spacerBeforeName"] = {
+									order = displayOrder,
+									type = "description",
+									name = " ",
+									width = 0.05,
+								}
+								displayOrder = displayOrder + 1
 								-- Mount name
 								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_name"] = {
 									order = displayOrder,
 									type = "description",
 									name = "|cff" .. nameColor .. "  >> " .. mountData.name .. collectionStatus .. "|r",
-									fontSize = "medium",
-									width = 1.38,
+									fontSize = "small",
+									width = 1.0,
+								}
+								displayOrder = displayOrder + 1
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_spacerAfterName"] = {
+									order = displayOrder,
+									type = "description",
+									name = " ",
+									width = 0.08,
 								}
 								displayOrder = displayOrder + 1
 								-- Weight decrement button
 								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_weightDec"] = {
 									order = displayOrder,
 									type = "execute",
-									name = "-",
+									name = "",
 									func = function() self:DecrementGroupWeight("mount_" .. mountID) end,
-									width = 0.1,
 									disabled = function() return self:GetGroupWeight("mount_" .. mountID) == 0 end,
+									width = 0.05,
+									image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
+									imageWidth = 16,
+									imageHeight = 20,
 								}
 								displayOrder = displayOrder + 1
 								-- Weight display - apply gray color for uncollected mounts
@@ -1346,46 +1484,61 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_weightInc"] = {
 									order = displayOrder,
 									type = "execute",
-									name = "+",
+									name = "",
 									func = function() self:IncrementGroupWeight("mount_" .. mountID) end,
-									width = 0.1,
 									disabled = function() return self:GetGroupWeight("mount_" .. mountID) == 6 end,
+									width = 0.05,
+									image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
+									imageWidth = 16,
+									imageHeight = 20,
 								}
 								displayOrder = displayOrder + 1
 								-- Spacer
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_spacer"] = {
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_spacerToggles"] = {
 									order = displayOrder,
 									type = "description",
 									name = "",
-									width = 0.42,
+									width = 0.12,
 								}
 								displayOrder = displayOrder + 1
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_spacerHiddenExpand"] = {
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_toggleMinorArmor"] = {
 									order = displayOrder,
-									type = "description",
-									name = "",
-									width = 0.60,
+									type = "toggle",
+									name = "|TInterface\\ICONS\\Garrison_GreenArmor:20:20:0:-2|t",
+									desc = "Small armor or ornaments",
+									get = function() end,
+									set = function() end,
+									width = 0.30,
 								}
 								displayOrder = displayOrder + 1
-								-- Preview button (for all mounts)
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_preview"] = {
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_toggleMajorArmor"] = {
 									order = displayOrder,
-									type = "execute",
-									name = mountData.isCollected and "Preview" or "Preview",
-									-- Use the same tooltip function as level 1 mounts
-									desc = function()
-										return self:GetMountPreviewTooltip("mount_" .. mountID, "mountID")
-									end,
-									func = function()
-										-- Store the exact mount ID and name in local variables to avoid closure issues
-										local thisID = mountID
-										local thisName = mountData.name
-										local isUncollected = not mountData.isCollected
-										-- Use these local variables directly
-										print("RMB_DEBUG_MOUNT_PREVIEW: Direct preview for " .. thisName)
-										self:ShowMountPreview(thisID, thisName, nil, nil, isUncollected)
-									end,
-									width = 0.5,
+									type = "toggle",
+									name = "|TInterface\\ICONS\\Garrison_BlueArmor:20:20:0:-2|t",
+									desc = "Bulky armor or many ornaments",
+									get = function() end,
+									set = function() end,
+									width = 0.30,
+								}
+								displayOrder = displayOrder + 1
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_toggleModelVariant"] = {
+									order = displayOrder,
+									type = "toggle",
+									name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:20:20:0:-2|t",
+									desc = "Updated texture/slightly different model",
+									get = function() end,
+									set = function() end,
+									width = 0.30,
+								}
+								displayOrder = displayOrder + 1
+								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_toggleUniqueEffect"] = {
+									order = displayOrder,
+									type = "toggle",
+									name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:20:20:0:-2|t",
+									desc = "Unique variant, stands out from the rest",
+									get = function() end,
+									set = function() end,
+									width = 0.30,
 								}
 								displayOrder = displayOrder + 1
 								-- Line break after each mount
@@ -1547,7 +1700,7 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 				detailsArgs["mount_" .. mountID .. "_preview"] = {
 					order = displayOrder,
 					type = "execute",
-					name = "Preview",
+					name = "|TInterface\\CURSOR\\Crosshair\\Inspect:20:20:0:-2|t",
 					-- Use a SIMPLE STRING for tooltip
 					desc = function()
 						return self:GetMountPreviewTooltip("mount_" .. mountID, "mountID")
@@ -1854,7 +2007,7 @@ function addon:InitializeModelTooltip()
 						frame:SetDisplayInfo(creatureDisplayID)
 						frame:SetCamDistanceScale(1.5)
 						frame:SetPosition(0, 0, 0)
-						frame:SetFacing(-0.5) -- Adjust this value to change the angle
+						frame:SetFacing(0.5) -- Adjust this value to change the angle
 						frame:ClearAllPoints()
 						frame:SetPoint("LEFT", tooltip, "RIGHT", 0, 0)
 						bg:ClearAllPoints()
