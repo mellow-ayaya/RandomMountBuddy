@@ -873,7 +873,7 @@ function addon:SummonMount(mountID)
 end
 
 -- Main function to pick and summon a random mount
-function addon:SummonRandomMount(useContext)
+function addon:SummonRandomMount_Actual(useContext)
 	-- Determine which pool to use
 	local poolName = "ground" -- Default to ground
 	if useContext and self:GetSetting("contextualSummoning") then
@@ -958,17 +958,45 @@ end
 -- INITIALIZATION
 -- =============================
 -- Initialize the mount summoning system
+-- Initialize the mount summoning system
 function addon:InitializeMountSummoning()
 	print("RMB_SUMMON: Initializing mount summoning system")
-	-- Initialize pools after data is loaded
-	self:BuildMountPools()
+	-- Check flight style at login
+	self:CheckCurrentFlightStyle()
+	-- Register for flight style events
+	self:RegisterFlightStyleEvents()
+	-- Initialize pools after data is loaded (only if data is ready)
+	if self.RMB_DataReadyForUI then
+		self:BuildMountPools()
+	end
+
 	-- Hook the random favorite button
 	self:HookRandomFavoriteButton()
 	-- Register slash command for testing
-	self:RegisterChatCommand("randommount", function()
-		self:SummonRandomMount(true)
-	end)
+	if self.RegisterChatCommand then
+		self:RegisterChatCommand("randommount", function()
+			self:SummonRandomMount_Actual(true)
+		end)
+	end
+
 	print("RMB_SUMMON: Mount summoning system initialized")
+end
+
+-- Function to be called after processed data is initialized
+function addon:InitializeMountSummoningPools()
+	print("RMB_SUMMON: Initializing mount pools after data processing")
+	if self.RMB_DataReadyForUI then
+		self:BuildMountPools()
+	else
+		print("RMB_SUMMON: Data not ready for mount pools")
+	end
+end
+
+-- Remove the old hooks and replace with this integration point
+-- This will be called from Core.lua
+function addon:OnMountSummonDataReady()
+	print("RMB_SUMMON: Data ready, building mount pools")
+	self:BuildMountPools()
 end
 
 -- =============================

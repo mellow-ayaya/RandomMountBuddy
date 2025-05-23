@@ -1,3 +1,6 @@
+# 0.7.0
+Split MountListUI into MountListUI, MountDataManager, MountPreview, MountTooltips, MountUIComponents.
+
 # 0.6.13
 Added functionality for trait checkboxes.
 
@@ -89,7 +92,7 @@ The family list is now no longer causing huge FPS drops. Small UI redesign.
 # 0.3.5
 Added family lists in the UI, with options for weight and checkbox for enabling/disabling as well as a button for expanding the family to view the mounts inside.
 
- 0.3.0
+# 0.3.0
 Added data files loading and processing.
 Added processing for user's mounts into the addon's internal categories.
 

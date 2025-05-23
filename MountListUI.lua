@@ -1,1051 +1,400 @@
--- MountListUI.lua different anchor
--- UI components for Random Mount Buddy
+-- MountListUI.lua - Refactored for Lua 5.1
+-- Main UI controller for mount list interface
 local addonName, addonTable = ...
-local addon = RandomMountBuddy -- Reference to the addon from global
-print("RMB_DEBUG: MountListUI.lua START.")
--- Mapping of weight values to descriptive text and WoW color codes (ffRRGGBB)
-local WeightDisplayMapping = {
-	[0] = { text = "         Never", color = "ff3e00" }, -- Red
-	[1] = { text = "     Occasional", color = "9d9d9d" }, -- Grey
-	[2] = { text = "    Uncommon", color = "cbcbcb" },   -- Grey
-	[3] = { text = "        Normal", color = "ffffff" }, -- White
-	[4] = { text = "       Common", color = "1eff00" },  -- Green
-	[5] = { text = "         Often", color = "0070dd" }, -- Blue
-	[6] = { text = "        Always", color = "ff8000" }, -- Orange
-}
--- --- Weight Adjustment Helper Methods ---
--- These functions are called by the - and + buttons in the options UI
-function addon:DecrementGroupWeight(groupKey)
-	-- Check for valid DB profile before attempting to access/modify
-	if not (self.db and self.db.profile and self.db.profile.groupWeights) then
-		print("RMB_SET:DecGW Error: DB or profile not available.");
-		return
-	end;
-
-	local currentWeight = self:GetGroupWeight(groupKey); -- Use the existing getter method
-	local newWeight = math.max(0, currentWeight - 1);   -- Ensure weight doesn't go below 0
-	-- Only update and trigger a UI refresh if the weight actually changed
-	if newWeight ~= currentWeight then
-		self.db.profile.groupWeights[groupKey] = newWeight;
-		print("RMB_SET:SetGW K:'" .. tostring(groupKey) .. "',W:" .. tostring(newWeight));
-		-- Trigger a UI refresh so the displayed weight number updates immediately
-		self:PopulateFamilyManagementUI();
-	else
-		-- Optional: print a message if already at min
-		print("RMB_SET:DecGW K:'" .. tostring(groupKey) .. "' already at min weight (" .. tostring(currentWeight) .. ").");
-	end
+local addon = RandomMountBuddy -- Assuming RandomMountBuddy is the global addon table
+print("RMB_DEBUG: MountListUI.lua (Refactored) START.")
+-- ============================================================================
+-- MAIN UI CONTROLLER
+-- ============================================================================
+-- Initialize all UI systems
+function addon:InitializeMountUI()
+	print("RMB_UI: Initializing mount UI systems...")
+	-- Initialize all subsystems
+	self:InitializeMountDataManager()
+	self:InitializeMountTooltips()
+	self:InitializeMountPreview()
+	-- Initialize UI state
+	self.fmCurrentPage = 1
+	self.fmItemsPerPage = self.fmItemsPerPage or 15
+	print("RMB_UI: Mount UI system initialized")
 end
 
-function addon:IncrementGroupWeight(groupKey)
-	-- Check for valid DB profile before attempting to access/modify
-	if not (self.db and self.db.profile and self.db.profile.groupWeights) then
-		print("RMB_SET:IncGW Error: DB or profile not available.");
-		return
-	end;
-
-	local currentWeight = self:GetGroupWeight(groupKey); -- Use the existing getter method
-	local newWeight = math.min(6, currentWeight + 1);   -- Ensure weight doesn't go above 6
-	-- Only update and trigger a UI refresh if the weight actually changed
-	if newWeight ~= currentWeight then
-		self.db.profile.groupWeights[groupKey] = newWeight;
-		print("RMB_SET:SetGW K:'" .. tostring(groupKey) .. "',W:" .. tostring(newWeight));
-		-- Trigger a UI refresh so the displayed weight number updates immediately
-		self:PopulateFamilyManagementUI();
-	else
-		-- Optional: print a message if already at max
-		print("RMB_SET:IncGW K:'" .. tostring(groupKey) .. "' already at max weight (" .. tostring(currentWeight) .. ").");
-	end
-end
-
-function addon:GetWeightDisplayString(weight)
-	-- Ensure the weight is a number and within bounds, default to 1 if not valid
-	local w = tonumber(weight) or 1
-	if w < 0 or w > 6 then w = 1 end
-
-	local info = WeightDisplayMapping[w]
-	-- Should not happen if w is constrained, but good practice
-	if not info then
-		return "|cffffffffError|r" -- Return a default error string if lookup fails
-	end
-
-	local displayText = info.text
-	local colorCode = info.color -- This is the ffRRGGBB part
-	-- REMOVE the conditional logic that added the number prefix
-	-- We now always just use the descriptive text
-	local fullText = displayText
-	-- Format the text with the WoW color code
-	return "|cff" .. colorCode .. fullText .. "|r"
-end
-
--- Helper functions for getting mount information
--- Get traits for a family (only families have traits)
-function addon:GetFamilyTraits(familyName)
-	if not familyName then return {} end
-
-	-- Get traits from the first mount in the family (they should all be the same for a family)
-	local mountIDs = self.processedData.familyToMountIDsMap and
-			self.processedData.familyToMountIDsMap[familyName]
-	if mountIDs and #mountIDs > 0 then
-		local mountID = mountIDs[1]
-		local mountInfo = self.processedData.allCollectedMountFamilyInfo and
-				self.processedData.allCollectedMountFamilyInfo[mountID]
-		if mountInfo and mountInfo.traits then
-			return mountInfo.traits
-		end
-	end
-
-	-- If no collected mounts, try uncollected
-	local uncollectedIDs = self.processedData.familyToUncollectedMountIDsMap and
-			self.processedData.familyToUncollectedMountIDsMap[familyName]
-	if uncollectedIDs and #uncollectedIDs > 0 then
-		local mountID = uncollectedIDs[1]
-		local mountInfo = self.processedData.allUncollectedMountFamilyInfo and
-				self.processedData.allUncollectedMountFamilyInfo[mountID]
-		if mountInfo and mountInfo.traits then
-			return mountInfo.traits
-		end
-	end
-
-	return {}
-end
-
--- Check if traits should be shown for a group
-function addon:ShouldShowTraits(groupKey, groupType)
-	if groupType == "familyName" then
-		-- Families have traits if:
-		-- 1. They have an original superGroup assignment (not nil), OR
-		-- 2. They have been dynamically extracted to standalone due to trait filtering
-		-- Check if this family was originally assigned to a supergroup
-		local mountIDs = self.processedData.familyToMountIDsMap and
-				self.processedData.familyToMountIDsMap[groupKey]
-		if not mountIDs or #mountIDs == 0 then
-			-- Try uncollected if no collected mounts
-			mountIDs = self.processedData.familyToUncollectedMountIDsMap and
-					self.processedData.familyToUncollectedMountIDsMap[groupKey]
-		end
-
-		if mountIDs and #mountIDs > 0 then
-			local mountID = mountIDs[1]
-			local mountInfo = self.processedData.allCollectedMountFamilyInfo and
-					self.processedData.allCollectedMountFamilyInfo[mountID]
-			if not mountInfo then
-				mountInfo = self.processedData.allUncollectedMountFamilyInfo and
-						self.processedData.allUncollectedMountFamilyInfo[mountID]
-			end
-
-			if mountInfo and mountInfo.superGroup then
-				-- This family has/had a supergroup assignment, so it should show traits
-				return true
-			end
-		end
-
-		return false
-	end
-
-	-- Supergroups and individual mounts don't have traits
-	return false
-end
-
--- Gets a random mount from a group (for previewing or summoning)
-function addon:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
-	print("RMB_DEBUG_MOUNT: GetRandomMountFromGroup called for " .. tostring(groupKey) ..
-		", type: " .. tostring(groupType) .. ", includeUncollected: " .. tostring(includeUncollected))
-	if not groupKey then
-		print("RMB_DEBUG_MOUNT: No groupKey provided")
-		return nil
-	end
-
-	-- Default to including uncollected if not specified
-	if includeUncollected == nil then
-		includeUncollected = self:GetSetting("showUncollectedMounts")
-	end
-
-	-- Check if it's a direct mount ID reference (prefixed with "mount_")
-	if type(groupKey) == "string" and string.match(groupKey, "^mount_(%d+)$") then
-		local mountID = tonumber(string.match(groupKey, "^mount_(%d+)$"))
-		print("RMB_DEBUG_MOUNT: Direct mount ID: " .. tostring(mountID))
-		-- Check collected mounts first
-		if mountID and self.processedData.allCollectedMountFamilyInfo and
-				self.processedData.allCollectedMountFamilyInfo[mountID] then
-			local mountInfo = self.processedData.allCollectedMountFamilyInfo[mountID]
-			print("RMB_DEBUG_MOUNT: Found collected mount: " .. tostring(mountInfo.name))
-			return mountID, mountInfo.name, false
-		end
-
-		-- If not found in collected and we should include uncollected, check there
-		if includeUncollected and mountID and self.processedData.allUncollectedMountFamilyInfo and
-				self.processedData.allUncollectedMountFamilyInfo[mountID] then
-			local mountInfo = self.processedData.allUncollectedMountFamilyInfo[mountID]
-			print("RMB_DEBUG_MOUNT: Found uncollected mount: " .. tostring(mountInfo.name))
-			return mountID, mountInfo.name, true
-		end
-
-		print("RMB_DEBUG_MOUNT: No mount found for ID: " .. tostring(mountID))
-		return nil
-	end
-
-	-- If no groupType provided, try to determine it
-	if not groupType then
-		groupType = self:GetGroupTypeFromKey(groupKey)
-		print("RMB_DEBUG_MOUNT: Determined group type: " .. tostring(groupType))
-	end
-
-	-- Arrays to store mounts
-	local collectedMounts = {}
-	local uncollectedMounts = {}
-	if groupType == "familyName" then
-		print("RMB_DEBUG_MOUNT: Processing as family: " .. tostring(groupKey))
-		-- For a family, get mount IDs directly
-		local collectedIDs = self.processedData.familyToMountIDsMap and
-				self.processedData.familyToMountIDsMap[groupKey] or {}
-		print("RMB_DEBUG_MOUNT: Found " .. #collectedIDs .. " collected mounts in family")
-		for _, mountID in ipairs(collectedIDs) do
-			if self.processedData.allCollectedMountFamilyInfo and
-					self.processedData.allCollectedMountFamilyInfo[mountID] then
-				local info = self.processedData.allCollectedMountFamilyInfo[mountID]
-				table.insert(collectedMounts, {
-					id = mountID,
-					name = info.name or ("Mount ID " .. mountID),
-					isUncollected = false,
-				})
-			end
-		end
-
-		if includeUncollected then
-			local uncollectedIDs = self.processedData.familyToUncollectedMountIDsMap and
-					self.processedData.familyToUncollectedMountIDsMap[groupKey] or {}
-			print("RMB_DEBUG_MOUNT: Found " .. #uncollectedIDs .. " uncollected mounts in family")
-			for _, mountID in ipairs(uncollectedIDs) do
-				if self.processedData.allUncollectedMountFamilyInfo and
-						self.processedData.allUncollectedMountFamilyInfo[mountID] then
-					local info = self.processedData.allUncollectedMountFamilyInfo[mountID]
-					table.insert(uncollectedMounts, {
-						id = mountID,
-						name = info.name or ("Mount ID " .. mountID),
-						isUncollected = true,
-					})
-				end
-			end
-		end
-	elseif groupType == "superGroup" then
-		print("RMB_DEBUG_MOUNT: Processing as supergroup: " .. tostring(groupKey))
-		-- For a supergroup, get mount IDs from the supergroup map
-		local collectedIDs = self.processedData.superGroupToMountIDsMap and
-				self.processedData.superGroupToMountIDsMap[groupKey] or {}
-		print("RMB_DEBUG_MOUNT: Found " .. #collectedIDs .. " collected mounts in supergroup")
-		for _, mountID in ipairs(collectedIDs) do
-			if self.processedData.allCollectedMountFamilyInfo and
-					self.processedData.allCollectedMountFamilyInfo[mountID] then
-				local info = self.processedData.allCollectedMountFamilyInfo[mountID]
-				table.insert(collectedMounts, {
-					id = mountID,
-					name = info.name or ("Mount ID " .. mountID),
-					isUncollected = false,
-				})
-			end
-		end
-
-		if includeUncollected then
-			local uncollectedIDs = self.processedData.superGroupToUncollectedMountIDsMap and
-					self.processedData.superGroupToUncollectedMountIDsMap[groupKey] or {}
-			print("RMB_DEBUG_MOUNT: Found " .. #uncollectedIDs .. " uncollected mounts in supergroup")
-			for _, mountID in ipairs(uncollectedIDs) do
-				if self.processedData.allUncollectedMountFamilyInfo and
-						self.processedData.allUncollectedMountFamilyInfo[mountID] then
-					local info = self.processedData.allUncollectedMountFamilyInfo[mountID]
-					table.insert(uncollectedMounts, {
-						id = mountID,
-						name = info.name or ("Mount ID " .. mountID),
-						isUncollected = true,
-					})
-				end
-			end
-		end
-	end
-
-	print("RMB_DEBUG_MOUNT: Final counts - Collected: " .. #collectedMounts ..
-		", Uncollected: " .. #uncollectedMounts)
-	-- Prioritize collected mounts if any exist
-	if #collectedMounts > 0 then
-		-- Pick a random collected mount
-		local randomIndex = math.random(1, #collectedMounts)
-		local selectedMount = collectedMounts[randomIndex]
-		print("RMB_DEBUG_MOUNT: Selected collected mount: " .. tostring(selectedMount.name))
-		return selectedMount.id, selectedMount.name, false
-	elseif includeUncollected and #uncollectedMounts > 0 then
-		-- If no collected mounts and we're including uncollected, pick a random uncollected mount
-		local randomIndex = math.random(1, #uncollectedMounts)
-		local selectedMount = uncollectedMounts[randomIndex]
-		print("RMB_DEBUG_MOUNT: Selected uncollected mount: " .. tostring(selectedMount.name))
-		return selectedMount.id, selectedMount.name, true
-	end
-
-	print("RMB_DEBUG_MOUNT: No mounts found for selection")
-	return nil
-end
-
--- Create a function to show the model next to the tooltip
-function addon:ShowModelNextToTooltip()
-	if not self.lastTooltipMount or not self.lastTooltipMount.id then
-		return
-	end
-
-	-- Create model frame if it doesn't exist
-	if not self.tooltipModelFrame then
-		self.tooltipModelFrame = CreateFrame("PlayerModel", "RMB_TooltipModel", UIParent)
-		self.tooltipModelFrame:SetSize(150, 150)
-		self.tooltipModelFrame:SetFrameStrata("TOOLTIP")
-		self.tooltipModelFrame:SetFrameLevel(7)
-		-- Add a border/background for visibility
-		local bg = CreateFrame("Frame", nil, self.tooltipModelFrame, "BackdropTemplate")
-		bg:SetAllPoints()
-		bg:SetFrameStrata("TOOLTIP")
-		bg:SetFrameLevel(1)
-		bg:SetBackdrop({
-			bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-			tile = true,
-			tileSize = 16,
-			edgeSize = 16,
-			insets = { left = 4, right = 4, top = 4, bottom = 4 },
-		})
-		bg:SetBackdropColor(0, 0, 0, 0.7)
-		-- Hide when tooltip is hidden
-		self.tooltipModelFrame:SetScript("OnUpdate", function(self)
-			-- Check if any relevant tooltip is visible
-			local tooltipVisible = false
-			if GameTooltip:IsShown() then
-				tooltipVisible = true
-			elseif _G["AceConfigDialogTooltip"] and _G["AceConfigDialogTooltip"]:IsVisible() then
-				tooltipVisible = true
-			end
-
-			if not tooltipVisible and self:IsShown() then
-				self:Hide()
-			end
-		end)
-		print("RMB_DEBUG: Created tooltip model frame")
-	end
-
-	-- Find the tooltip that's currently showing
-	local tooltip = nil
-	if GameTooltip:IsShown() then
-		tooltip = GameTooltip
-	elseif _G["AceConfigDialogTooltip"] and _G["AceConfigDialogTooltip"]:IsVisible() then
-		tooltip = _G["AceConfigDialogTooltip"]
-	end
-
-	if not tooltip then
-		print("RMB_DEBUG: No tooltip found to attach model to")
-		return
-	end
-
-	-- Set the model's mount
-	local mountID = self.lastTooltipMount.id
-	local creatureDisplayID = select(1, C_MountJournal.GetMountInfoExtraByID(mountID))
-	if creatureDisplayID then
-		self.tooltipModelFrame:SetDisplayInfo(creatureDisplayID)
-		self.tooltipModelFrame:SetCamDistanceScale(1.5)
-		self.tooltipModelFrame:SetPosition(0, 0, 0)
-		-- Position the model next to the tooltip
-		self.tooltipModelFrame:ClearAllPoints()
-		self.tooltipModelFrame:SetPoint("LEFT", tooltip, "RIGHT", 0, 0)
-		self.tooltipModelFrame:Show()
-		print("RMB_DEBUG: Showing model for " .. self.lastTooltipMount.name)
-	else
-		print("RMB_DEBUG: No display ID found for mount: " .. tostring(mountID))
-	end
-end
-
--- Function to determine group type from key
-function addon:GetGroupTypeFromKey(groupKey)
-	if not groupKey then return nil end
-
-	-- First check if it's a direct mount reference
-	if type(groupKey) == "string" and string.match(groupKey, "^mount_(%d+)$") then
-		return "mountID"
-	end
-
-	-- Then check if it's a supergroup
-	if self.processedData.superGroupMap and self.processedData.superGroupMap[groupKey] then
-		return "superGroup"
-	end
-
-	-- Check if it's a family within any supergroup
-	if self.processedData.superGroupMap then
-		for sgName, families in pairs(self.processedData.superGroupMap) do
-			for _, famName in ipairs(families) do
-				if famName == groupKey then
-					return "familyName"
-				end
-			end
-		end
-	end
-
-	-- Check if it's a standalone family
-	if self.processedData.standaloneFamilyNames and self.processedData.standaloneFamilyNames[groupKey] then
-		return "familyName"
-	end
-
-	-- If we still haven't found a match, check if there are any mounts with this family name
-	if self.processedData.familyToMountIDsMap and self.processedData.familyToMountIDsMap[groupKey] and
-			#self.processedData.familyToMountIDsMap[groupKey] > 0 then
-		return "familyName"
-	end
-
-	-- If we got here, we don't know what this is
-	print("RMB_DEBUG_WARN: Unable to determine group type for key: " .. tostring(groupKey))
-	return nil
-end
-
--- Direct replacement for ShowMountPreview function
--- Update the ShowMountPreview function to handle uncollected mounts
-function addon:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncollected)
-	-- Create the model frame if it doesn't exist yet
-	if not self.previewDialog then
-		-- Create a modal dialog frame
-		self.previewDialog = CreateFrame("Frame", "RMB_PreviewDialog", UIParent, "BackdropTemplate")
-		local frame = self.previewDialog
-		-- Make it a good size and position
-		frame:SetSize(350, 350)
-		frame:SetPoint("CENTER")
-		frame:SetFrameStrata("DIALOG")
-		-- To make it draggable
-		frame:SetMovable(true)
-		frame:EnableMouse(true)
-		frame:RegisterForDrag("LeftButton")
-		frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
-		frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
-		-- Add a background
-		frame:SetBackdrop({
-			bgFile = "Interface/DialogFrame/UI-DialogBox-Background",
-			edgeFile = "Interface/DialogFrame/UI-DialogBox-Border",
-			tile = true,
-			tileSize = 32,
-			edgeSize = 32,
-			insets = { left = 11, right = 12, top = 12, bottom = 11 },
-		})
-		-- Create title text
-		frame.title = frame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-		frame.title:SetPoint("TOP", 0, -15)
-		-- Create model display
-		frame.model = CreateFrame("PlayerModel", nil, frame)
-		frame.model:SetPoint("TOP", 0, -40)
-		frame.model:SetPoint("BOTTOM", 0, 40)
-		frame.model:SetPoint("LEFT", 20, 0)
-		frame.model:SetPoint("RIGHT", -20, 0)
-		-- Create close button
-		frame.closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
-		frame.closeButton:SetPoint("TOPRIGHT", -4, -4)
-		frame.closeButton:SetScript("OnClick", function() frame:Hide() end)
-		-- Create Next button
-		frame.nextButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-		frame.nextButton:SetSize(120, 22)
-		frame.nextButton:SetPoint("BOTTOMRIGHT", -20, 15)
-		frame.nextButton:SetText("Random Preview")
-		-- Create Summon button
-		frame.summonButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-		frame.summonButton:SetSize(120, 22)
-		frame.summonButton:SetPoint("BOTTOMLEFT", 20, 15)
-		frame.summonButton:SetText("Summon")
-		print("RMB_MODEL: Created preview dialog frame")
-	end
-
-	-- Update the frame with the current mount info
-	local frame = self.previewDialog
-	-- Store the group info for "Next Mount" button
-	frame.groupKey = groupKey
-	frame.groupType = groupType
-	-- Store the current mount ID for "Summon" button
-	frame.currentMountID = mountID
-	frame.isUncollected = isUncollected
-	-- Set the title with proper color
-	if frame.title then
-		if isUncollected then
-			frame.title:SetText("|cff9d9d9d" .. (mountName or "") .. " (Uncollected)|r")
-		else
-			frame.title:SetText(mountName or "")
-		end
-	end
-
-	-- Set the model
-	if frame.model then
-		local creatureDisplayID = select(1, C_MountJournal.GetMountInfoExtraByID(mountID))
-		if creatureDisplayID then
-			frame.model:SetDisplayInfo(creatureDisplayID)
-			frame.model:SetCamDistanceScale(1.5)
-			frame.model:SetPosition(0, 0, 0)
-		else
-			print("RMB_DEBUG_PREVIEW: No display ID found for mount: " .. tostring(mountID))
-		end
-	end
-
-	-- Set up the Next Mount button if we have group info
-	if frame.nextButton then
-		if groupKey and groupType then
-			frame.nextButton:Enable()
-			frame.nextButton:SetScript("OnClick", function()
-				local nextMountID, nextMountName, nextIsUncollected =
-						self:GetRandomMountFromGroup(groupKey, groupType, true)
-				if nextMountID then
-					self:ShowMountPreview(nextMountID, nextMountName, groupKey, groupType, nextIsUncollected)
-				end
-			end)
-		else
-			-- Disable the Next button for individual mounts
-			frame.nextButton:Disable()
-		end
-	end
-
-	-- Set up the Summon button
-	if frame.summonButton then
-		if isUncollected then
-			frame.summonButton:SetText("Cannot Summon")
-			frame.summonButton:Disable()
-		else
-			frame.summonButton:SetText("Summon")
-			frame.summonButton:Enable()
-			frame.summonButton:SetScript("OnClick", function()
-				if frame.currentMountID then
-					C_MountJournal.SummonByID(frame.currentMountID)
-					frame:Hide()
-				end
-			end)
-		end
-	end
-
-	-- Show the frame
-	frame:Show()
-end
-
+-- ============================================================================
+-- MAIN UI BUILDING FUNCTION (Greatly Simplified)
+-- ============================================================================
 function addon:BuildFamilyManagementArgs()
-	print("RMB_DEBUG_UI: BuildFamilyManagementArgs called. Page: " ..
-		tostring(self.fmCurrentPage) ..
-		", ItemsPerPage: " .. tostring(self.fmItemsPerPage) .. ", DataReady:" .. tostring(self.RMB_DataReadyForUI))
+	print("RMB_UI: BuildFamilyManagementArgs called (Refactored)")
 	local pageArgs = {}
 	local displayOrder = 1
-	-- Manual Refresh Button (will be placed last)
-	-- Calculate totalPages needed for button disabled state and LastPage func
-	local allDisplayableGroups = self:GetDisplayableGroups()
-	if not allDisplayableGroups then allDisplayableGroups = {} end
-
-	local totalGroups = #allDisplayableGroups
-	local itemsPerPage = self:FMG_GetItemsPerPage()
-	local totalPages = math.max(1, math.ceil(totalGroups / itemsPerPage))
-	local currentPage = self.fmCurrentPage or 1
-	if currentPage > totalPages then
-		currentPage = totalPages; self.fmCurrentPage = totalPages;
-	end
-
-	if currentPage < 1 then
-		currentPage = 1; self.fmCurrentPage = currentPage;
-	end
-
-	pageArgs["manual_refresh_button"] = {
-		order = 9999, -- Placeholder order, will be adjusted later
-		type = "execute",
-		name = "Refresh List",
-		func = function()
-			self:PopulateFamilyManagementUI()
-		end,
-		width = 3.6,
-	};
+	-- Check if data is ready
 	if not self.RMB_DataReadyForUI then
 		pageArgs.loading_placeholder = {
 			order = displayOrder,
 			type = "description",
 			name = "Mount data is loading or not yet processed. This list will appear after login finishes.",
-		}; displayOrder = displayOrder + 1
-		pageArgs["manual_refresh_button"].order = displayOrder + 1;
+		}
 		return pageArgs
 	end
 
-	local allDisplayableGroups = self:GetDisplayableGroups()
-	if not allDisplayableGroups then allDisplayableGroups = {} end
-
-	if #allDisplayableGroups == 0 then
+	-- Get displayable groups from data manager
+	local allDisplayableGroups = self.MountDataManager:GetDisplayableGroups()
+	if not allDisplayableGroups or #allDisplayableGroups == 0 then
 		pageArgs["no_groups_msg"] = {
 			order = displayOrder,
 			type = "description",
 			name = "No mount groups found (0 collected or no matches).",
-		}; displayOrder = displayOrder + 1
-		pageArgs["manual_refresh_button"].order = displayOrder + 1;
+		}
 		return pageArgs
 	end
 
+	-- Calculate pagination
 	local totalGroups = #allDisplayableGroups
 	local itemsPerPage = self:FMG_GetItemsPerPage()
 	local totalPages = math.max(1, math.ceil(totalGroups / itemsPerPage))
-	local currentPage = self.fmCurrentPage or 1
-	if currentPage > totalPages then
-		currentPage = totalPages; self.fmCurrentPage = totalPages;
+	local currentPage = math.max(1, math.min(self.fmCurrentPage or 1, totalPages))
+	self.fmCurrentPage = currentPage
+	-- Add column headers
+	local headerComponents = self.MountUIComponents:CreateColumnHeaders(displayOrder)
+	for k, v in pairs(headerComponents) do
+		pageArgs[k] = v
 	end
 
-	if currentPage < 1 then
-		currentPage = 1; self.fmCurrentPage = currentPage;
-	end
-
-	-- Description Group (Top)
-	pageArgs["column_headers_group"] = {
-		order = displayOrder,
-		type = "group",
-		inline = true,
-		name = "",
-		width = "full",
-		args = {
-			previewHeader = {
-				order = 1,
-				type = "description",
-				name = "  |cffffd700Preview|r",
-				width = 0.3,
-			},
-			mountHeader = {
-				order = 2,
-				type = "description",
-				name = "   |cffffd700Super Group/Family/Mount name|r",
-				width = 1.1,
-			},
-			summonchanceHeader = {
-				order = 3,
-				type = "description",
-				name = "     |cffffd700Summon Chance|r",
-				width = 0.8,
-			},
-			traitsHeader = {
-				order = 4,
-				type = "description",
-				name = "                           |cffffd700Traits|r",
-				width = 0.8,
-			},
-			expandSpacer = {
-				order = 5,
-				type = "description",
-				name = " ",
-				width = 0.35,
-			},
-			expandHeader = {
-				order = 6,
-				type = "description",
-				name = "  |cffffd700Expand|r",
-				width = 0.3,
-			},
-		},
-	}; displayOrder = displayOrder + 1
+	-- Assuming CreateColumnHeaders handles its own internal ordering and the overall
+	-- 'displayOrder' here is for the next major block. If headers consume more than
+	-- one logical "slot", this might need adjustment based on CreateColumnHeaders' behavior.
+	displayOrder = displayOrder + 1
+	-- Calculate page bounds
 	local startIndex = (currentPage - 1) * itemsPerPage + 1
 	local endIndex = math.min(startIndex + itemsPerPage - 1, totalGroups)
-	print(string.format("RMB_DEBUG_PAGING: currentPage: %s, itemsPerPage: %s, totalGroups: %s",
-		tostring(currentPage), tostring(itemsPerPage), tostring(totalGroups)));
-	print(string.format("RMB_DEBUG_PAGING: Calculated startIndex: %s, endIndex: %s",
-		tostring(startIndex), tostring(endIndex)));
-	-- Safety Check
-	if type(startIndex) ~= "number" or type(endIndex) ~= "number" then
-		print("RMB_DEBUG_ERROR: PAGING ERROR! startIndex or endIndex is not a number. Cannot build list.");
-		pageArgs["paging_error_msg"] = {
-			order = displayOrder,
-			type = "description",
-			name = "Error calculating items for this page. Please reload UI.",
-		};
-		pageArgs["manual_refresh_button"].order = displayOrder + 1;
-		return pageArgs;
-	end
-
-	local groupEntryOrder = displayOrder
+	print("RMB_UI: Building page " .. currentPage .. " (" .. startIndex .. "-" .. endIndex .. " of " .. totalGroups .. ")")
+	-- Build group entries
+	local groupEntryOrder = displayOrder -- Use a separate order counter for main group entries
 	for i = startIndex, endIndex do
-		local groupInfo = allDisplayableGroups[i]
-		if groupInfo then
-			local groupKey = groupInfo.key
+		local groupData = allDisplayableGroups[i]
+		if groupData then
+			local groupKey = groupData.key
 			local isExpanded = self:IsGroupExpanded(groupKey)
-			-- Special handling for standalone families with exactly one mount
-			local isSingleMountFamily = false
-			local mountName = nil
-			-- Check if this is a standalone family (not in a superGroup)
-			if groupInfo.type == "familyName" then
-				-- Calculate total mounts in this family (collected + uncollected)
-				local totalMountCount = (groupInfo.mountCount or 0) + (groupInfo.uncollectedCount or 0)
-				-- It's a single-mount family ONLY if the total count is exactly 1
-				isSingleMountFamily = (totalMountCount == 1)
-				if isSingleMountFamily then
-					-- Get the mount name if it's collected
-					if groupInfo.mountCount == 1 then
-						local mIDs = self.processedData.familyToMountIDsMap and
-								self.processedData.familyToMountIDsMap[groupKey]
-						if mIDs and #mIDs == 1 then
-							local mountID = mIDs[1]
-							if self.processedData.allCollectedMountFamilyInfo and
-									self.processedData.allCollectedMountFamilyInfo[mountID] then
-								mountName = self.processedData.allCollectedMountFamilyInfo[mountID].name
-							end
-						end
-
-						-- Get the mount name if it's uncollected
-					elseif groupInfo.uncollectedCount == 1 then
-						local uncollectedIDs = self.processedData.familyToUncollectedMountIDsMap and
-								self.processedData.familyToUncollectedMountIDsMap[groupKey]
-						if uncollectedIDs and #uncollectedIDs == 1 then
-							local mountID = uncollectedIDs[1]
-							if self.processedData.allUncollectedMountFamilyInfo and
-									self.processedData.allUncollectedMountFamilyInfo[mountID] then
-								mountName = self.processedData.allUncollectedMountFamilyInfo[mountID].name
-							end
-						end
-					end
-				end
+			-- Get expanded details if needed
+			local expandedDetails = nil
+			if isExpanded then
+				expandedDetails = self:GetExpandedGroupDetailsArgs(groupKey, groupData.type)
 			end
 
-			-- Construct the display name differently for single mount families
-			local groupDisplayName
-			if isSingleMountFamily then
-				-- If it's a single mount family, check if it's collected or uncollected
-				if groupInfo.mountCount == 1 then
-					groupDisplayName = groupInfo.displayName .. " (Mount)"
-				else -- Must be uncollected
-					groupDisplayName = "|cff9d9d9d" .. groupInfo.displayName .. " (Mount)|r"
-				end
-			else
-				-- It's a multi-mount family or supergroup - display counts with proper colors
-				local collectedCount = groupInfo.mountCount or 0
-				local uncollectedCount = groupInfo.uncollectedCount or 0
-				-- Format the display differently based on collection status
-				if collectedCount > 0 and uncollectedCount > 0 then
-					-- Some collected, some uncollected
-					groupDisplayName = groupInfo.displayName .. " (" .. collectedCount
-					if uncollectedCount > 0 then
-						groupDisplayName = groupDisplayName .. " + |cff9d9d9d" .. uncollectedCount .. "|r"
-					end
-
-					groupDisplayName = groupDisplayName .. ")"
-				elseif collectedCount > 0 then
-					-- All collected
-					groupDisplayName = groupInfo.displayName .. " (" .. collectedCount .. ")"
-				else
-					-- All uncollected
-					groupDisplayName = "|cff9d9d9d" .. groupInfo.displayName .. " (" .. uncollectedCount .. ")|r"
-				end
-			end
-
-			-- Check if we should show traits for this group
-			local shouldShowTraits = self:ShouldShowTraits(groupKey, groupInfo.type)
-			local familyTraits = {}
-			if shouldShowTraits then
-				familyTraits = self:GetFamilyTraits(groupKey)
-			end
-
-			local detailArgsForThisGroup = (isExpanded and self:GetExpandedGroupDetailsArgs(groupKey, groupInfo.type)) or
-					{}
+			-- Build complete group entry using components
+			local groupEntry = self.MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetails)
 			pageArgs["entry_" .. groupKey] = {
 				order = groupEntryOrder,
 				type = "group",
 				name = "",
 				inline = true,
 				handler = self,
-				args = {
-					previewButton = {
-						order = 0.2,
-						type = "execute",
-						name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
-						desc = function() return self:GetMountPreviewTooltip(groupKey, groupInfo.type) end,
-						func = function(info)
-							-- Pass the include uncollected setting to ensure we match what the tooltip shows
-							local includeUncollected = self:GetSetting("showUncollectedMounts")
-							local mountID, mountName, isUncollected = self:GetRandomMountFromGroup(groupKey,
-								groupInfo.type,
-								includeUncollected)
-							if mountID then
-								-- Show preview with the uncollected flag
-								self:ShowMountPreview(mountID, mountName, groupKey, groupInfo.type, isUncollected)
-							else
-								print("RMB_PREVIEW: No mount available to preview from this group")
-							end
-						end,
-						width = 0.3,
-					},
-					spacerBeforeName = {
-						order = 0.3,
-						type = "description",
-						name = " ",
-						width = 0.05,
-					},
-					group_name = {
-						order = 1,
-						type = "description",
-						name = groupDisplayName,
-						width = 1.0,
-						fontSize = "medium",
-					},
-					spaceAfterName = {
-						order = 1.1,
-						type = "description",
-						name = " ",
-						width = 0.08,
-					},
-					-- Weight controls
-					weightDecrement = {
-						order = 2,
-						type = "execute",
-						name = "",
-						func = function() self:DecrementGroupWeight(groupKey) end,
-						disabled = function() return self:GetGroupWeight(groupKey) == 0 end,
-						width = 0.05,
-						image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
-						imageWidth = 16,
-						imageHeight = 20,
-					},
-					weightDisplay = {
-						order = 3,
-						type = "description",
-						name = self:GetWeightDisplayString(self:GetGroupWeight(groupKey)),
-						width = 0.5,
-					},
-					weightIncrement = {
-						order = 4,
-						type = "execute",
-						name = "",
-						func = function() self:IncrementGroupWeight(groupKey) end,
-						disabled = function() return self:GetGroupWeight(groupKey) == 6 end,
-						width = 0.05,
-						image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
-						imageWidth = 16,
-						imageHeight = 20,
-					},
-					spacerToggles = {
-						order = 6,
-						type = "description",
-						name = " ",
-						width = 0.12,
-					},
-					spacerNoToggles = {
-						order = 6,
-						type = "description",
-						name = " ",
-						hidden = shouldShowTraits,
-						width = 1.2,
-					},
-					-- Trait Toggles
-					toggleMinorArmor = {
-						order = 7,
-						type = "toggle",
-						name = "|TInterface\\ICONS\\Garrison_GreenArmor:20:20:0:-2|t",
-						desc = "Small armor or ornaments",
-						get = function()
-							return familyTraits.hasMinorArmor or false
-						end,
-						set = function() end, -- Read-only for now
-						width = 0.30,
-						hidden = not shouldShowTraits,
-						disabled = true,
-					},
-					toggleMajorArmor = {
-						order = 7.1,
-						type = "toggle",
-						name = "|TInterface\\ICONS\\Garrison_BlueArmor:20:20:0:-2|t",
-						desc = "Bulky armor or many ornaments",
-						get = function()
-							return familyTraits.hasMajorArmor or false
-						end,
-						set = function() end,
-						width = 0.30,
-						hidden = not shouldShowTraits,
-						disabled = true,
-					},
-					toggleModelVariant = {
-						order = 7.2,
-						type = "toggle",
-						name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:20:20:0:-2|t",
-						desc = "Updated texture/slightly different model",
-						get = function()
-							return familyTraits.hasModelVariant or false
-						end,
-						set = function() end,
-						width = 0.30,
-						hidden = not shouldShowTraits,
-						disabled = true,
-					},
-					toggleUniqueEffect = {
-						order = 7.3,
-						type = "toggle",
-						name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:20:20:0:-2|t",
-						desc = "Unique variant, stands out from the rest",
-						get = function()
-							return familyTraits.isUniqueEffect or false
-						end,
-						set = function() end,
-						width = 0.30,
-						hidden = not shouldShowTraits,
-						disabled = true,
-					},
-					expandCollapse = {
-						order = 8,
-						type = "execute",
-						name = "",
-						func = function() self:ToggleExpansionState(groupKey) end,
-						width = 0.3,
-						hidden = isSingleMountFamily,
-						image = isExpanded and "Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonUpLargev11" or
-								"Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonDownLargev11",
-						imageWidth = 40,
-						imageHeight = 20,
-					},
-					-- The critical change is here - we're not putting expanded content in a group
-					-- but instead directly adding the header and details
-					expandedHeader = {
-						order = 10,
-						type = "header",
-						name = isExpanded and ("Families & Mounts in " .. groupKey) or "",
-						hidden = not isExpanded,
-						width = "full",
-					},
-				},
+				args = groupEntry,
 			}
-			-- If expanded, add the details directly to the args table
-			if isExpanded and detailArgsForThisGroup then
-				for k, v in pairs(detailArgsForThisGroup) do
-					pageArgs["entry_" .. groupKey].args[k] = v
-					-- Adjust the order to come after the header
-					if v.order then
-						v.order = v.order + 10
-					end
-				end
-			end
-
 			groupEntryOrder = groupEntryOrder + 1
 		end
 	end
 
-	-- Pagination Controls Group (Bottom)
-	if totalPages > 1 then
-		pageArgs["pagination_controls_group_bottom"] = {
-			order = groupEntryOrder,
-			type = "group",
-			inline = true,
-			name = "",
-			width = "full",
-			args = {
-				first_button_b = {
-					order = 1,
-					type = "execute",
-					name = "<<",
-					disabled = (currentPage <= 1),
-					func = function() self:FMG_GoToFirstPage() end,
-					width = 0.5,
-				},
-				prev_button_b = {
-					order = 2,
-					type = "execute",
-					name = "<",
-					disabled = (currentPage <= 1),
-					func = function() self:FMG_PrevPage() end,
-					width = 0.5,
-				},
-				page_info_b = {
-					order = 3,
-					type = "description",
-					name = string.format("                                    %d / %d", currentPage, totalPages),
-					width = 1.6,
-				},
-				next_button_b = {
-					order = 4,
-					type = "execute",
-					name = ">",
-					disabled = (currentPage >= totalPages),
-					func = function() self:FMG_NextPage() end,
-					width = 0.5,
-				},
-				last_button_b = {
-					order = 5,
-					type = "execute",
-					name = ">>",
-					disabled = (currentPage >= totalPages),
-					func = function() self:FMG_GoToLastPage() end,
-					width = 0.5,
-				},
-			},
-		}
-		groupEntryOrder = groupEntryOrder + 1
+	-- Add pagination controls
+	-- Pass the current groupEntryOrder so pagination controls can be ordered after the group entries
+	local paginationComponents = self.MountUIComponents:CreatePaginationControls(currentPage, totalPages, groupEntryOrder)
+	for k, v in pairs(paginationComponents) do
+		pageArgs[k] = v
 	end
 
-	-- Adjust the manual refresh button order
-	pageArgs["manual_refresh_button"].order = groupEntryOrder
-	print("RMB_DEBUG_UI: BuildFamilyManagementArgs finished page " ..
-		currentPage .. ", added items for " .. (endIndex - startIndex + 1) .. " groups.")
+	-- The next available order slot would be groupEntryOrder + number of pagination controls
+	-- if manual_refresh_button was to follow them directly.
+	-- However, manual_refresh_button uses a high fixed order.
+	-- Add refresh button
+	pageArgs["manual_refresh_button"] = {
+		order = 9999, -- High order to place it at the end
+		type = "execute",
+		name = "Refresh List",
+		func = function()
+			self.MountDataManager:InvalidateCache("manual_refresh")
+			self:PopulateFamilyManagementUI()
+		end,
+		width = 3.6,
+	}
+	print("RMB_UI: Built UI with " .. (endIndex - startIndex + 1) .. " group entries")
 	return pageArgs
 end
 
+-- ============================================================================
+-- EXPANDED DETAILS BUILDER (Simplified)
+-- ============================================================================
+function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
+	print("RMB_UI_DETAILS: GetExpandedGroupDetailsArgs for " .. tostring(groupKey) .. " (" .. tostring(groupType) .. ")")
+	local detailsArgs = {}
+	local displayOrder = 1
+	local showUncollected = self:GetSetting("showUncollectedMounts")
+	if not self.processedData then
+		return { no_data = { order = 1, type = "description", name = "No processed data available.", width = "full" } }
+	end
+
+	if groupType == "superGroup" then
+		-- Build supergroup details (families within the supergroup)
+		detailsArgs = self:BuildSuperGroupDetails(groupKey, displayOrder, showUncollected)
+	elseif groupType == "familyName" then
+		-- Build family details (individual mounts)
+		detailsArgs = self:BuildFamilyDetails(groupKey, displayOrder, showUncollected)
+	else
+		detailsArgs.unknown_type = {
+			order = 1,
+			type = "description",
+			name = "Unknown group type: " .. tostring(groupType),
+			width = "full",
+		}
+	end
+
+	return detailsArgs
+end
+
+function addon:BuildSuperGroupDetails(groupKey, startOrder, showUncollected)
+	local detailsArgs = {}
+	local displayOrder = startOrder
+	-- Get families in this supergroup
+	local familyNamesInSG = self.processedData.superGroupMap and self.processedData.superGroupMap[groupKey]
+	if not familyNamesInSG or #familyNamesInSG == 0 then -- # is fine if familyNamesInSG is an array
+		return { no_families = { order = 1, type = "description", name = "No families found in this supergroup.", width = "full" } }
+	end
+
+	-- Sort families for consistent display
+	local sortedFamilies = {}
+	for _, familyName in ipairs(familyNamesInSG) do -- ipairs is fine for arrays
+		table.insert(sortedFamilies, familyName)
+	end
+
+	table.sort(sortedFamilies)
+	-- Build each family entry
+	for _, familyName in ipairs(sortedFamilies) do
+		-- Count mounts in this family
+		local collectedCount = (self.processedData.familyToMountIDsMap and
+			self.processedData.familyToMountIDsMap[familyName] and
+			#(self.processedData.familyToMountIDsMap[familyName])) or 0
+		local uncollectedCount = 0
+		if showUncollected then
+			uncollectedCount = (self.processedData.familyToUncollectedMountIDsMap and
+				self.processedData.familyToUncollectedMountIDsMap[familyName] and
+				#(self.processedData.familyToUncollectedMountIDsMap[familyName])) or 0
+		end
+
+		-- Process only if there are mounts (Replaces goto continue)
+		if not (collectedCount == 0 and uncollectedCount == 0) then
+			-- Create family display name
+			local familyDisplayName = self:CreateFamilyDisplayName(familyName, collectedCount, uncollectedCount)
+			-- Is family expanded?
+			local isFamilyExpanded = self:IsGroupExpanded(familyName)
+			-- Build family entry
+			-- MountUIComponents:BuildFamilyEntry is expected to set internal orders based on `displayOrder`
+			local familyEntry = self.MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isFamilyExpanded,
+				displayOrder)
+			-- Add family entry to details
+			for k, v in pairs(familyEntry) do
+				detailsArgs["fam_" .. familyName .. "_" .. k] = v
+			end
+
+			displayOrder = displayOrder + 2 -- Increment for the family entry block
+			-- Add mount details if family is expanded
+			if isFamilyExpanded then
+				detailsArgs["fam_" .. familyName .. "_mountsheader"] = {
+					order = displayOrder,
+					type = "header",
+					name = "Mounts",
+					width = "full",
+				}
+				displayOrder = displayOrder + 1     -- Increment for the "Mounts" header
+				local mountListBaseOrder = displayOrder -- Base order for mount list items
+				-- Build mount list
+				-- MountUIComponents:BuildMountList is expected to set internal orders based on `mountListBaseOrder`
+				local mountEntries = self.MountUIComponents:BuildMountList(familyName, "familyName", mountListBaseOrder)
+				local mountItemCount = 0
+				for k, v_mount_entry in pairs(mountEntries) do -- pairs is fine for dictionaries
+					detailsArgs["fam_" .. familyName .. "_" .. k] = v_mount_entry
+					mountItemCount = mountItemCount + 1
+				end
+
+				-- Advance displayOrder by the estimated number of "slots" consumed by mountEntries.
+				-- Original code used (#mountEntries * 2). We use mountItemCount * 2.
+				-- This assumes each "item" in mountEntries effectively takes 2 order slots,
+				-- and BuildMountList sets its children's orders accordingly.
+				if mountItemCount > 0 then
+					displayOrder = mountListBaseOrder + (mountItemCount * 2)
+				end
+
+				-- If mountItemCount is 0, displayOrder remains as it was after the header.
+			end
+		end
+
+		-- End of loop iteration (was ::continue:: point)
+	end
+
+	-- Add bottom border
+	detailsArgs["supergroup_bottom_border"] = {
+		order = displayOrder, -- Use the final displayOrder
+		type = "header",
+		name = "",
+		width = "full",
+	}
+	return detailsArgs
+end
+
+function addon:BuildFamilyDetails(groupKey, startOrder, showUncollected)
+	local detailsArgs = {}
+	-- Build mount list for this family
+	-- MountUIComponents:BuildMountList is expected to set internal orders based on `startOrder`
+	local mountEntries = self.MountUIComponents:BuildMountList(groupKey, "familyName", startOrder)
+	if not mountEntries or not next(mountEntries) then -- next() is a robust way to check for empty table
+		return { no_mounts = { order = 1, type = "description", name = "No mounts in this family.", width = "full" } }
+	end
+
+	local maxOrderUsed = startOrder - 1 -- Initialize to be less than any valid order
+	-- Add all mount entries
+	for k, v_entry in pairs(mountEntries) do
+		detailsArgs[k] = v_entry
+		if v_entry.order and v_entry.order > maxOrderUsed then
+			maxOrderUsed = v_entry.order
+		end
+	end
+
+	-- Add bottom border, ensuring it's after all mount entries
+	detailsArgs["bottom_border"] = {
+		order = maxOrderUsed + 1,
+		type = "header",
+		name = "",
+		width = "full",
+	}
+	return detailsArgs
+end
+
+-- ============================================================================
+-- HELPER FUNCTIONS
+-- ============================================================================
+function addon:CreateFamilyDisplayName(familyName, collectedCount, uncollectedCount)
+	-- Check if single mount family
+	if collectedCount + uncollectedCount == 1 then
+		if collectedCount == 1 then
+			return familyName .. " (Mount)"
+		else
+			return "|cff9d9d9d" .. familyName .. " (Mount)|r"
+		end
+	end
+
+	-- Multi-mount family
+	local displayName = familyName .. " (" .. collectedCount
+	if uncollectedCount > 0 then
+		displayName = displayName .. " |cff9d9d9d+" .. uncollectedCount .. "|r"
+	end
+
+	displayName = displayName .. ")"
+	return displayName
+end
+
+-- ============================================================================
+-- UI REFRESH AND POPULATION
+-- ============================================================================
 function addon:PopulateFamilyManagementUI()
-	print("RMB_DEBUG_UI: PopulateFamilyManagementUI called.")
+	print("RMB_UI: PopulateFamilyManagementUI called (Refactored)")
 	if not self.fmArgsRef then
-		print(
-			"RMB_DEBUG_UI_ERROR: self.fmArgsRef (the options table for familyManagement.args) is nil! Options.lua problem.")
+		print("RMB_UI_ERROR: self.fmArgsRef is nil! Options.lua problem.")
 		return
 	end
 
+	-- Measure performance
+	local startTime = debugprofilestop() -- WoW API function
+	-- Build new UI arguments using optimized system
 	local newPageContentArgs = self:BuildFamilyManagementArgs()
-	wipe(self.fmArgsRef)
-	for k, v in pairs(newPageContentArgs) do self.fmArgsRef[k] = v end
+	-- Update the options table
+	wipe(self.fmArgsRef) -- WoW API function or common utility
+	for k, v in pairs(newPageContentArgs) do
+		self.fmArgsRef[k] = v
+	end
 
-	print("RMB_DEBUG_UI: self.fmArgsRef has been updated with new page content. Notifying AceConfigRegistry.")
-	if LibStub("AceConfigRegistry-3.0") then
+	-- Notify AceConfig of changes
+	if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then -- Check LibStub exists and get library safely
 		LibStub("AceConfigRegistry-3.0"):NotifyChange(addonName)
 	else
-		print(
-			"RMB_DEBUG_UI_ERROR: AceConfigRegistry missing.")
+		print("RMB_UI_ERROR: AceConfigRegistry missing or LibStub not available.")
 	end
 
-	-- Force tooltip cleanup - this can help with stuck tooltips
-	GameTooltip:Hide()
-	if _G["AceConfigDialogTooltip"] then
+	-- Clean up tooltips
+	if GameTooltip and GameTooltip.Hide then GameTooltip:Hide() end -- WoW API
+
+	if _G["AceConfigDialogTooltip"] and _G["AceConfigDialogTooltip"].Hide then
 		_G["AceConfigDialogTooltip"]:Hide()
 	end
-end
 
--- Add this function to MountListUI.lua
-function addon:GetDynamicSuperGroup(familyName)
-	if not familyName then return nil end
-
-	-- Check if we have dynamic grouping data
-	if not self.processedData.dynamicSuperGroupMap then
-		-- Fall back to original supergroup map
-		if self.processedData.superGroupMap then
-			for sg, families in pairs(self.processedData.superGroupMap) do
-				for _, fn in ipairs(families) do
-					if fn == familyName then
-						return sg
-					end
-				end
-			end
-		end
-
-		return nil
+	-- Performance logging
+	local endTime = debugprofilestop() -- WoW API function
+	local elapsed = endTime - startTime
+	if elapsed > 50 then
+		print(string.format("RMB_PERF: UI build took %.2fms", elapsed))
 	end
 
-	-- Check if family is explicitly marked as standalone in dynamic grouping
-	if self.processedData.dynamicStandaloneFamilies and self.processedData.dynamicStandaloneFamilies[familyName] then
-		return nil
-	end
-
-	-- Find supergroup in dynamic mapping
-	for sg, families in pairs(self.processedData.dynamicSuperGroupMap) do
-		for _, fn in ipairs(families) do
-			if fn == familyName then
-				return sg
-			end
-		end
-	end
-
-	return nil
+	print("RMB_UI: UI populated successfully")
 end
 
-function addon:TriggerFamilyManagementUIRefresh()
-	print("RMB_DEBUG_UI: Manual Refresh Triggered."); self:PopulateFamilyManagementUI()
+-- ============================================================================
+-- WEIGHT MANAGEMENT (Moved from original file)
+-- ============================================================================
+function addon:DecrementGroupWeight(groupKey)
+	if not (self.db and self.db.profile and self.db.profile.groupWeights) then
+		print("RMB_WEIGHT: DB or profile not available")
+		return
+	end
+
+	local currentWeight = self:GetGroupWeight(groupKey)
+	local newWeight = math.max(0, currentWeight - 1)
+	if newWeight ~= currentWeight then
+		self.db.profile.groupWeights[groupKey] = newWeight
+		print("RMB_WEIGHT: Decremented " .. tostring(groupKey) .. " to " .. tostring(newWeight))
+		self:PopulateFamilyManagementUI()
+	end
 end
 
-function addon:CollapseAllExpanded()
-	print("RMB_DEBUG_UI: Collapsing all expanded groups")
+function addon:IncrementGroupWeight(groupKey)
+	if not (self.db and self.db.profile and self.db.profile.groupWeights) then
+		print("RMB_WEIGHT: DB or profile not available")
+		return
+	end
+
+	local currentWeight = self:GetGroupWeight(groupKey)
+	local newWeight = math.min(6, currentWeight + 1)
+	if newWeight ~= currentWeight then
+		self.db.profile.groupWeights[groupKey] = newWeight
+		print("RMB_WEIGHT: Incremented " .. tostring(groupKey) .. " to " .. tostring(newWeight))
+		self:PopulateFamilyManagementUI()
+	end
+end
+
+-- ============================================================================
+-- EXPANSION STATE MANAGEMENT
+-- ============================================================================
+function addon:ToggleExpansionState(groupKey)
 	if not (self.db and self.db.profile and self.db.profile.expansionStates) then
 		print("RMB_UI: ExpStates DB ERR")
 		return
 	end
 
-	-- Iterate through all expansion states and set them to false (collapsed)
+	self.db.profile.expansionStates[groupKey] = not self.db.profile.expansionStates[groupKey]
+	print("RMB_UI: Toggled expansion for '" .. tostring(groupKey) .. "' to " ..
+		tostring(self.db.profile.expansionStates[groupKey]))
+	self:PopulateFamilyManagementUI()
+end
+
+function addon:IsGroupExpanded(groupKey)
+	if not (self.db and self.db.profile and self.db.profile.expansionStates) then
+		return false
+	end
+
+	return self.db.profile.expansionStates[groupKey] == true
+end
+
+function addon:CollapseAllExpanded()
+	print("RMB_UI: Collapsing all expanded groups")
+	if not (self.db and self.db.profile and self.db.profile.expansionStates) then
+		return false -- Return false if unable to perform action
+	end
+
 	local changed = false
 	for groupKey, state in pairs(self.db.profile.expansionStates) do
 		if state == true then
@@ -1054,57 +403,52 @@ function addon:CollapseAllExpanded()
 		end
 	end
 
-	-- Only refresh UI if we actually collapsed something
-	if changed then
-		print("RMB_UI: Collapsed expanded groups, refreshing UI")
-	end
-
-	-- We don't call PopulateFamilyManagementUI() here because
-	-- this function is called from navigation functions that already refresh the UI
 	return changed
 end
 
+-- ============================================================================
+-- PAGINATION FUNCTIONS (Simplified)
+-- ============================================================================
+function addon:FMG_GetItemsPerPage()
+	return self.fmItemsPerPage or 15
+end
+
 function addon:FMG_SetItemsPerPage(items)
-	local numItems = tonumber(items); if numItems and numItems >= 5 and numItems <= 50 then
-		print("RMB_PAGING: Set IPP to " .. numItems); self.fmItemsPerPage = numItems; if self.db and self.db.profile then
-			self.db.profile.fmItemsPerPage =
-					numItems
-		end; self.fmCurrentPage = 1; self:PopulateFamilyManagementUI()
-	else
-		print("RMB_PAGING: Invalid IPP: " .. tostring(items))
+	local numItems = tonumber(items)
+	if numItems and numItems >= 5 and numItems <= 50 then
+		self.fmItemsPerPage = numItems
+		if self.db and self.db.profile then
+			self.db.profile.fmItemsPerPage = numItems
+		end
+
+		self.fmCurrentPage = 1
+		self:PopulateFamilyManagementUI()
 	end
 end
 
-function addon:FMG_GetItemsPerPage() return self.fmItemsPerPage or 5 end
+function addon:FMG_GoToPage(pageNumber)
+	if not self.RMB_DataReadyForUI then return end
 
-function addon:FMG_GoToPage(pN)
-	if not self.RMB_DataReadyForUI then
-		print("RMB_PAGING: Data not ready."); return
-	end
+	local allGroups = self.MountDataManager:GetDisplayableGroups()
+	if not allGroups then return end -- Guard against nil
 
-	local allGroups = self:GetDisplayableGroups(); if not allGroups then allGroups = {} end; local ipp = self
-			:FMG_GetItemsPerPage(); local tP = math.max(1, math.ceil(#allGroups / ipp)); local tN = tonumber(pN);
-	if tN and tN >= 1 and tN <= tP then
-		if self.fmCurrentPage ~= tN then
-			self.fmCurrentPage = tN; print("RMB_PAGING: Navigating to page " .. self.fmCurrentPage); self
-					:PopulateFamilyManagementUI()
-		else
-			print("RMB_PAGING: Already on page " .. tN .. ". Refreshing current page view.")
-		end
-	else
-		print(
-			"RMB_PAGING: Invalid page " .. tostring(pN))
+	local totalPages = math.max(1, math.ceil(#allGroups / self:FMG_GetItemsPerPage()))
+	local targetPage = tonumber(pageNumber)
+	if targetPage and targetPage >= 1 and targetPage <= totalPages then
+		self.fmCurrentPage = targetPage
+		self:PopulateFamilyManagementUI()
 	end
 end
 
 function addon:FMG_NextPage()
 	if not self.RMB_DataReadyForUI then return end
 
-	local allG = self:GetDisplayableGroups()
-	local ipp = self:FMG_GetItemsPerPage()
-	local tP = math.max(1, math.ceil(#allG / ipp))
-	if self.fmCurrentPage < tP then
-		self:CollapseAllExpanded()
+	local allGroups = self.MountDataManager:GetDisplayableGroups()
+	if not allGroups then return end
+
+	local totalPages = math.max(1, math.ceil(#allGroups / self:FMG_GetItemsPerPage()))
+	if self.fmCurrentPage < totalPages then
+		self:CollapseAllExpanded() -- Consider if this should only happen if page actually changes
 		self:FMG_GoToPage(self.fmCurrentPage + 1)
 	end
 end
@@ -1113,1097 +457,83 @@ function addon:FMG_PrevPage()
 	if not self.RMB_DataReadyForUI then return end
 
 	if self.fmCurrentPage > 1 then
-		self:CollapseAllExpanded()
+		self:CollapseAllExpanded() -- Consider if this should only happen if page actually changes
 		self:FMG_GoToPage(self.fmCurrentPage - 1)
 	end
 end
 
 function addon:FMG_GoToFirstPage()
+	if not self.RMB_DataReadyForUI then return end -- Added guard
+
 	self:CollapseAllExpanded()
 	self:FMG_GoToPage(1)
 end
 
 function addon:FMG_GoToLastPage()
-	local allGroups = self:GetDisplayableGroups();
-	local ipp = self:FMG_GetItemsPerPage();
-	local totalPages = math.max(1, math.ceil(#allGroups / ipp));
+	if not self.RMB_DataReadyForUI then return end -- Added guard
+
+	local allGroups = self.MountDataManager:GetDisplayableGroups()
+	if not allGroups then return end
+
+	local totalPages = math.max(1, math.ceil(#allGroups / self:FMG_GetItemsPerPage()))
 	self:CollapseAllExpanded()
 	self:FMG_GoToPage(totalPages)
 end
 
+-- ============================================================================
+-- LEGACY COMPATIBILITY FUNCTIONS
+-- ============================================================================
+-- These functions maintain compatibility with existing code
 function addon:GetDisplayableGroups()
-	if not (self.processedData) then
-		print("RMB_UI: GetDisplayableGroups-procData ERR"); return {}
+	-- Ensure MountDataManager exists and has the method
+	if self.MountDataManager and self.MountDataManager.GetDisplayableGroups then
+		return self.MountDataManager:GetDisplayableGroups()
 	end
 
-	local o = {}
-	local showUncollected = self:GetSetting("showUncollectedMounts")
-	-- Use dynamic supergroup map if available, otherwise fall back to original
-	local superGroupMap = self.processedData.dynamicSuperGroupMap or self.processedData.superGroupMap
-	for sgn, fl in pairs(superGroupMap or {}) do
-		-- Count collected mounts in this supergroup
-		local mcCollected = self.processedData.superGroupToMountIDsMap and
-				#(self.processedData.superGroupToMountIDsMap[sgn] or {}) or 0
-		-- Count uncollected mounts if setting enabled
-		local mcUncollected = 0
-		if showUncollected then
-			mcUncollected = self.processedData.superGroupToUncollectedMountIDsMap and
-					#(self.processedData.superGroupToUncollectedMountIDsMap[sgn] or {}) or 0
-		end
-
-		-- Add supergroup if it has any mounts (collected or uncollected if enabled)
-		if mcCollected > 0 or (showUncollected and mcUncollected > 0) then
-			table.insert(o, {
-				key = sgn,
-				type = "superGroup",
-				displayName = sgn,
-				mountCount = mcCollected,
-				uncollectedCount = mcUncollected,
-				familiesInGroup = #(fl or {}),
-			})
-		end
-	end
-
-	-- Use dynamic standalone families if available, otherwise fall back to original
-	local standaloneFamilies = self.processedData.dynamicStandaloneFamilies or self.processedData.standaloneFamilyNames
-	for fn, _ in pairs(standaloneFamilies or {}) do
-		-- Count collected mounts in this family
-		local mcCollected = self.processedData.familyToMountIDsMap and
-				#(self.processedData.familyToMountIDsMap[fn] or {}) or 0
-		-- Count uncollected mounts if setting enabled
-		local mcUncollected = 0
-		if showUncollected then
-			mcUncollected = self.processedData.familyToUncollectedMountIDsMap and
-					#(self.processedData.familyToUncollectedMountIDsMap[fn] or {}) or 0
-		end
-
-		-- Add family if it has any mounts (collected or uncollected if enabled)
-		if mcCollected > 0 or (showUncollected and mcUncollected > 0) then
-			table.insert(o, {
-				key = fn,
-				type = "familyName",
-				displayName = fn,
-				mountCount = mcCollected,
-				uncollectedCount = mcUncollected,
-			})
-		end
-	end
-
-	table.sort(o, function(a, b) return (a.displayName or "") < (b.displayName or "") end)
-	print("RMB_UI: GetDisplayableGroups returns " .. #o)
-	if #o > 0 and #o <= 5 then
-		for i = 1, #o do
-			print("RMB_UI: Gp: " ..
-				tostring(o[i].displayName) .. " C:" .. tostring(o[i].mountCount) ..
-				" UC:" .. tostring(o[i].uncollectedCount) .. " T:" .. tostring(o[i].type))
-		end
-	end
-
-	return o
+	return {} -- Return an empty table if not available
 end
 
-function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
-	print("RMB_DEBUG_UI_DETAILS: GetExpandedGroupDetailsArgs for " .. tostring(groupKey) ..
-		" (" .. tostring(groupType) .. ")")
-	local detailsArgs = {} -- Table to hold args for the details section
-	local displayOrder = 1 -- Ordering for items within detailsArgs
-	local showUncollected = self:GetSetting("showUncollectedMounts")
-	if not self.processedData then
-		print("RMB_DEBUG_UI_DETAILS: No processed data."); return {}
+function addon:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
+	if self.MountDataManager and self.MountDataManager.GetRandomMountFromGroup then
+		return self.MountDataManager:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
 	end
 
-	if groupType == "superGroup" then
-		local familyNamesInSG = self.processedData.superGroupMap and self.processedData.superGroupMap[groupKey]
-		if familyNamesInSG and #familyNamesInSG > 0 then
-			-- Sort the family names for consistent display
-			local sortedFams = {}; for _, fn_iter in ipairs(familyNamesInSG) do table.insert(sortedFams, fn_iter) end -- fn_iter to avoid conflict with fn if it was in wider scope
+	return nil -- Or appropriate default
+end
 
-			table.sort(sortedFams)
-			print("RMB_DEBUG_UI_DETAILS: Processing Families for SG: " .. tostring(groupKey))
-			-- For each family in this supergroup, we'll create a row of controls
-			for fidx, fn in ipairs(sortedFams) do
-				-- Count collected and uncollected mounts
-				local mcCollected = self.processedData.familyToMountIDsMap and
-						#(self.processedData.familyToMountIDsMap[fn] or {}) or 0
-				local mcUncollected = 0
-				if showUncollected then
-					mcUncollected = self.processedData.familyToUncollectedMountIDsMap and
-							#(self.processedData.familyToUncollectedMountIDsMap[fn] or {}) or 0
-				end
+function addon:GetGroupTypeFromKey(groupKey)
+	if self.MountDataManager and self.MountDataManager.GetGroupTypeFromKey then
+		return self.MountDataManager:GetGroupTypeFromKey(groupKey)
+	end
 
-				-- Process this family only if there are mounts to show (replaces goto continue)
-				if mcCollected > 0 or mcUncollected > 0 then
-					-- Check if this is a single-mount family
-					local isSingleMountFamily = false
-					local isOnlyMountUncollected = false
-					if mcCollected + mcUncollected == 1 then
-						-- Find the model path for this family name
-						local familyModelPath = nil
-						for modelPath, familyDef in pairs(self.FamilyDefinitions or {}) do
-							if familyDef.familyName == fn then
-								familyModelPath = modelPath
-								break
-							end
-						end
+	return nil
+end
 
-						-- Count how many mount IDs use this model path
-						local mountCount = 0
-						if familyModelPath then
-							for _, mountModelPath in pairs(self.MountToModelPath or {}) do
-								if mountModelPath == familyModelPath then
-									mountCount = mountCount + 1
-									-- If we find more than one, we can break early
-									if mountCount > 1 then
-										break
-									end
-								end
-							end
-						end
+function addon:GetMountPreviewTooltip(groupKey, groupType)
+	if self.MountTooltips and self.MountTooltips.GetMountPreviewTooltip then
+		return self.MountTooltips:GetMountPreviewTooltip(groupKey, groupType)
+	end
 
-						-- It's a single-mount family if there's only one mount that uses this model path
-						isSingleMountFamily = (mountCount == 1)
-						-- If there are no collected but one uncollected, the only mount is uncollected
-						isOnlyMountUncollected = (mcCollected == 0 and mcUncollected == 1)
-					end
+	return nil
+end
 
-					-- Create display name with appropriate styling
-					local familyDisplayName
-					if isSingleMountFamily then
-						if isOnlyMountUncollected then
-							familyDisplayName = "|cff9d9d9d" .. fn .. " (Mount)|r"
-						else
-							familyDisplayName = fn .. " (Mount)"
-						end
-					else
-						local uncollectedText = ""
-						if mcUncollected > 0 then
-							uncollectedText = " |cff9d9d9d+" .. mcUncollected .. "|r"
-						end
+function addon:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncollected)
+	if self.MountPreview and self.MountPreview.ShowMountPreview then
+		return self.MountPreview:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncollected)
+	end
 
-						familyDisplayName = fn .. " (" .. mcCollected .. uncollectedText .. ")"
-					end
+	-- This function might not have a sensible default return, or could return false
+end
 
-					-- Check if we should show traits for this family
-					local shouldShowTraits = self:ShouldShowTraits(fn, "familyName")
-					local familyTraits = {}
-					if shouldShowTraits then
-						familyTraits = self:GetFamilyTraits(fn)
-					end
-
-					-- Make sure to align each family's controls properly in a row
-					-- Preview button
-					detailsArgs["fam_" .. fn .. "_preview"] = {
-						order = displayOrder,
-						type = "execute",
-						name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
-						desc = function()
-							-- Add a tooltip function here
-							return self:GetMountPreviewTooltip(fn, "familyName")
-						end,
-						func = function()
-							local includeUncollected = self:GetSetting("showUncollectedMounts")
-							local mountID, mountName, isUncollected = self:GetRandomMountFromGroup(fn, "familyName",
-								includeUncollected)
-							if mountID then
-								self:ShowMountPreview(mountID, mountName, fn, "familyName", isUncollected)
-							else
-								print("RMB_PREVIEW: No mount available to preview from this family")
-							end
-						end,
-						width = 0.3,
-					}
-					displayOrder = displayOrder + 1
-					detailsArgs["fam_" .. fn .. "_spacerBeforeName"] = {
-						order = displayOrder,
-						type = "description",
-						name = " ",
-						width = 0.05,
-					}
-					displayOrder = displayOrder + 1
-					-- Family name
-					detailsArgs["fam_" .. fn .. "_name"] = {
-						order = displayOrder,
-						type = "description",
-						name = "> " .. familyDisplayName,
-						width = 1.0,
-						fontSize = "small",
-					}
-					displayOrder = displayOrder + 1
-					detailsArgs["fam_" .. fn .. "_spacerAfterName"] = {
-						order = displayOrder,
-						type = "description",
-						name = " ",
-						width = 0.08,
-					}
-					displayOrder = displayOrder + 1
-					-- Weight controls
-					detailsArgs["fam_" .. fn .. "_weightDec"] = {
-						order = displayOrder,
-						type = "execute",
-						name = "",
-						func = function() self:DecrementGroupWeight(fn) end,
-						disabled = function() return self:GetGroupWeight(fn) == 0 end,
-						width = 0.05,
-						image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
-						imageWidth = 16,
-						imageHeight = 20,
-					}
-					displayOrder = displayOrder + 1
-					detailsArgs["fam_" .. fn .. "_weightDisp"] = {
-						order = displayOrder,
-						type = "description",
-						name = function() return self:GetWeightDisplayString(self:GetGroupWeight(fn)) end,
-						width = 0.5,
-					}
-					displayOrder = displayOrder + 1
-					detailsArgs["fam_" .. fn .. "_weightInc"] = {
-						order = displayOrder,
-						type = "execute",
-						name = "",
-						func = function() self:IncrementGroupWeight(fn) end,
-						disabled = function() return self:GetGroupWeight(fn) == 6 end,
-						width = 0.05,
-						image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
-						imageWidth = 16,
-						imageHeight = 20,
-					}
-					displayOrder = displayOrder + 1
-					detailsArgs["fam_" .. fn .. "_spacerToggles"] = {
-						order = displayOrder,
-						type = "description",
-						name = " ",
-						width = 0.12,
-					}
-					displayOrder = displayOrder + 1
-					detailsArgs["fam_" .. fn .. "_spacerNoToggles"] = {
-						order = displayOrder,
-						type = "description",
-						name = " ",
-						width = 1.2,
-						hidden = shouldShowTraits,
-					}
-					displayOrder = displayOrder + 1
-					-- Trait Toggles
-					detailsArgs["fam_" .. fn .. "_toggleMinorArmor"] = {
-						order = displayOrder,
-						type = "toggle",
-						name = "|TInterface\\ICONS\\Garrison_GreenArmor:20:20:0:-2|t",
-						desc = "Small armor or ornaments",
-						get = function()
-							return familyTraits.hasMinorArmor or false
-						end,
-						set = function() end,
-						width = 0.30,
-						hidden = not shouldShowTraits,
-						disabled = true,
-					}
-					displayOrder = displayOrder + 1
-					detailsArgs["fam_" .. fn .. "_toggleMajorArmor"] = {
-						order = displayOrder,
-						type = "toggle",
-						name = "|TInterface\\ICONS\\Garrison_BlueArmor:20:20:0:-2|t",
-						desc = "Bulky armor or many ornaments",
-						get = function()
-							return familyTraits.hasMajorArmor or false
-						end,
-						set = function() end,
-						width = 0.30,
-						hidden = not shouldShowTraits,
-						disabled = true,
-					}
-					displayOrder = displayOrder + 1
-					detailsArgs["fam_" .. fn .. "_toggleModelVariant"] = {
-						order = displayOrder,
-						type = "toggle",
-						name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:20:20:0:-2|t",
-						desc = "Updated texture/slightly different model",
-						get = function()
-							return familyTraits.hasModelVariant or false
-						end,
-						set = function() end,
-						width = 0.30,
-						hidden = not shouldShowTraits,
-						disabled = true,
-					}
-					displayOrder = displayOrder + 1
-					detailsArgs["fam_" .. fn .. "_toggleUniqueEffect"] = {
-						order = displayOrder,
-						type = "toggle",
-						name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:20:20:0:-2|t",
-						desc = "Unique variant, stands out from the rest",
-						get = function()
-							return familyTraits.hasUniqueEffect or false
-						end,
-						set = function() end,
-						width = 0.30,
-						hidden = not shouldShowTraits,
-						disabled = true,
-					}
-					displayOrder = displayOrder + 1
-					-- Expand/Collapse button
-					local isFamExpanded = self:IsGroupExpanded(fn)
-					detailsArgs["fam_" .. fn .. "_expand"] = {
-						order = displayOrder,
-						type = "execute",
-						name = "",
-						func = function() self:ToggleExpansionState(fn) end,
-						width = 0.3,
-						hidden = isSingleMountFamily,
-						image = isFamExpanded and "Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonUpLargev11" or
-								"Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonDownLargev11",
-						imageWidth = 40,
-						imageHeight = 20,
-					}
-					displayOrder = displayOrder + 1
-					-- Add a line break after each family
-					detailsArgs["fam_" .. fn .. "_linebreak"] = {
-						order = displayOrder,
-						type = "description",
-						name = "",
-						width = "full",
-					}
-					displayOrder = displayOrder + 1
-					-- If expanded, add mount details after this family
-					if isFamExpanded then
-						-- Add mount details header
-						detailsArgs["fam_" .. fn .. "_mountsheader"] = {
-							order = displayOrder,
-							type = "header",
-							name = "Mounts",
-							width = "full",
-						}
-						displayOrder = displayOrder + 1
-						-- Process mounts
-						local mountList = {}
-						-- Add collected mounts
-						local mIDs = self.processedData.familyToMountIDsMap and
-								self.processedData.familyToMountIDsMap[fn]
-						if mIDs and #mIDs > 0 then
-							for _, mountID in ipairs(mIDs) do
-								local mountName = "ID:" .. mountID
-								if self.processedData.allCollectedMountFamilyInfo and
-										self.processedData.allCollectedMountFamilyInfo[mountID] then
-									mountName = self.processedData.allCollectedMountFamilyInfo[mountID].name or mountName
-								end
-
-								table.insert(mountList, {
-									id = mountID,
-									name = mountName,
-									isCollected = true,
-								})
-							end
-						end
-
-						-- Add uncollected mounts if enabled
-						if showUncollected then
-							local uncollectedIDs = self.processedData.familyToUncollectedMountIDsMap and
-									self.processedData.familyToUncollectedMountIDsMap[fn]
-							if uncollectedIDs and #uncollectedIDs > 0 then
-								for _, mountID in ipairs(uncollectedIDs) do
-									local mountName = "ID:" .. mountID
-									if self.processedData.allUncollectedMountFamilyInfo and
-											self.processedData.allUncollectedMountFamilyInfo[mountID] then
-										mountName = self.processedData.allUncollectedMountFamilyInfo[mountID].name or
-												mountName
-									end
-
-									table.insert(mountList, {
-										id = mountID,
-										name = mountName,
-										isCollected = false,
-									})
-								end
-							end
-						end
-
-						-- Sort all mounts alphabetically
-						table.sort(mountList, function(a, b) return (a.name or "") < (b.name or "") end)
-						if #mountList > 0 then
-							for _, mountData in ipairs(mountList) do
-								local mountID = mountData.id
-								-- Create a display name with appropriate color based on collection status
-								local nameColor = mountData.isCollected and "ffffff" or "9d9d9d"
-								local collectionStatus = mountData.isCollected and "" or ""
-								-- Preview button (for all mounts)
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_preview"] = {
-									order = displayOrder,
-									type = "execute",
-									name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
-									-- Use the same tooltip function as level 1 mounts
-									desc = function()
-										return self:GetMountPreviewTooltip("mount_" .. mountID, "mountID")
-									end,
-									func = function()
-										-- Store the exact mount ID and name in local variables to avoid closure issues
-										local thisID = mountID
-										local thisName = mountData.name
-										local isUncollected = not mountData.isCollected
-										-- Use these local variables directly
-										print("RMB_DEBUG_MOUNT_PREVIEW: Direct preview for " .. thisName)
-										self:ShowMountPreview(thisID, thisName, nil, nil, isUncollected)
-									end,
-									width = 0.3,
-								}
-								displayOrder = displayOrder + 1
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_spacerBeforeName"] = {
-									order = displayOrder,
-									type = "description",
-									name = " ",
-									width = 0.05,
-								}
-								displayOrder = displayOrder + 1
-								-- Mount name
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_name"] = {
-									order = displayOrder,
-									type = "description",
-									name = "|cff" .. nameColor .. "  >> " .. mountData.name .. collectionStatus .. "|r",
-									fontSize = "small",
-									width = 1.0,
-								}
-								displayOrder = displayOrder + 1
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_spacerAfterName"] = {
-									order = displayOrder,
-									type = "description",
-									name = " ",
-									width = 0.08,
-								}
-								displayOrder = displayOrder + 1
-								-- Weight decrement button
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_weightDec"] = {
-									order = displayOrder,
-									type = "execute",
-									name = "",
-									func = function() self:DecrementGroupWeight("mount_" .. mountID) end,
-									disabled = function() return self:GetGroupWeight("mount_" .. mountID) == 0 end,
-									width = 0.05,
-									image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
-									imageWidth = 16,
-									imageHeight = 20,
-								}
-								displayOrder = displayOrder + 1
-								-- Weight display - apply gray color for uncollected mounts
-								local weightDisplayFunc = function()
-									local weightStr = self:GetWeightDisplayString(self:GetGroupWeight("mount_" .. mountID))
-									if not mountData.isCollected then
-										-- Add gray color wrap if it's not already colored
-										if not weightStr:find("|cff") then
-											weightStr = "|cff9d9d9d" .. weightStr .. "|r"
-										end
-									end
-
-									return weightStr
-								end
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_weightDisp"] = {
-									order = displayOrder,
-									type = "description",
-									name = weightDisplayFunc,
-									width = 0.5,
-								}
-								displayOrder = displayOrder + 1
-								-- Weight increment button
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_weightInc"] = {
-									order = displayOrder,
-									type = "execute",
-									name = "",
-									func = function() self:IncrementGroupWeight("mount_" .. mountID) end,
-									disabled = function() return self:GetGroupWeight("mount_" .. mountID) == 6 end,
-									width = 0.05,
-									image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
-									imageWidth = 16,
-									imageHeight = 20,
-								}
-								displayOrder = displayOrder + 1
-								-- Line break after each mount
-								detailsArgs["mount_" .. fn .. "_" .. mountID .. "_linebreak"] = {
-									order = displayOrder,
-									type = "description",
-									name = "",
-									width = "full",
-								}
-								displayOrder = displayOrder + 1
-							end
-						else
-							detailsArgs["fam_" .. fn .. "_nomounts"] = {
-								order = displayOrder,
-								type = "description",
-								name = "No mounts in this family.",
-								width = "full",
-							}
-							displayOrder = displayOrder + 1
-						end
-
-						-- Add a spacer after the mount list
-						detailsArgs["fam_" .. fn .. "_aftermounts"] = {
-							order = displayOrder,
-							type = "description",
-							name = "",
-							width = "full",
-						}
-						displayOrder = displayOrder + 1
-						-- Add a bottom border header line
-						detailsArgs["fam_" .. fn .. "_bottomborder"] = {
-							order = displayOrder,
-							type = "header",
-							name = "",
-							width = "full",
-						}
-						displayOrder = displayOrder + 1
-					end -- if isFamExpanded
-				end -- if mcCollected > 0 or mcUncollected > 0 (end of replaced goto block)
-
-				-- ::continue:: label removed, loop continues to next iteration.
-			end -- end for fidx, fn
-
-			-- Add a bottom border for the supergroup after all families are listed
-			-- This ensures there's always a bottom border, even if no families are expanded
-			-- (or if all families were empty and skipped)
-			detailsArgs["supergroup_bottom_border"] = {
-				order = displayOrder,
-				type = "header",
-				name = "",
-				width = "full",
-			}
-			displayOrder = displayOrder + 1
-		else
-			detailsArgs.nf = { order = 1, type = "description", name = "No families/mounts.", width = "full" }
-		end
-	elseif groupType == "familyName" then
-		-- Process mounts in a standalone family
-		local mountList = {}
-		-- Add collected mounts
-		local mIDs = self.processedData.familyToMountIDsMap and self.processedData.familyToMountIDsMap[groupKey]
-		if mIDs and #mIDs > 0 then
-			for _, mountID in ipairs(mIDs) do
-				local mountName = "ID:" .. mountID
-				if self.processedData.allCollectedMountFamilyInfo and
-						self.processedData.allCollectedMountFamilyInfo[mountID] then
-					mountName = self.processedData.allCollectedMountFamilyInfo[mountID].name or mountName
-				end
-
-				table.insert(mountList, {
-					id = mountID,
-					name = mountName,
-					isCollected = true,
-				})
-			end
-		end
-
-		-- Add uncollected mounts if enabled
-		if showUncollected then
-			local uncollectedIDs = self.processedData.familyToUncollectedMountIDsMap and
-					self.processedData.familyToUncollectedMountIDsMap[groupKey]
-			if uncollectedIDs and #uncollectedIDs > 0 then
-				for _, mountID in ipairs(uncollectedIDs) do
-					local mountName = "ID:" .. mountID
-					if self.processedData.allUncollectedMountFamilyInfo and
-							self.processedData.allUncollectedMountFamilyInfo[mountID] then
-						mountName = self.processedData.allUncollectedMountFamilyInfo[mountID].name or mountName
-					end
-
-					table.insert(mountList, {
-						id = mountID,
-						name = mountName,
-						isCollected = false,
-					})
-				end
-			end
-		end
-
-		-- Sort all mounts alphabetically
-		table.sort(mountList, function(a, b) return (a.name or "") < (b.name or "") end)
-		if #mountList > 0 then
-			for _, mountData in ipairs(mountList) do
-				local mountID = mountData.id
-				-- Create a display name with appropriate color based on collection status
-				local nameColor = mountData.isCollected and "ffffff" or "9d9d9d"
-				local collectionStatus = mountData.isCollected and "" or " (Mount)"
-				-- Preview button (for mounts only)
-				detailsArgs["mount_" .. mountID .. "_preview"] = {
-					order = displayOrder,
-					type = "execute",
-					name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
-					-- Use a SIMPLE STRING for tooltip
-					desc = function()
-						return self:GetMountPreviewTooltip("mount_" .. mountID, "mountID")
-					end,
-					func = function()
-						-- Store the exact mount ID and name in local variables to avoid closure issues
-						local thisID = mountID
-						local thisName = mountData.name
-						local isUncollected = not mountData.isCollected
-						-- Use these local variables directly
-						print("RMB_DEBUG_MOUNT_PREVIEW: Direct preview for " .. thisName)
-						self:ShowMountPreview(thisID, thisName, nil, nil, isUncollected)
-					end,
-					width = 0.3,
-				}
-				displayOrder = displayOrder + 1
-				detailsArgs["mount_" .. mountID .. "_spacerBeforeName"] = {
-					order = displayOrder,
-					type = "description",
-					name = "",
-					width = 0.05,
-				}
-				displayOrder = displayOrder + 1
-				-- Mount name
-				detailsArgs["mount_" .. mountID .. "_name"] = {
-					order = displayOrder,
-					type = "description",
-					name = "|cff" .. nameColor .. "  > " .. mountData.name .. collectionStatus .. "|r",
-					fontSize = "small",
-					width = 1.00,
-				}
-				displayOrder = displayOrder + 1
-				detailsArgs["mount_" .. mountID .. "_spacerAfterName"] = {
-					order = displayOrder,
-					type = "description",
-					name = "",
-					width = 0.08,
-				}
-				displayOrder = displayOrder + 1
-				-- Weight decrement button
-				detailsArgs["mount_" .. mountID .. "_weightDec"] = {
-					order = displayOrder,
-					type = "execute",
-					name = "",
-					func = function() self:DecrementGroupWeight("mount_" .. mountID) end,
-					disabled = function() return self:GetGroupWeight("mount_" .. mountID) == 0 end,
-					width = 0.05,
-					image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
-					imageWidth = 16,
-					imageHeight = 20,
-				}
-				displayOrder = displayOrder + 1
-				-- Weight display
-				detailsArgs["mount_" .. mountID .. "_weightDisp"] = {
-					order = displayOrder,
-					type = "description",
-					name = function() return self:GetWeightDisplayString(self:GetGroupWeight("mount_" .. mountID)) end,
-					width = 0.5,
-				}
-				displayOrder = displayOrder + 1
-				-- Weight increment button
-				detailsArgs["mount_" .. mountID .. "_weightInc"] = {
-					order = displayOrder,
-					type = "execute",
-					name = "",
-					func = function() self:IncrementGroupWeight("mount_" .. mountID) end,
-					disabled = function() return self:GetGroupWeight("mount_" .. mountID) == 6 end,
-					width = 0.05,
-					image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
-					imageWidth = 16,
-					imageHeight = 20,
-				}
-				displayOrder = displayOrder + 1
-				-- Line break after each mount
-				detailsArgs["mount_" .. mountID .. "_linebreak"] = {
-					order = displayOrder,
-					type = "description",
-					name = "",
-					width = "full",
-				}
-				displayOrder = displayOrder + 1
-			end
-
-			-- Add a bottom border header line after the mount list
-			detailsArgs["bottom_border"] = {
-				order = displayOrder,
-				type = "header",
-				name = "",
-				width = "full",
-			}
-			displayOrder = displayOrder + 1
-		else
-			detailsArgs.nm = { order = 1, type = "description", name = "No mounts in this family.", width = "full" }
-		end
+-- Trigger UI refresh
+function addon:TriggerFamilyManagementUIRefresh()
+	if self.MountDataManager and self.MountDataManager.InvalidateCache then
+		self.MountDataManager:InvalidateCache("manual_refresh")
 	else
-		detailsArgs.ut = { order = 1, type = "description", name = "Unknown group type.", width = "full" }
+		print("RMB_WARN: MountDataManager or InvalidateCache not found for TriggerFamilyManagementUIRefresh")
 	end
 
-	-- Add a placeholder if nothing was added
-	if displayOrder == 1 then
-		detailsArgs.nd = { order = 1, type = "description", name = "No details available.", width = "full" }
-	end
-
-	print("RMB_DEBUG_UI_DETAILS: GetExpandedGroupDetailsArgs returns " .. (displayOrder - 1) .. " items for detailsArgs.")
-	return detailsArgs
-end
-
-function addon:ToggleExpansionState(groupKey)
-	if not (self.db and self.db.profile and self.db.profile.expansionStates) then
-		print("RMB_UI: ExpStates DB ERR"); return
-	end;
-
-	self.db.profile.expansionStates[groupKey] = not self.db.profile.expansionStates[groupKey]
-	print("RMB_UI:ToggleExp for '" .. tostring(groupKey) .. "' to " ..
-		tostring(self.db.profile.expansionStates[groupKey]))
-	-- After changing expansion state, we need to repopulate the UI for the current page to update the expanded item
 	self:PopulateFamilyManagementUI()
 end
 
-function addon:IsGroupExpanded(gk)
-	if not (self.db and self.db.profile and self.db.profile.expansionStates) then return false end; return self.db
-			.profile.expansionStates[gk] == true
-end
-
-function addon:GetGroupWeight(gk)
-	if not (self.db and self.db.profile and self.db.profile.groupWeights) then return 0 end; local w = self.db.profile
-			.groupWeights[gk]; if w == nil then return 0 end; return tonumber(w) or 0
-end
-
-function addon:SetGroupWeight(gk, w)
-	if not (self.db and self.db.profile and self.db.profile.groupWeights) then return end;
-
-	local nw = tonumber(w); if nw == nil or nw < 0 or nw > 6 then
-		print("RMB_SET: Invalid W for " .. tostring(gk)); return
-	end;
-
-	self.db.profile.groupWeights[gk] = nw; print("RMB_SET:SetGW K:'" .. tostring(gk) .. "',W:" .. tostring(nw))
-	-- NO NotifyChange here; AceConfig widget should update itself via its get method
-end
-
-function addon:IsGroupEnabled(gk)
-	if not (self.db and self.db.profile and self.db.profile.groupEnabledStates) then return true end; local ie = self.db
-			.profile.groupEnabledStates[gk]; if ie == nil then return true end; return ie == true
-end
-
-function addon:SetGroupEnabled(gk, e)
-	if not (self.db and self.db.profile and self.db.profile.groupEnabledStates) then return end;
-
-	local be = (e == true); self.db.profile.groupEnabledStates[gk] = be;
-	print("RMB_SET:SetGE K:'" .. tostring(gk) .. "',E:" .. tostring(be))
-	-- NO NotifyChange here
-end
-
-function addon:FixPreviewConsistency()
-	print("RMB_DEBUG: Setting up refreshing preview system")
-	-- Create a table to temporarily store mount selections during a tooltip session
-	self.currentPreviewSelection = {}
-	-- Replace the GetRandomMountFromGroup function to handle consistency during a single hover
-	self.originalGetRandomMountFromGroup = self.GetRandomMountFromGroup
-	self.GetRandomMountFromGroup = function(self, groupKey, groupType)
-		-- Generate a consistent key for this group
-		local cacheKey = groupKey .. (groupType or "")
-		-- If we already have a mount selected for this tooltip session, return it
-		if self.currentPreviewSelection.key == cacheKey and
-				self.currentPreviewSelection.id and
-				self.currentPreviewSelection.name then
-			return self.currentPreviewSelection.id, self.currentPreviewSelection.name
-		end
-
-		-- Get a new random mount
-		local mountID, mountName = self.originalGetRandomMountFromGroup(self, groupKey, groupType)
-		-- Store this selection for the current tooltip session
-		if mountID then
-			self.currentPreviewSelection = {
-				key = cacheKey,
-				id = mountID,
-				name = mountName,
-			}
-		end
-
-		return mountID, mountName
-	end
-	-- Hook tooltip hiding to reset the selection when tooltip closes
-	-- This ensures a new random mount next time
-	GameTooltip:HookScript("OnHide", function()
-		-- Clear the current preview selection when a tooltip is hidden
-		-- This will force a new random mount the next time
-		self.currentPreviewSelection = {}
-	end)
-	-- Also hook AceGUI tooltip
-	if LibStub and LibStub("AceGUI-3.0", true) then
-		local AceGUI = LibStub("AceGUI-3.0")
-		if AceGUI and AceGUI.tooltip then
-			AceGUI.tooltip:HookScript("OnHide", function()
-				self.currentPreviewSelection = {}
-			end)
-		end
-	end
-
-	-- Also hook AceConfigDialog tooltip
-	if LibStub and LibStub("AceConfigDialog-3.0", true) then
-		local AceConfigDialog = LibStub("AceConfigDialog-3.0")
-		if AceConfigDialog and AceConfigDialog.tooltip then
-			AceConfigDialog.tooltip:HookScript("OnHide", function()
-				self.currentPreviewSelection = {}
-			end)
-		end
-	end
-
-	print("RMB_DEBUG: Refreshing preview system installed")
-end
-
--- Helper function to check if any tooltip is visible
-function addon:IsAnyTooltipVisible()
-	-- Check various tooltip objects
-	if GameTooltip:IsShown() then
-		return true
-	end
-
-	-- Check Ace tooltips
-	if _G["AceGUITooltip"] and _G["AceGUITooltip"]:IsVisible() then
-		return true
-	end
-
-	if _G["AceConfigDialogTooltip"] and _G["AceConfigDialogTooltip"]:IsVisible() then
-		return true
-	end
-
-	return false
-end
-
--- Function to show model for current tooltip
-function addon:ShowModelForTooltip()
-	-- Make sure we have a valid mount to show
-	if not self.lastPreviewMount or not self.lastPreviewMount.mountID then
-		return
-	end
-
-	local mountID = self.lastPreviewMount.mountID
-	local mountName = self.lastPreviewMount.mountName
-	-- Get display ID for the mount
-	local creatureDisplayID = select(1, C_MountJournal.GetMountInfoExtraByID(mountID))
-	if not creatureDisplayID then
-		return
-	end
-
-	-- Find the tooltip owner (try several tooltip objects)
-	local tooltipOwner = nil
-	if GameTooltip:IsShown() then
-		tooltipOwner = GameTooltip:GetOwner()
-	elseif _G["AceGUITooltip"] and _G["AceGUITooltip"]:IsVisible() then
-		tooltipOwner = _G["AceGUITooltip"]:GetOwner()
-	elseif _G["AceConfigDialogTooltip"] and _G["AceConfigDialogTooltip"]:IsVisible() then
-		tooltipOwner = _G["AceConfigDialogTooltip"]:GetOwner()
-	end
-
-	if not tooltipOwner then
-		return
-	end
-
-	-- Position and show the model
-	local frame = self.modelPreviewFrame
-	frame:ClearAllPoints()
-	frame:SetPoint("LEFT", tooltipOwner, "RIGHT", 10, 0)
-	frame:SetDisplayInfo(creatureDisplayID)
-	frame:SetCamDistanceScale(1.5)
-	frame:SetPosition(0, 0, 0)
-	frame:Show()
-	print("RMB_MODEL: Showing tooltip model for " .. mountName)
-end
-
--- Modify the existing GetMountPreviewTooltip function to store the mount
-function addon:GetMountPreviewTooltip(groupKey, groupType)
-	print("RMB_DEBUG_TOOLTIP: Getting tooltip for " .. tostring(groupKey))
-	-- Always include uncollected mounts in tooltip if setting is enabled
-	local includeUncollected = self:GetSetting("showUncollectedMounts")
-	local mountID, mountName, isUncollected = self:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
-	if not mountID then
-		print("RMB_DEBUG_TOOLTIP: No mounts found for " .. tostring(groupKey))
-		return "No mounts found in this group"
-	end
-
-	-- Store the mount ID and call our OnShow hook
-	self.currentTooltipMount = mountID
-	-- Return tooltip text with uncollected indicator if needed
-	if isUncollected then
-		print("RMB_DEBUG_TOOLTIP: Returning uncollected tooltip for " .. tostring(mountName))
-		return "|cff9d9d9dMount: " .. mountName .. " (Uncollected)|r\n(Click to open Preview Window)"
-	else
-		print("RMB_DEBUG_TOOLTIP: Returning collected tooltip for " .. tostring(mountName))
-		return "Mount: " .. mountName .. "\n(Click to open Preview Window)"
-	end
-end
-
--- Create a tooltip with a model attached
-function addon:InitializeModelTooltip()
-	-- First create the backdrop frame
-	local bg = CreateFrame("Frame", "RMB_ModelTooltipBG", UIParent, "BackdropTemplate")
-	bg:SetSize(160, 160)
-	bg:SetFrameStrata("TOOLTIP")
-	bg:SetFrameLevel(1) -- Set to lowest frame level
-	bg:SetBackdrop({
-		bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-		edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-		tile = true,
-		tileSize = 16,
-		edgeSize = 16,
-		insets = { left = 4, right = 4, top = 4, bottom = 4 },
-	})
-	bg:SetBackdropColor(0, 0, 0, 0.7) -- Semi-transparent
-	bg:Hide()
-	-- Now create the model frame with a higher frame level
-	local frame = CreateFrame("PlayerModel", "RMB_ModelTooltip", UIParent)
-	frame:SetSize(150, 150)
-	frame:SetFrameStrata("TOOLTIP")
-	frame:SetFrameLevel(10) -- Higher frame level means it renders on top
-	frame:Hide()
-	-- Link them together
-	self.modelTooltipBG = bg
-	self.modelTooltip = frame
-	-- When showing one, show the other and position them together
-	GameTooltip:HookScript("OnShow", function(tooltip)
-		if self.currentTooltipMount then
-			-- Set up the model
-			local creatureDisplayID = select(1, C_MountJournal.GetMountInfoExtraByID(self.currentTooltipMount))
-			if creatureDisplayID then
-				frame:SetDisplayInfo(creatureDisplayID)
-				frame:SetCamDistanceScale(1.5)
-				frame:SetPosition(0, 0, 0)
-				-- Position model
-				frame:ClearAllPoints()
-				frame:SetPoint("LEFT", tooltip, "RIGHT", 0, 0)
-				-- Position backdrop behind model
-				bg:ClearAllPoints()
-				bg:SetPoint("CENTER", frame, "CENTER", 0, 0)
-				-- Show both
-				bg:Show()
-				frame:Show()
-				print("RMB_DEBUG: Showing model for mount ID: " .. self.currentTooltipMount)
-			end
-		else
-			bg:Hide()
-			frame:Hide()
-		end
-	end)
-	-- Hide both on tooltip hide
-	GameTooltip:HookScript("OnHide", function()
-		bg:Hide()
-		frame:Hide()
-		-- Clear the current mount
-		self.currentTooltipMount = nil
-	end)
-	-- Same for AceConfigDialog tooltip
-	if LibStub and LibStub("AceConfigDialog-3.0", true) then
-		local AceConfigDialog = LibStub("AceConfigDialog-3.0")
-		if AceConfigDialog and AceConfigDialog.tooltip then
-			AceConfigDialog.tooltip:HookScript("OnShow", function(tooltip)
-				if self.currentTooltipMount then
-					local creatureDisplayID = select(1, C_MountJournal.GetMountInfoExtraByID(self.currentTooltipMount))
-					if creatureDisplayID then
-						frame:SetDisplayInfo(creatureDisplayID)
-						frame:SetCamDistanceScale(1.5)
-						frame:SetPosition(0, 0, 0)
-						frame:SetFacing(0.5) -- Adjust this value to change the angle
-						frame:ClearAllPoints()
-						frame:SetPoint("LEFT", tooltip, "RIGHT", 0, 0)
-						bg:ClearAllPoints()
-						bg:SetPoint("CENTER", frame, "CENTER", 0, 0)
-						bg:Show()
-						frame:Show()
-					end
-				else
-					bg:Hide()
-					frame:Hide()
-				end
-			end)
-			AceConfigDialog.tooltip:HookScript("OnHide", function()
-				bg:Hide()
-				frame:Hide()
-				self.currentTooltipMount = nil
-			end)
-		end
-	end
-
-	print("RMB_DEBUG: Model tooltip initialized")
-end
-
-function addon:SetupIconOnlyButtons()
-	-- Hook AceConfigDialog:Open to modify buttons after UI creation
-	if LibStub and LibStub("AceConfigDialog-3.0") then
-		local AceConfigDialog = LibStub("AceConfigDialog-3.0")
-		if not AceConfigDialog then return end
-
-		local origOpen = AceConfigDialog.Open
-		AceConfigDialog.Open = function(self, ...)
-			-- Call original function
-			local frame = origOpen(self, ...)
-			-- Allow time for frame to be fully created
-			C_Timer.After(0.1, function()
-				addon:FixIconOnlyButtons()
-			end)
-			return frame
-		end
-	end
-
-	print("RMB_DEBUG: Setup icon-only button fix")
-end
-
-function addon:FixIconOnlyButtons()
-	-- Find and fix all Preview buttons
-	local buttons = {}
-	-- Find all frames with Preview buttons
-	local function scanForButtons(frame)
-		if not frame then return end
-
-		for i = 1, frame:GetNumChildren() do
-			local child = select(i, frame:GetChildren())
-			if not child then break end
-
-			-- Check if this is a button
-			if child.GetObjectType and child:GetObjectType() == "Button" then
-				local text = child:GetText()
-				-- If it's a Preview button with icon
-				if text == "" and child:GetName() and child:GetName():find("Preview") then
-					table.insert(buttons, child)
-				end
-			end
-
-			-- Scan children recursively
-			if child.GetNumChildren and child:GetNumChildren() > 0 then
-				scanForButtons(child)
-			end
-		end
-	end
-
-	-- Find InterfaceOptionsFrame and scan it
-	if InterfaceOptionsFrame then
-		scanForButtons(InterfaceOptionsFrame)
-	end
-
-	-- Fix the found buttons
-	for _, button in ipairs(buttons) do
-		-- Make sure the button still triggers tooltips
-		button:SetHitRectInsets(0, 0, 0, 0)
-		-- Find and center the texture if present
-		for i = 1, button:GetNumRegions() do
-			local region = select(i, button:GetRegions())
-			if region and region:GetObjectType() == "Texture" and not region:GetName() then
-				region:ClearAllPoints()
-				region:SetPoint("CENTER", button, "CENTER", 0, 0)
-			end
-		end
-
-		-- Create a fontstring for the tooltip if needed
-		if not button.tooltipText then
-			button.tooltipText = button:CreateFontString(nil, "ARTWORK")
-			button.tooltipText:SetText("Preview Mount")
-			button.tooltipText:Hide()
-		end
-
-		-- Make sure tooltips work
-		button:HookScript("OnEnter", function(self)
-			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-			GameTooltip:SetText("Preview Mount")
-			GameTooltip:Show()
-		end)
-		button:HookScript("OnLeave", function()
-			GameTooltip:Hide()
-		end)
-	end
-
-	print("RMB_DEBUG: Fixed " .. #buttons .. " icon-only buttons")
-end
-
-function addon:InitializeMountUI()
-	-- Storage for current tooltip mount
-	self.currentTooltipMount = nil
-	-- Initialize model tooltip
-	self:InitializeModelTooltip()
-	-- Setup icon-only buttons
-	self:SetupIconOnlyButtons()
-	print("RMB_DEBUG: Mount UI system initialized")
-end
-
-print("RMB_DEBUG: MountListUI.lua END.")
+print("RMB_DEBUG: MountListUI.lua (Refactored) END.")
