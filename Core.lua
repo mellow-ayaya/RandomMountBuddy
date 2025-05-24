@@ -379,6 +379,10 @@ function addon:InitializeAllMountModules()
 		self:InitializeMountDataManager()
 	end
 
+	if self.InitializeSearchSystem then
+		self:InitializeSearchSystem()
+	end
+
 	if self.InitializeMountTooltips then
 		self:InitializeMountTooltips()
 	end

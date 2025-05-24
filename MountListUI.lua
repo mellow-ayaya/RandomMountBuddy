@@ -18,7 +18,7 @@ end
 -- MAIN UI BUILDING FUNCTION
 -- ============================================================================
 function addon:BuildFamilyManagementArgs()
-	print("RMB_UI: BuildFamilyManagementArgs called (Properly Integrated)")
+	print("RMB_UI: BuildFamilyManagementArgs called (With Search)")
 	local pageArgs = {}
 	local displayOrder = 1
 	-- Check if data is ready
@@ -31,23 +31,93 @@ function addon:BuildFamilyManagementArgs()
 		return pageArgs
 	end
 
-	-- Get displayable groups from data manager
-	local allDisplayableGroups = self:GetDisplayableGroups()
+	-- ADD SEARCH UI SECTION
+	pageArgs.search_header = {
+		order = displayOrder,
+		type = "header",
+		name = "Search Your Mounts",
+	}
+	displayOrder = displayOrder + 1
+	pageArgs.search_input = {
+		order = displayOrder,
+		type = "input",
+		name = "Search",
+		desc = "Type 3+ characters to search mount names, families, or groups",
+		get = function()
+			return self.SearchSystem and self.SearchSystem:GetSearchTerm() or ""
+		end,
+		set = function(info, value)
+			local searchTerm = value and value:trim() or ""
+			if searchTerm ~= "" then
+				self:StartSearch(searchTerm) -- This will use the 500ms debounce
+			else
+				self:ClearSearch()
+			end
+		end,
+		width = "full",
+	}
+	displayOrder = displayOrder + 1
+	-- Show search status if active
+	local searchStatus = self:GetSearchStatus()
+	if searchStatus then
+		pageArgs.search_status = {
+			order = displayOrder,
+			type = "description",
+			name = "|cff00ff00" .. searchStatus .. "|r",
+			width = "full",
+		}
+		displayOrder = displayOrder + 1
+		pageArgs.search_clear = {
+			order = displayOrder,
+			type = "execute",
+			name = "Clear Search",
+			desc = "Clear search and return to normal view",
+			func = function()
+				self:ClearSearch()
+			end,
+			width = 1.0,
+		}
+		displayOrder = displayOrder + 1
+	end
+
+	-- MODIFY GROUP SELECTION LOGIC
+	local allDisplayableGroups
+	local usingSearchResults = false
+	if self:IsSearchActive() then
+		allDisplayableGroups = self:GetSearchResults()
+		usingSearchResults = true
+	else
+		allDisplayableGroups = self:GetDisplayableGroups()
+	end
+
 	if not allDisplayableGroups or #allDisplayableGroups == 0 then
+		local message = usingSearchResults and
+				"No mounts found matching your search. Try different keywords." or
+				"No mount groups found (0 collected or no matches)."
 		pageArgs["no_groups_msg"] = {
 			order = displayOrder,
 			type = "description",
-			name = "No mount groups found (0 collected or no matches).",
+			name = message,
 		}
 		return pageArgs
 	end
 
-	-- Calculate pagination
+	-- MODIFY PAGINATION LOGIC
 	local totalGroups = #allDisplayableGroups
 	local itemsPerPage = self:FMG_GetItemsPerPage()
+	-- If searching, show all results (up to reasonable limit)
+	if usingSearchResults then
+		itemsPerPage = math.min(totalGroups, 100) -- Show all search results
+	end
+
 	local totalPages = math.max(1, math.ceil(totalGroups / itemsPerPage))
 	local currentPage = math.max(1, math.min(self.fmCurrentPage or 1, totalPages))
-	self.fmCurrentPage = currentPage
+	-- Reset to page 1 when search becomes active
+	if usingSearchResults then
+		currentPage = 1
+		self.fmCurrentPage = 1
+	end
+
 	-- Add column headers using MountUIComponents
 	if self.MountUIComponents then
 		local headerComponents = self.MountUIComponents:CreateColumnHeaders(displayOrder)
@@ -65,7 +135,7 @@ function addon:BuildFamilyManagementArgs()
 	local startIndex = (currentPage - 1) * itemsPerPage + 1
 	local endIndex = math.min(startIndex + itemsPerPage - 1, totalGroups)
 	print("RMB_UI: Building page " .. currentPage .. " (" .. startIndex .. "-" .. endIndex .. " of " .. totalGroups .. ")")
-	-- Build group entries
+	-- Build group entries (same as before)
 	local groupEntryOrder = displayOrder
 	for i = startIndex, endIndex do
 		local groupData = allDisplayableGroups[i]
@@ -92,8 +162,8 @@ function addon:BuildFamilyManagementArgs()
 		end
 	end
 
-	-- Add pagination controls using MountUIComponents
-	if self.MountUIComponents then
+	-- Add pagination controls (only if not searching)
+	if not usingSearchResults and self.MountUIComponents then
 		local paginationComponents = self.MountUIComponents:CreatePaginationControls(currentPage, totalPages, groupEntryOrder)
 		for k, v in pairs(paginationComponents) do
 			pageArgs[k] = v
@@ -106,7 +176,7 @@ function addon:BuildFamilyManagementArgs()
 		type = "execute",
 		name = "Refresh List",
 		func = function()
-			self:TriggerFamilyManagementUIRefresh()
+			self:PopulateFamilyManagementUI()
 		end,
 		width = 3.6,
 	}
