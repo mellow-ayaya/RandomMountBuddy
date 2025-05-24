@@ -1,3 +1,6 @@
+# 0.7.6
+Fixed misalignment of some elements in mount list.
+
 # 0.7.5
 Updated pagination.
 
