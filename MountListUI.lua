@@ -18,7 +18,7 @@ end
 -- MAIN UI BUILDING FUNCTION
 -- ============================================================================
 function addon:BuildFamilyManagementArgs()
-	print("RMB_UI: BuildFamilyManagementArgs called (With Search)")
+	print("RMB_UI: BuildFamilyManagementArgs called (With Search and Filters)")
 	local pageArgs = {}
 	local displayOrder = 1
 	-- Check if data is ready
@@ -31,6 +31,7 @@ function addon:BuildFamilyManagementArgs()
 		return pageArgs
 	end
 
+	-- SEARCH SECTION
 	pageArgs.search_description = {
 		order = displayOrder,
 		type = "description",
@@ -49,7 +50,7 @@ function addon:BuildFamilyManagementArgs()
 		set = function(info, value)
 			local searchTerm = value and value:trim() or ""
 			if searchTerm ~= "" then
-				self:StartSearch(searchTerm) -- This will use the 500ms debounce
+				self:StartSearch(searchTerm)
 			else
 				self:ClearSearch()
 			end
@@ -57,6 +58,55 @@ function addon:BuildFamilyManagementArgs()
 		width = 1.02,
 	}
 	displayOrder = displayOrder + 1
+	-- FILTER SECTION (to the right of search)
+	pageArgs.filter_description = {
+		order = displayOrder,
+		type = "description",
+		name = " ",
+		width = 0.22,
+	}
+	displayOrder = displayOrder + 1
+	pageArgs.filter_toggle = {
+		order = displayOrder,
+		type = "execute",
+		name = "Filter",
+		desc = "Click to show/hide filter options",
+		func = function()
+			-- Toggle filter panel visibility
+			local isExpanded = self:GetSetting("filtersExpanded") or false
+			self:SetSetting("filtersExpanded", not isExpanded)
+			self:PopulateFamilyManagementUI()
+		end,
+		width = 0.5,
+	}
+	displayOrder = displayOrder + 1
+	-- Reset button (only show when filters are active)
+	if self:AreFiltersActive() then
+		pageArgs.filter_reset = {
+			order = displayOrder,
+			type = "execute",
+			name = "Reset Filter",
+			desc = "Clear all active filters",
+			func = function()
+				self:ResetAllFilters()
+			end,
+			width = 0.3,
+		}
+		displayOrder = displayOrder + 1
+	end
+
+	-- Show filter status if active
+	local filterStatus = self:GetFilterStatus()
+	if filterStatus then
+		pageArgs.filter_status = {
+			order = displayOrder,
+			type = "description",
+			name = "  |cffff9900" .. filterStatus .. "|r",
+			width = "full", -- Changed from 2.0 to use full available width
+		}
+		displayOrder = displayOrder + 1
+	end
+
 	-- Show search status if active
 	local searchStatus = self:GetSearchStatus()
 	if searchStatus then
@@ -64,36 +114,65 @@ function addon:BuildFamilyManagementArgs()
 			order = displayOrder,
 			type = "description",
 			name = "  |cff00ff00" .. searchStatus .. "|r",
-			width = 2.6,
+			width = 2.0,
 		}
 		displayOrder = displayOrder + 1
 		pageArgs.search_clear = {
 			order = displayOrder,
 			type = "execute",
 			name = "Clear Search",
-			desc = "Clear search and return to normal view",
+			desc = "Clear search and return to filtered view",
 			func = function()
 				self:ClearSearch()
 			end,
-			width = 1.0,
+			width = 0.6,
 		}
 		displayOrder = displayOrder + 1
 	end
 
-	-- MODIFY GROUP SELECTION LOGIC
+	-- EXPANDABLE FILTER PANEL
+	if self:GetSetting("filtersExpanded") then
+		pageArgs.filter_panel = {
+			order = displayOrder,
+			type = "group",
+			inline = true,
+			name = "Filter Options",
+			args = self:BuildFilterPanelArgs(),
+		}
+		displayOrder = displayOrder + 1
+	end
+
+	-- MOUNT GROUP SELECTION LOGIC (Updated to respect filters)
 	local allDisplayableGroups
 	local usingSearchResults = false
 	if self:IsSearchActive() then
+		-- Search is active - get search results and apply filters to them
 		allDisplayableGroups = self:GetSearchResults()
 		usingSearchResults = true
+		-- Apply filters to search results
+		if self:AreFiltersActive() then
+			allDisplayableGroups = self:GetFilteredGroups(allDisplayableGroups)
+		end
 	else
+		-- No search active - get all groups and apply filters
 		allDisplayableGroups = self:GetDisplayableGroups()
+		if self:AreFiltersActive() then
+			allDisplayableGroups = self:GetFilteredGroups(allDisplayableGroups)
+		end
 	end
 
 	if not allDisplayableGroups or #allDisplayableGroups == 0 then
-		local message = usingSearchResults and
-				"No mounts found matching your search. Try different keywords." or
-				"No mount groups found (0 collected or no matches)."
+		local message
+		if usingSearchResults and self:AreFiltersActive() then
+			message = "No mounts found matching your search and filter criteria."
+		elseif usingSearchResults then
+			message = "No mounts found matching your search. Try different keywords."
+		elseif self:AreFiltersActive() then
+			message = "No mounts match your current filter settings."
+		else
+			message = "No mount groups found (0 collected or no matches)."
+		end
+
 		pageArgs["no_groups_msg"] = {
 			order = displayOrder,
 			type = "description",
@@ -102,17 +181,15 @@ function addon:BuildFamilyManagementArgs()
 		return pageArgs
 	end
 
-	-- MODIFY PAGINATION LOGIC
+	-- PAGINATION LOGIC (rest remains the same)
 	local totalGroups = #allDisplayableGroups
 	local itemsPerPage = self:FMG_GetItemsPerPage()
-	-- If searching, show all results (up to reasonable limit)
 	if usingSearchResults then
-		itemsPerPage = math.min(totalGroups, 100) -- Show all search results
+		itemsPerPage = math.min(totalGroups, 100)
 	end
 
 	local totalPages = math.max(1, math.ceil(totalGroups / itemsPerPage))
 	local currentPage = math.max(1, math.min(self.fmCurrentPage or 1, totalPages))
-	-- Reset to page 1 when search becomes active
 	if usingSearchResults then
 		currentPage = 1
 		self.fmCurrentPage = 1
@@ -131,24 +208,21 @@ function addon:BuildFamilyManagementArgs()
 		return pageArgs
 	end
 
-	-- Calculate page bounds
+	-- Calculate page bounds and build group entries (rest unchanged)
 	local startIndex = (currentPage - 1) * itemsPerPage + 1
 	local endIndex = math.min(startIndex + itemsPerPage - 1, totalGroups)
 	print("RMB_UI: Building page " .. currentPage .. " (" .. startIndex .. "-" .. endIndex .. " of " .. totalGroups .. ")")
-	-- Build group entries (same as before)
 	local groupEntryOrder = displayOrder
 	for i = startIndex, endIndex do
 		local groupData = allDisplayableGroups[i]
 		if groupData then
 			local groupKey = groupData.key
 			local isExpanded = self:IsGroupExpanded(groupKey)
-			-- Get expanded details if needed
 			local expandedDetails = nil
 			if isExpanded then
 				expandedDetails = self:GetExpandedGroupDetailsArgs(groupKey, groupData.type)
 			end
 
-			-- Build complete group entry using MountUIComponents
 			local groupEntry = self.MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetails)
 			pageArgs["entry_" .. groupKey] = {
 				order = groupEntryOrder,
@@ -171,20 +245,117 @@ function addon:BuildFamilyManagementArgs()
 		end
 	end
 
-	-- Add refresh button
-	--[[
-	pageArgs["manual_refresh_button"] = {
-		order = 9999,
-		type = "execute",
-		name = "Refresh List",
-		func = function()
-			self:PopulateFamilyManagementUI()
-		end,
-		width = 3.6,
-	}
-	--]]
 	print("RMB_UI: Built UI with " .. (endIndex - startIndex + 1) .. " group entries")
 	return pageArgs
+end
+
+-- ADD this new function to MountListUI.lua:
+function addon:BuildFilterPanelArgs()
+	local filterArgs = {}
+	local order = 1
+	-- Mount Source Filters
+	filterArgs.source_header = {
+		order = order,
+		type = "header",
+		name = "Mount Source",
+	}
+	order = order + 1
+	if self.FilterSystem then
+		for sourceId, sourceName in pairs(self.FilterSystem.MOUNT_SOURCES) do
+			filterArgs["source_" .. sourceId] = {
+				order = order,
+				type = "toggle",
+				name = sourceName,
+				desc = "Show mounts from " .. sourceName .. " (ID: " .. sourceId .. ")",
+				get = function()
+					local value = self.FilterSystem:GetFilterSetting("mountSources", sourceId)
+					return value
+				end,
+				set = function(info, value)
+					self.FilterSystem:SetFilterSetting("mountSources", sourceId, value)
+				end,
+				width = 0.8,
+			}
+			order = order + 1
+		end
+	end
+
+	-- Mount Type Filters
+	filterArgs.type_header = {
+		order = order,
+		type = "header",
+		name = "Mount Type",
+	}
+	order = order + 1
+	if self.FilterSystem then
+		for _, typeName in ipairs(self.FilterSystem.MOUNT_TYPES) do
+			filterArgs["type_" .. typeName:gsub(" ", "_")] = {
+				order = order,
+				type = "toggle",
+				name = typeName,
+				desc = "Show " .. typeName .. " mounts",
+				get = function() return self.FilterSystem:GetFilterSetting("mountTypes", typeName) end,
+				set = function(info, value) self.FilterSystem:SetFilterSetting("mountTypes", typeName, value) end,
+				width = 0.8,
+			}
+			order = order + 1
+		end
+	end
+
+	-- Mount Trait Filters
+	filterArgs.trait_header = {
+		order = order,
+		type = "header",
+		name = "Mount Traits",
+	}
+	order = order + 1
+	local traitLabels = {
+		hasMinorArmor = "Minor Armor",
+		hasMajorArmor = "Major Armor",
+		hasModelVariant = "Model Variant",
+		isUniqueEffect = "Unique Effect",
+		noTraits = "No Traits",
+	}
+	if self.FilterSystem then
+		for _, traitName in ipairs(self.FilterSystem.MOUNT_TRAITS) do
+			filterArgs["trait_" .. traitName] = {
+				order = order,
+				type = "toggle",
+				name = traitLabels[traitName] or traitName,
+				desc = "Show mounts with " .. (traitLabels[traitName] or traitName),
+				get = function() return self.FilterSystem:GetFilterSetting("mountTraits", traitName) end,
+				set = function(info, value) self.FilterSystem:SetFilterSetting("mountTraits", traitName, value) end,
+				width = 0.8,
+			}
+			order = order + 1
+		end
+	end
+
+	-- Summon Chance Filters
+	filterArgs.chance_header = {
+		order = order,
+		type = "header",
+		name = "Summon Chance",
+	}
+	order = order + 1
+	if self.FilterSystem then
+		for _, chanceName in ipairs(self.FilterSystem.SUMMON_CHANCES) do
+			filterArgs["chance_" .. chanceName] = {
+				order = order,
+				type = "toggle",
+				name = chanceName,
+				desc = "Show mounts with " .. chanceName .. " summon chance",
+				get = function() return self.FilterSystem:GetFilterSetting("summonChances", chanceName) end,
+				set = function(info, value) self.FilterSystem:SetFilterSetting("summonChances", chanceName, value) end,
+				width = 0.8,
+			}
+			order = order + 1
+		end
+	end
+
+	-- Reset button (removed - now in main UI)
+	-- filterArgs.reset_filters = { ... }
+	return filterArgs
 end
 
 -- ============================================================================

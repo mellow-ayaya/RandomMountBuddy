@@ -1,7 +1,7 @@
 ## Interface: 110105, 110107
 ## Title: Random Mount Buddy
 ## Author: mellow_ayaya
-## Version: # 0.7.6
+## Version: # 0.7.7
 ## Notes: Enhances random mount summoning with intelligent grouping and caching.
 ## SavedVariables: RandomMountBuddy_SavedVars
 
@@ -31,6 +31,7 @@ MountTooltips.lua
 MountPreview.lua
 MountListUI.lua
 SearchSystem.lua
+FilterSystem.lua
 
 # Mount Summoning System (Load after Mount System)
 MountSummon.lua

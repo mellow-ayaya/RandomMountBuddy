@@ -32,6 +32,8 @@ local dbDefaults = {
 		-- Mount list options
 		useSuperGrouping = true,
 		showUncollectedMounts = true,
+		filtersExpanded = false,
+		filterSettings = nil,
 		--
 		expansionStates = {},
 		groupWeights = {},
@@ -383,6 +385,10 @@ function addon:InitializeAllMountModules()
 		self:InitializeSearchSystem()
 	end
 
+	if self.InitializeFilterSystem then
+		self:InitializeFilterSystem()
+	end
+
 	if self.InitializeMountTooltips then
 		self:InitializeMountTooltips()
 	end
@@ -569,6 +575,10 @@ function addon:NotifyModulesSettingChanged(key, value)
 
 	if self.MountSummon and self.MountSummon.OnSettingChanged then
 		self.MountSummon:OnSettingChanged(key, value)
+	end
+
+	if self.FilterSystem and self.FilterSystem.OnSettingChanged then
+		self.FilterSystem:OnSettingChanged(key, value)
 	end
 
 	if self.MountTooltips and self.MountTooltips.OnSettingChanged then
@@ -797,6 +807,11 @@ function addon:NotifyModulesDataReady()
 	if self.MountSummon and self.MountSummon.OnDataReady then
 		self.MountSummon:OnDataReady()
 		print("RMB_DEBUG: Notified MountSummon - this builds mount pools!")
+	end
+
+	if self.FilterSystem and self.FilterSystem.OnDataReady then
+		self.FilterSystem:OnDataReady()
+		print("RMB_DEBUG: Notified FilterSystem")
 	end
 
 	if self.MountTooltips and self.MountTooltips.OnDataReady then
