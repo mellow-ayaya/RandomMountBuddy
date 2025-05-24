@@ -212,6 +212,14 @@ function addon:BuildSuperGroupDetails(groupKey, startOrder, showUncollected)
 						displayOrder = displayOrder + (mountItemCount * 2)
 					end
 				end
+
+				detailsArgs["fam_" .. familyName .. "_separator"] = {
+					order = displayOrder,
+					type = "header",
+					name = "",
+					width = "full",
+				}
+				displayOrder = displayOrder + 1
 			end
 		end
 	end

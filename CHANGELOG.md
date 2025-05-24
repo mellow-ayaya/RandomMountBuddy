@@ -1,3 +1,6 @@
+# 0.7.2
+Fixed element order and missing headers in the mount list.
+
 # 0.7.1
 Finished integration of new modules from 0.7.0.
 

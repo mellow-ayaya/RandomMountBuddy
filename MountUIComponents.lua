@@ -1,4 +1,4 @@
--- MountUIComponents.lua - Fixed for Clean Module Architecture
+-- MountUIComponents.lua - Fixed for Clean Module Architecture with Proper Nesting
 -- Reusable UI component builders for mount interface
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
@@ -19,180 +19,34 @@ local WeightDisplayMapping = {
 	[6] = { text = "        Always", color = "ff8000" }, -- Orange
 }
 -- ============================================================================
--- CORE COMPONENT BUILDERS
+-- INDENTATION HELPER FUNCTIONS
 -- ============================================================================
--- Create preview button component
-function MountUIComponents:CreatePreviewButton(groupKey, groupType, order)
-	return {
-		order = order or 0.2,
-		type = "execute",
-		name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
-		desc = function()
-			-- Use clean module interface
-			return addon:GetMountPreviewTooltip(groupKey, groupType)
-		end,
-		func = function(info)
-			local includeUncollected = addon:GetSetting("showUncollectedMounts")
-			local mountID, mountName, isUncollected = addon:GetRandomMountFromGroup(
-				groupKey, groupType, includeUncollected)
-			if mountID then
-				addon:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncollected)
-			else
-				print("RMB_PREVIEW: No mount available to preview from this group")
-			end
-		end,
-		width = 0.3,
+-- Calculate indentation widths based on nesting level
+local function GetLayoutWidths(nestingLevel)
+	-- All nesting levels use identical layout values - no indentation differences
+	local layout = {
+		previewWidth = 0.3,
+		nameIndent = 0.05,
+		nameWidth = 1.0,
+		nameSpacerAfter = 0.08,
+		controlsWidth = 0.5,
+		traitsWidth = 1.2,
+		expandWidth = 0.3,
 	}
-end
-
--- Create weight control components
-function MountUIComponents:CreateWeightControls(groupKey, startOrder)
-	local order = startOrder or 2
-	return {
-		weightDecrement = {
-			order = order,
-			type = "execute",
-			name = "",
-			func = function() addon:DecrementGroupWeight(groupKey) end,
-			disabled = function() return addon:GetGroupWeight(groupKey) == 0 end,
-			width = 0.05,
-			image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
-			imageWidth = 16,
-			imageHeight = 20,
-		},
-		weightDisplay = {
-			order = order + 1,
-			type = "description",
-			name = function()
-				return self:GetWeightDisplayString(addon:GetGroupWeight(groupKey))
-			end,
-			width = 0.5,
-		},
-		weightIncrement = {
-			order = order + 2,
-			type = "execute",
-			name = "",
-			func = function() addon:IncrementGroupWeight(groupKey) end,
-			disabled = function() return addon:GetGroupWeight(groupKey) == 6 end,
-			width = 0.05,
-			image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
-			imageWidth = 16,
-			imageHeight = 20,
-		},
-	}
-end
-
--- Create trait toggle components
-function MountUIComponents:CreateTraitToggles(groupKey, groupType, traits, shouldShow, startOrder)
-	local order = startOrder or 7
-	-- If traits shouldn't be shown, return spacer
-	if not shouldShow then
-		return {
-			spacerNoToggles = {
-				order = order,
-				type = "description",
-				name = " ",
-				width = 1.2,
-			},
-		}
-	end
-
-	-- Return actual trait toggles
-	return {
-		toggleMinorArmor = {
-			order = order,
-			type = "toggle",
-			name = "|TInterface\\ICONS\\Garrison_GreenArmor:20:20:0:-2|t",
-			desc = "Small armor or ornaments",
-			get = function() return traits.hasMinorArmor or false end,
-			set = function() end, -- Read-only for now
-			width = 0.30,
-			disabled = true,
-		},
-		toggleMajorArmor = {
-			order = order + 0.1,
-			type = "toggle",
-			name = "|TInterface\\ICONS\\Garrison_BlueArmor:20:20:0:-2|t",
-			desc = "Bulky armor or many ornaments",
-			get = function() return traits.hasMajorArmor or false end,
-			set = function() end,
-			width = 0.30,
-			disabled = true,
-		},
-		toggleModelVariant = {
-			order = order + 0.2,
-			type = "toggle",
-			name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:20:20:0:-2|t",
-			desc = "Updated texture/slightly different model",
-			get = function() return traits.hasModelVariant or false end,
-			set = function() end,
-			width = 0.30,
-			disabled = true,
-		},
-		toggleUniqueEffect = {
-			order = order + 0.3,
-			type = "toggle",
-			name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:20:20:0:-2|t",
-			desc = "Unique variant, stands out from the rest",
-			get = function() return traits.isUniqueEffect or false end,
-			set = function() end,
-			width = 0.30,
-			disabled = true,
-		},
-	}
-end
-
--- Create spacing components
-function MountUIComponents:CreateSpacers(startOrder)
-	local order = startOrder or 0.3
-	return {
-		spacerBeforeName = {
-			order = order,
-			type = "description",
-			name = " ",
-			width = 0.05,
-		},
-		spaceAfterName = {
-			order = order + 0.8,
-			type = "description",
-			name = " ",
-			width = 0.08,
-		},
-		spacerToggles = {
-			order = order + 3.7,
-			type = "description",
-			name = " ",
-			width = 0.12,
-		},
-	}
-end
-
--- Create expand/collapse button
-function MountUIComponents:CreateExpandButton(groupKey, isExpanded, isSingleMount, order)
-	return {
-		order = order or 8,
-		type = "execute",
-		name = "",
-		func = function() addon:ToggleExpansionState(groupKey) end,
-		width = 0.3,
-		hidden = isSingleMount,
-		image = isExpanded and "Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonUpLargev11" or
-				"Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonDownLargev11",
-		imageWidth = 40,
-		imageHeight = 20,
-	}
+	return layout
 end
 
 -- ============================================================================
--- COMPLETE GROUP ENTRY BUILDER
+-- COMPLETE ENTRY BUILDERS - MAINTAINS ORIGINAL ORDER
 -- ============================================================================
 -- Build a complete group entry (main level - supergroup or standalone family)
 function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetails)
 	local groupKey = groupData.key
+	local nestingLevel = 0 -- Top level
+	local layout = GetLayoutWidths(nestingLevel)
 	-- Get traits and display info safely
 	local shouldShowTraits = false
 	local traits = {}
-	-- Use MountDataManager if available, otherwise fallback
 	if addon.MountDataManager and addon.MountDataManager.ShouldShowTraits then
 		shouldShowTraits = addon.MountDataManager:ShouldShowTraits(groupKey, groupData.type)
 		if shouldShowTraits and addon.MountDataManager.GetFamilyTraits then
@@ -208,40 +62,170 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 	if addon.MountDataManager and addon.MountDataManager.GetGroupDisplayName then
 		displayName = addon.MountDataManager:GetGroupDisplayName(groupData)
 	else
-		-- Fallback display name creation
 		displayName = self:CreateFallbackDisplayName(groupData)
 	end
 
-	-- Build entry components
+	-- Build entry components - MAINTAIN EXACT SAME ORDER AS ORIGINAL
 	local entry = {
-		previewButton = self:CreatePreviewButton(groupKey, groupData.type, 0.2),
+		-- Order 0.2: Preview button
+		previewButton = {
+			order = 0.2,
+			type = "execute",
+			name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
+			desc = function()
+				return addon:GetMountPreviewTooltip(groupKey, groupData.type)
+			end,
+			func = function(info)
+				local includeUncollected = addon:GetSetting("showUncollectedMounts")
+				local mountID, mountName, isUncollected = addon:GetRandomMountFromGroup(
+					groupKey, groupData.type, includeUncollected)
+				if mountID then
+					addon:ShowMountPreview(mountID, mountName, groupKey, groupData.type, isUncollected)
+				else
+					print("RMB_PREVIEW: No mount available to preview from this group")
+				end
+			end,
+			width = layout.previewWidth,
+		},
+
+		-- Order 0.3: Spacer before name
+		spacerBeforeName = {
+			order = 0.3,
+			type = "description",
+			name = " ",
+			width = layout.nameIndent,
+		},
+
+		-- Order 1: Group name
 		group_name = {
 			order = 1,
 			type = "description",
 			name = displayName,
-			width = 1.0,
+			width = layout.nameWidth,
 			fontSize = "medium",
 		},
-		expandCollapse = self:CreateExpandButton(groupKey, isExpanded, isSingleMountFamily, 8),
+
+		-- Order 1.1: Spacer after name
+		spaceAfterName = {
+			order = 1.1,
+			type = "description",
+			name = " ",
+			width = layout.nameSpacerAfter,
+		},
+
+		-- Order 2: Weight decrement
+		weightDecrement = {
+			order = 2,
+			type = "execute",
+			name = "",
+			func = function() addon:DecrementGroupWeight(groupKey) end,
+			disabled = function() return addon:GetGroupWeight(groupKey) == 0 end,
+			width = 0.05,
+			image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
+			imageWidth = 16,
+			imageHeight = 20,
+		},
+
+		-- Order 3: Weight display
+		weightDisplay = {
+			order = 3,
+			type = "description",
+			name = function()
+				return self:GetWeightDisplayString(addon:GetGroupWeight(groupKey))
+			end,
+			width = layout.controlsWidth,
+		},
+
+		-- Order 4: Weight increment
+		weightIncrement = {
+			order = 4,
+			type = "execute",
+			name = "",
+			func = function() addon:IncrementGroupWeight(groupKey) end,
+			disabled = function() return addon:GetGroupWeight(groupKey) == 6 end,
+			width = 0.05,
+			image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
+			imageWidth = 16,
+			imageHeight = 20,
+		},
+
+		-- Order 6: Spacer for toggles
+		spacerToggles = {
+			order = 6,
+			type = "description",
+			name = " ",
+			width = 0.12,
+		},
+
+		-- Order 6 (alternate): Spacer when no toggles
+		spacerNoToggles = {
+			order = 6,
+			type = "description",
+			name = " ",
+			hidden = shouldShowTraits,
+			width = layout.traitsWidth,
+		},
+
+		-- Order 7-7.3: Trait toggles
+		toggleMinorArmor = {
+			order = 7,
+			type = "toggle",
+			name = "|TInterface\\ICONS\\Garrison_GreenArmor:20:20:0:-2|t",
+			desc = "Small armor or ornaments",
+			get = function() return traits.hasMinorArmor or false end,
+			set = function() end,
+			width = 0.30,
+			hidden = not shouldShowTraits,
+			disabled = true,
+		},
+		toggleMajorArmor = {
+			order = 7.1,
+			type = "toggle",
+			name = "|TInterface\\ICONS\\Garrison_BlueArmor:20:20:0:-2|t",
+			desc = "Bulky armor or many ornaments",
+			get = function() return traits.hasMajorArmor or false end,
+			set = function() end,
+			width = 0.30,
+			hidden = not shouldShowTraits,
+			disabled = true,
+		},
+		toggleModelVariant = {
+			order = 7.2,
+			type = "toggle",
+			name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:20:20:0:-2|t",
+			desc = "Updated texture/slightly different model",
+			get = function() return traits.hasModelVariant or false end,
+			set = function() end,
+			width = 0.30,
+			hidden = not shouldShowTraits,
+			disabled = true,
+		},
+		toggleUniqueEffect = {
+			order = 7.3,
+			type = "toggle",
+			name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:20:20:0:-2|t",
+			desc = "Unique variant, stands out from the rest",
+			get = function() return traits.isUniqueEffect or false end,
+			set = function() end,
+			width = 0.30,
+			hidden = not shouldShowTraits,
+			disabled = true,
+		},
+
+		-- Order 8: Expand/collapse button
+		expandCollapse = {
+			order = 8,
+			type = "execute",
+			name = "",
+			func = function() addon:ToggleExpansionState(groupKey) end,
+			width = layout.expandWidth,
+			hidden = isSingleMountFamily,
+			image = isExpanded and "Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonUpLargev11" or
+					"Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonDownLargev11",
+			imageWidth = 40,
+			imageHeight = 20,
+		},
 	}
-	-- Add spacers
-	local spacers = self:CreateSpacers(0.3)
-	for k, v in pairs(spacers) do
-		entry[k] = v
-	end
-
-	-- Add weight controls
-	local weightControls = self:CreateWeightControls(groupKey, 2)
-	for k, v in pairs(weightControls) do
-		entry[k] = v
-	end
-
-	-- Add trait toggles
-	local traitToggles = self:CreateTraitToggles(groupKey, groupData.type, traits, shouldShowTraits, 7)
-	for k, v in pairs(traitToggles) do
-		entry[k] = v
-	end
-
 	-- Add expanded content header if needed
 	if isExpanded then
 		entry.expandedHeader = {
@@ -264,11 +248,10 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 	return entry
 end
 
--- ============================================================================
--- EXPANDED DETAILS BUILDERS
--- ============================================================================
--- Build family entry within a supergroup
+-- Build family entry within a supergroup (nesting level 1)
 function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExpanded, order)
+	local nestingLevel = 1 -- Nested within supergroup
+	local layout = GetLayoutWidths(nestingLevel)
 	-- Get family data safely
 	local shouldShowTraits = false
 	local traits = {}
@@ -279,71 +262,188 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 		end
 	end
 
+	-- MAINTAIN EXACT SAME ORDER AS TOP LEVEL, JUST ADJUST WIDTHS
 	local entry = {
-		preview = self:CreatePreviewButton(familyName, "familyName", order),
+		-- Preview button
+		preview = {
+			order = order,
+			type = "execute",
+			name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
+			desc = function()
+				return addon:GetMountPreviewTooltip(familyName, "familyName")
+			end,
+			func = function()
+				local includeUncollected = addon:GetSetting("showUncollectedMounts")
+				local mountID, mountName, isUncollected = addon:GetRandomMountFromGroup(familyName, "familyName",
+					includeUncollected)
+				if mountID then
+					addon:ShowMountPreview(mountID, mountName, familyName, "familyName", isUncollected)
+				else
+					print("RMB_PREVIEW: No mount available to preview from this family")
+				end
+			end,
+			width = layout.previewWidth,
+		},
+
+		-- Spacer before name
 		spacerBeforeName = {
 			order = order + 0.1,
 			type = "description",
 			name = " ",
-			width = 0.05,
+			width = layout.nameIndent,
 		},
+
+		-- Family name
 		name = {
 			order = order + 0.2,
 			type = "description",
 			name = "> " .. familyDisplayName,
-			width = 1.0,
+			width = layout.nameWidth,
 			fontSize = "small",
 		},
+
+		-- Spacer after name
 		spacerAfterName = {
 			order = order + 0.3,
 			type = "description",
 			name = " ",
-			width = 0.08,
+			width = layout.nameSpacerAfter,
 		},
+
+		-- Weight controls - SAME ORDER AS TOP LEVEL
+		weightDecrement = {
+			order = order + 0.4,
+			type = "execute",
+			name = "",
+			func = function() addon:DecrementGroupWeight(familyName) end,
+			disabled = function() return addon:GetGroupWeight(familyName) == 0 end,
+			width = 0.05,
+			image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
+			imageWidth = 16,
+			imageHeight = 20,
+		},
+
+		weightDisplay = {
+			order = order + 0.5,
+			type = "description",
+			name = function() return self:GetWeightDisplayString(addon:GetGroupWeight(familyName)) end,
+			width = layout.controlsWidth,
+		},
+
+		weightIncrement = {
+			order = order + 0.6,
+			type = "execute",
+			name = "",
+			func = function() addon:IncrementGroupWeight(familyName) end,
+			disabled = function() return addon:GetGroupWeight(familyName) == 6 end,
+			width = 0.05,
+			image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
+			imageWidth = 16,
+			imageHeight = 20,
+		},
+
+		-- Spacer for toggles
+		spacerToggles = {
+			order = order + 0.65,
+			type = "description",
+			name = " ",
+			width = 0.12,
+		},
+
+		-- Spacer when no toggles
+		spacerNoToggles = {
+			order = order + 0.65,
+			type = "description",
+			name = " ",
+			width = layout.traitsWidth,
+			hidden = shouldShowTraits,
+		},
+
+		-- Trait toggles - SAME ORDER AS TOP LEVEL
+		toggleMinorArmor = {
+			order = order + 0.7,
+			type = "toggle",
+			name = "|TInterface\\ICONS\\Garrison_GreenArmor:20:20:0:-2|t",
+			desc = "Small armor or ornaments",
+			get = function() return traits.hasMinorArmor or false end,
+			set = function() end,
+			width = 0.30,
+			hidden = not shouldShowTraits,
+			disabled = true,
+		},
+		toggleMajorArmor = {
+			order = order + 0.71,
+			type = "toggle",
+			name = "|TInterface\\ICONS\\Garrison_BlueArmor:20:20:0:-2|t",
+			desc = "Bulky armor or many ornaments",
+			get = function() return traits.hasMajorArmor or false end,
+			set = function() end,
+			width = 0.30,
+			hidden = not shouldShowTraits,
+			disabled = true,
+		},
+		toggleModelVariant = {
+			order = order + 0.72,
+			type = "toggle",
+			name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:20:20:0:-2|t",
+			desc = "Updated texture/slightly different model",
+			get = function() return traits.hasModelVariant or false end,
+			set = function() end,
+			width = 0.30,
+			hidden = not shouldShowTraits,
+			disabled = true,
+		},
+		toggleUniqueEffect = {
+			order = order + 0.73,
+			type = "toggle",
+			name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:20:20:0:-2|t",
+			desc = "Unique variant, stands out from the rest",
+			get = function() return traits.isUniqueEffect or false end,
+			set = function() end,
+			width = 0.30,
+			hidden = not shouldShowTraits,
+			disabled = true,
+		},
+
+		-- Expand button
 		expand = {
-			order = order + 0.9,
+			order = order + 0.8,
 			type = "execute",
 			name = "",
 			func = function() addon:ToggleExpansionState(familyName) end,
-			width = 0.3,
+			width = layout.expandWidth,
 			hidden = false,
 			image = isExpanded and "Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonUpLargev11" or
 					"Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonDownLargev11",
 			imageWidth = 40,
 			imageHeight = 20,
 		},
+
+		-- Line break
 		linebreak = {
-			order = order + 1,
+			order = order + 0.9,
 			type = "description",
 			name = "",
 			width = "full",
 		},
 	}
-	-- Add weight controls
-	local weightControls = self:CreateWeightControls(familyName, order + 0.4)
-	for k, v in pairs(weightControls) do
-		entry["weight_" .. k] = v
-	end
-
-	-- Add trait toggles or spacer
-	local traitToggles = self:CreateTraitToggles(familyName, "familyName", traits, shouldShowTraits, order + 0.7)
-	for k, v in pairs(traitToggles) do
-		entry["trait_" .. k] = v
-	end
-
 	return entry
 end
 
--- Build individual mount entry
+-- Build individual mount entry (nesting level 2)
 function MountUIComponents:BuildMountEntry(mountData, order, familyPrefix)
+	local nestingLevel = 2 -- Nested within family
+	local layout = GetLayoutWidths(nestingLevel)
 	local mountID = mountData.id
 	local mountName = mountData.name
 	local isCollected = mountData.isCollected
-	-- Create display name with color
+	-- Create display name with color and proper indentation prefix
 	local nameColor = isCollected and "ffffff" or "9d9d9d"
 	local collectionStatus = isCollected and "" or ""
-	local displayName = "|cff" .. nameColor .. "  >> " .. mountName .. collectionStatus .. "|r"
+	local displayName = "|cff" .. nameColor .. ">> " .. mountName .. collectionStatus .. "|r"
+	-- MAINTAIN EXACT SAME ORDER AS TOP LEVEL, JUST ADJUST WIDTHS
 	local entry = {
+		-- Preview button
 		preview = {
 			order = order,
 			type = "execute",
@@ -354,58 +454,92 @@ function MountUIComponents:BuildMountEntry(mountData, order, familyPrefix)
 			func = function()
 				addon:ShowMountPreview(mountID, mountName, nil, nil, not isCollected)
 			end,
-			width = 0.3,
+			width = layout.previewWidth,
 		},
+
+		-- Spacer before name
 		spacerBeforeName = {
 			order = order + 0.1,
 			type = "description",
 			name = " ",
-			width = 0.05,
+			width = layout.nameIndent,
 		},
+
+		-- Mount name
 		name = {
 			order = order + 0.2,
 			type = "description",
 			name = displayName,
 			fontSize = "small",
-			width = 1.0,
+			width = layout.nameWidth,
 		},
+
+		-- Spacer after name
 		spacerAfterName = {
 			order = order + 0.3,
 			type = "description",
 			name = " ",
-			width = 0.08,
+			width = layout.nameSpacerAfter,
 		},
+
+		-- Weight controls - SAME ORDER AS TOP LEVEL
+		weightDecrement = {
+			order = order + 0.4,
+			type = "execute",
+			name = "",
+			func = function() addon:DecrementGroupWeight("mount_" .. mountID) end,
+			disabled = function() return addon:GetGroupWeight("mount_" .. mountID) == 0 end,
+			width = 0.05,
+			image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
+			imageWidth = 16,
+			imageHeight = 20,
+		},
+
+		weightDisplay = {
+			order = order + 0.5,
+			type = "description",
+			name = function()
+				local weightStr = self:GetWeightDisplayString(addon:GetGroupWeight("mount_" .. mountID))
+				if not isCollected then
+					-- Add gray color wrap if it's not already colored
+					if not weightStr:find("|cff") then
+						weightStr = "|cff9d9d9d" .. weightStr .. "|r"
+					end
+				end
+
+				return weightStr
+			end,
+			width = layout.controlsWidth,
+		},
+
+		weightIncrement = {
+			order = order + 0.6,
+			type = "execute",
+			name = "",
+			func = function() addon:IncrementGroupWeight("mount_" .. mountID) end,
+			disabled = function() return addon:GetGroupWeight("mount_" .. mountID) == 6 end,
+			width = 0.05,
+			image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
+			imageWidth = 16,
+			imageHeight = 20,
+		},
+
+		-- Spacer for traits (mounts don't have traits but need spacing)
 		spacerToggles = {
 			order = order + 0.7,
 			type = "description",
 			name = " ",
-			width = 1.2, -- No traits for individual mounts
+			width = layout.traitsWidth,
 		},
+
+		-- Line break
 		linebreak = {
-			order = order + 1,
+			order = order + 0.8,
 			type = "description",
 			name = "",
 			width = "full",
 		},
 	}
-	-- Add weight controls
-	local weightControls = self:CreateWeightControls("mount_" .. mountID, order + 0.4)
-	for k, v in pairs(weightControls) do
-		entry["weight_" .. k] = v
-		-- Apply gray color for uncollected mounts
-		if k == "weightDisplay" and not isCollected then
-			local originalFunc = v.name
-			v.name = function()
-				local weightStr = originalFunc()
-				if not weightStr:find("|cff") then
-					return "|cff9d9d9d" .. weightStr .. "|r"
-				end
-
-				return weightStr
-			end
-		end
-	end
-
 	return entry
 end
 
