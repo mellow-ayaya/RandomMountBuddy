@@ -577,6 +577,68 @@ function addon:NotifyModulesSettingChanged(key, value)
 end
 
 -- ============================================================================
+-- SINGLE MOUNT FAMILY HELPERS
+-- ============================================================================
+function addon:IsSingleMountFamily(familyName)
+	if not familyName or not self.processedData then
+		return false, nil
+	end
+
+	-- Count collected mounts
+	local collectedCount = (self.processedData.familyToMountIDsMap and
+		self.processedData.familyToMountIDsMap[familyName] and
+		#(self.processedData.familyToMountIDsMap[familyName])) or 0
+	-- Count uncollected mounts
+	local uncollectedCount = 0
+	if self:GetSetting("showUncollectedMounts") then
+		uncollectedCount = (self.processedData.familyToUncollectedMountIDsMap and
+			self.processedData.familyToUncollectedMountIDsMap[familyName] and
+			#(self.processedData.familyToUncollectedMountIDsMap[familyName])) or 0
+	end
+
+	local totalCount = collectedCount + uncollectedCount
+	if totalCount == 1 then
+		-- Find the single mount ID
+		local mountID = nil
+		if collectedCount == 1 then
+			mountID = self.processedData.familyToMountIDsMap[familyName][1]
+		else
+			mountID = self.processedData.familyToUncollectedMountIDsMap[familyName][1]
+		end
+
+		return true, mountID
+	end
+
+	return false, nil
+end
+
+function addon:GetMountFamilyFromMountKey(mountKey)
+	-- Extract mount ID from "mount_123" format
+	local mountID = mountKey:match("^mount_(%d+)$")
+	if not mountID then
+		return nil
+	end
+
+	mountID = tonumber(mountID)
+	if not mountID then
+		return nil
+	end
+
+	-- Find which family this mount belongs to
+	if self.processedData.allCollectedMountFamilyInfo and
+			self.processedData.allCollectedMountFamilyInfo[mountID] then
+		return self.processedData.allCollectedMountFamilyInfo[mountID].familyName
+	end
+
+	if self.processedData.allUncollectedMountFamilyInfo and
+			self.processedData.allUncollectedMountFamilyInfo[mountID] then
+		return self.processedData.allUncollectedMountFamilyInfo[mountID].familyName
+	end
+
+	return nil
+end
+
+-- ============================================================================
 -- WEIGHT AND GROUP MANAGEMENT
 -- ============================================================================
 function addon:GetGroupWeight(gk)
@@ -601,6 +663,61 @@ function addon:SetGroupWeight(gk, w)
 
 	self.db.profile.groupWeights[gk] = nw
 	print("RMB_SET:SetGW K:'" .. tostring(gk) .. "',W:" .. tostring(nw))
+	-- Handle weight syncing for single-mount families
+	self:SyncWeightForSingleMountFamily(gk, nw)
+	-- Notify modules of weight changes (important for caches)
+	self:NotifyModulesSettingChanged("groupWeights", nw)
+end
+
+function addon:SyncWeightForSingleMountFamily(groupKey, weight)
+	local refreshNeeded = false
+	-- Case 1: Family weight changed, sync to mount
+	if not groupKey:match("^mount_") then
+		local isSingleMount, mountID = self:IsSingleMountFamily(groupKey)
+		if isSingleMount and mountID then
+			local mountKey = "mount_" .. mountID
+			-- Check if weight is actually different
+			local currentMountWeight = self.db.profile.groupWeights[mountKey] or 0
+			if currentMountWeight ~= weight then
+				self.db.profile.groupWeights[mountKey] = weight
+				print("RMB_SYNC: Family '" .. groupKey .. "' synced weight " .. weight .. " to mount '" .. mountKey .. "'")
+				refreshNeeded = true
+			end
+		end
+	else
+		-- Case 2: Mount weight changed, sync to family (if it's a single-mount family)
+		local familyName = self:GetMountFamilyFromMountKey(groupKey)
+		if familyName then
+			local isSingleMount, mountID = self:IsSingleMountFamily(familyName)
+			if isSingleMount and mountID then
+				-- Extract mount ID from groupKey to verify it matches
+				local currentMountID = tonumber(groupKey:match("^mount_(%d+)$"))
+				if currentMountID == mountID then
+					-- Check if weight is actually different
+					local currentFamilyWeight = self.db.profile.groupWeights[familyName] or 0
+					if currentFamilyWeight ~= weight then
+						self.db.profile.groupWeights[familyName] = weight
+						print("RMB_SYNC: Mount '" .. groupKey .. "' synced weight " .. weight .. " to family '" .. familyName .. "'")
+						refreshNeeded = true
+					end
+				end
+			end
+		end
+	end
+
+	-- If we synced something, trigger all the same refreshes that normal weight changes use
+	if refreshNeeded then
+		-- Invalidate data manager cache (important for weight-based operations)
+		if self.MountDataManager and self.MountDataManager.InvalidateCache then
+			self.MountDataManager:InvalidateCache("weight_sync")
+		end
+
+		-- Refresh mount pools so changes take effect immediately in summoning
+		if self.RefreshMountPools then
+			self:RefreshMountPools()
+			print("RMB_SYNC: Refreshed mount pools for immediate sync effect")
+		end
+	end
 end
 
 function addon:IsGroupEnabled(gk)

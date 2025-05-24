@@ -269,17 +269,22 @@ end
 -- HELPER FUNCTIONS
 -- ============================================================================
 function addon:CreateFamilyDisplayName(familyName, collectedCount, uncollectedCount)
+	local totalMounts = collectedCount + uncollectedCount
+	-- Define color codes for indicators
+	local familyIndicator = "|cff0070dd[F]|r" -- Blue
+	local mountIndicator = "|cff1eff00[M]|r" -- Green
 	-- Check if single mount family
-	if collectedCount + uncollectedCount == 1 then
+	if totalMounts == 1 then
+		-- Single mount family - use [M] indicator
 		if collectedCount == 1 then
-			return familyName .. " (Mount)"
+			return mountIndicator .. " " .. familyName .. ""
 		else
-			return "|cff9d9d9d" .. familyName .. " (Mount)|r"
+			return "|cff9d9d9d" .. mountIndicator .. " " .. familyName .. "|r"
 		end
 	end
 
-	-- Multi-mount family
-	local displayName = familyName .. " (" .. collectedCount
+	-- Multi-mount family - use [F] indicator
+	local displayName = familyIndicator .. " " .. familyName .. " (" .. collectedCount
 	if uncollectedCount > 0 then
 		displayName = displayName .. " |cff9d9d9d+" .. uncollectedCount .. "|r"
 	end
@@ -344,7 +349,8 @@ function addon:DecrementGroupWeight(groupKey)
 	local currentWeight = self:GetGroupWeight(groupKey)
 	local newWeight = math.max(0, currentWeight - 1)
 	if newWeight ~= currentWeight then
-		self.db.profile.groupWeights[groupKey] = newWeight
+		-- Use SetGroupWeight which handles syncing
+		self:SetGroupWeight(groupKey, newWeight)
 		print("RMB_WEIGHT: Decremented " .. tostring(groupKey) .. " to " .. tostring(newWeight))
 		self:TriggerFamilyManagementUIRefresh()
 	end
@@ -359,7 +365,8 @@ function addon:IncrementGroupWeight(groupKey)
 	local currentWeight = self:GetGroupWeight(groupKey)
 	local newWeight = math.min(6, currentWeight + 1)
 	if newWeight ~= currentWeight then
-		self.db.profile.groupWeights[groupKey] = newWeight
+		-- Use SetGroupWeight which handles syncing
+		self:SetGroupWeight(groupKey, newWeight)
 		print("RMB_WEIGHT: Incremented " .. tostring(groupKey) .. " to " .. tostring(newWeight))
 		self:TriggerFamilyManagementUIRefresh()
 	end

@@ -262,6 +262,27 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 		end
 	end
 
+	-- Calculate if this is a single-mount family
+	local collectedCount = 0
+	local uncollectedCount = 0
+	if addon.processedData then
+		-- Get collected mount count
+		if addon.processedData.familyToMountIDsMap and addon.processedData.familyToMountIDsMap[familyName] then
+			collectedCount = #addon.processedData.familyToMountIDsMap[familyName]
+		end
+
+		-- Get uncollected mount count if showing uncollected is enabled
+		if addon:GetSetting("showUncollectedMounts") then
+			if addon.processedData.familyToUncollectedMountIDsMap and addon.processedData.familyToUncollectedMountIDsMap[familyName] then
+				uncollectedCount = #addon.processedData.familyToUncollectedMountIDsMap[familyName]
+			end
+		end
+	end
+
+	local totalMountCount = collectedCount + uncollectedCount
+	local isSingleMountFamily = (totalMountCount == 1)
+	-- The familyDisplayName passed in should already have the proper [F] or [M] indicator
+	local displayName = familyDisplayName
 	-- MAINTAIN EXACT SAME ORDER AS TOP LEVEL, JUST ADJUST WIDTHS
 	local entry = {
 		-- Preview button
@@ -293,11 +314,11 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			width = layout.nameIndent,
 		},
 
-		-- Family name
+		-- Family name (UPDATED to use displayName with indicator)
 		name = {
 			order = order + 0.2,
 			type = "description",
-			name = "> " .. familyDisplayName,
+			name = displayName,
 			width = layout.nameWidth,
 			fontSize = "small",
 		},
@@ -371,6 +392,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			hidden = not shouldShowTraits,
 			disabled = true,
 		},
+
 		toggleMajorArmor = {
 			order = order + 0.71,
 			type = "toggle",
@@ -382,6 +404,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			hidden = not shouldShowTraits,
 			disabled = true,
 		},
+
 		toggleModelVariant = {
 			order = order + 0.72,
 			type = "toggle",
@@ -393,6 +416,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			hidden = not shouldShowTraits,
 			disabled = true,
 		},
+
 		toggleUniqueEffect = {
 			order = order + 0.73,
 			type = "toggle",
@@ -412,7 +436,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			name = "",
 			func = function() addon:ToggleExpansionState(familyName) end,
 			width = layout.expandWidth,
-			hidden = false,
+			hidden = isSingleMountFamily, -- This was the fix - was always false before
 			image = isExpanded and "Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonUpLargev11" or
 					"Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonDownLargev11",
 			imageWidth = 40,
@@ -437,10 +461,11 @@ function MountUIComponents:BuildMountEntry(mountData, order, familyPrefix)
 	local mountID = mountData.id
 	local mountName = mountData.name
 	local isCollected = mountData.isCollected
-	-- Create display name with color and proper indentation prefix
+	-- Create display name with [M] indicator and proper indentation prefix
+	local mountIndicator = "|cff1eff00[M]|r" -- Green
 	local nameColor = isCollected and "ffffff" or "9d9d9d"
 	local collectionStatus = isCollected and "" or ""
-	local displayName = "|cff" .. nameColor .. ">> " .. mountName .. collectionStatus .. "|r"
+	local displayName = "|cff" .. nameColor .. " " .. mountIndicator .. " " .. mountName .. collectionStatus .. "|r"
 	-- MAINTAIN EXACT SAME ORDER AS TOP LEVEL, JUST ADJUST WIDTHS
 	local entry = {
 		-- Preview button
@@ -675,23 +700,45 @@ end
 function MountUIComponents:CreateFallbackDisplayName(groupData)
 	local collectedCount = groupData.mountCount or 0
 	local uncollectedCount = groupData.uncollectedCount or 0
-	-- Special handling for single mount families
-	if groupData.type == "familyName" and (collectedCount + uncollectedCount) == 1 then
-		if collectedCount == 1 then
-			return groupData.displayName .. " (Mount)"
-		else
-			return "|cff9d9d9d" .. groupData.displayName .. " (Mount)|r"
-		end
-	else
-		-- Multi-mount family or supergroup
+	local totalMounts = collectedCount + uncollectedCount
+	-- Define color codes for indicators
+	local superGroupIndicator = "|cffa335ee[G]|r" -- Purple
+	local familyIndicator = "|cff0070dd[F]|r"    -- Blue
+	local mountIndicator = "|cff1eff00[M]|r"     -- Green
+	if groupData.type == "superGroup" then
+		-- Supergroups always get [G] indicator
 		if collectedCount > 0 and uncollectedCount > 0 then
-			return groupData.displayName .. " (" .. collectedCount ..
+			return superGroupIndicator .. " " .. groupData.displayName .. " (" .. collectedCount ..
 					" + |cff9d9d9d" .. uncollectedCount .. "|r)"
 		elseif collectedCount > 0 then
-			return groupData.displayName .. " (" .. collectedCount .. ")"
+			return superGroupIndicator .. " " .. groupData.displayName .. " (" .. collectedCount .. ")"
 		else
-			return "|cff9d9d9d" .. groupData.displayName .. " (" .. uncollectedCount .. ")|r"
+			return "|cff9d9d9d" .. superGroupIndicator .. " " .. groupData.displayName .. " (" .. uncollectedCount .. ")|r"
 		end
+	elseif groupData.type == "familyName" then
+		-- Families get [F] for multi-mount or [M] for single-mount
+		local indicator = (totalMounts == 1) and mountIndicator or familyIndicator
+		if totalMounts == 1 then
+			-- Single mount family - use [M] indicator
+			if collectedCount == 1 then
+				return indicator .. " " .. groupData.displayName .. ""
+			else
+				return "|cff9d9d9d" .. indicator .. " " .. groupData.displayName .. "|r"
+			end
+		else
+			-- Multi-mount family - use [F] indicator
+			if collectedCount > 0 and uncollectedCount > 0 then
+				return indicator .. " " .. groupData.displayName .. " (" .. collectedCount ..
+						" + |cff9d9d9d" .. uncollectedCount .. "|r)"
+			elseif collectedCount > 0 then
+				return indicator .. " " .. groupData.displayName .. " (" .. collectedCount .. ")"
+			else
+				return "|cff9d9d9d" .. indicator .. " " .. groupData.displayName .. " (" .. uncollectedCount .. ")|r"
+			end
+		end
+	else
+		-- Fallback for unknown types
+		return groupData.displayName or groupData.key
 	end
 end
 

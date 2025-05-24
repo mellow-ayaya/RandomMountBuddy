@@ -1,3 +1,7 @@
+# 0.7.3
+Added clear distinction between super groups, families and mounts by adding [G], [F] and [M] respectively before their names, with different colors.
+Fixed Expand/Collapse button not hiding in all cases for individual mounts.
+
 # 0.7.2
 Fixed element order and missing headers in the mount list.
 
