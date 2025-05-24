@@ -42,7 +42,7 @@ function addon:BuildFamilyManagementArgs()
 		order = displayOrder,
 		type = "input",
 		name = "",
-		desc = "Type 3+ characters to search mount names, families, or groups",
+		desc = "Type & press Enter or click OK to search.",
 		get = function()
 			return self.SearchSystem and self.SearchSystem:GetSearchTerm() or ""
 		end,

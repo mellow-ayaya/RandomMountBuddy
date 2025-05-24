@@ -18,7 +18,7 @@ function SearchSystem:Initialize()
 	self.searchTerm = ""
 	self.searchResults = {}
 	-- Search configuration
-	self.minSearchLength = 3
+	self.minSearchLength = 1
 	self.maxResults = 50
 	print("RMB_SEARCH: Search system initialized")
 end
