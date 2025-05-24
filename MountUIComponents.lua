@@ -571,60 +571,119 @@ end
 -- ============================================================================
 -- PAGINATION COMPONENTS
 -- ============================================================================
-function MountUIComponents:CreatePaginationControls(currentPage, totalPages, order)
+-- Enhanced pagination with smart page range display and centering
+function MountUIComponents:CreateSmartPaginationControls(currentPage, totalPages, order)
 	if totalPages <= 1 then
 		return {}
 	end
 
+	-- Calculate which pages to show in the middle section
+	local pageRange = self:CalculatePageRange(currentPage, totalPages)
+	local paginationArgs = {}
+	local buttonOrder = 1
+	local pageButtonWidth = 0.15
+	local maxButtons = 25
+	-- Add centering spacer if we have fewer than maxButtons pages
+	if totalPages < maxButtons then
+		local missingPages = maxButtons - totalPages
+		local spacerWidth = (missingPages / 2) * pageButtonWidth
+		paginationArgs["centering_spacer"] = {
+			order = buttonOrder,
+			type = "description",
+			name = "",
+			width = spacerWidth,
+		}
+		buttonOrder = buttonOrder + 1
+	end
+
+	-- Add page number buttons
+	for _, pageNum in ipairs(pageRange) do
+		if pageNum == "..." then
+			-- Add ellipsis
+			paginationArgs["ellipsis_" .. buttonOrder] = {
+				order = buttonOrder,
+				type = "description",
+				name = "...",
+				width = 0.1,
+			}
+		else
+			-- Add page number button
+			local isCurrentPage = (pageNum == currentPage)
+			paginationArgs["page_" .. pageNum] = {
+				order = buttonOrder,
+				type = "execute",
+				name = isCurrentPage and ("|cffffd700" .. pageNum .. "|r") or tostring(pageNum),
+				desc = isCurrentPage and "Current page" or (""),
+				func = function() addon:FMG_GoToPage(pageNum) end,
+				width = pageButtonWidth,
+				image = "Interface\\AddOns\\RandomMountBuddy\\Media\\Empty",
+				imageWidth = 1,
+				imageHeight = 1,
+			}
+		end
+
+		buttonOrder = buttonOrder + 1
+	end
+
 	return {
-		pagination_controls = {
+		smart_pagination = {
 			order = order,
 			type = "group",
 			inline = true,
 			name = "",
-			width = "full",
-			args = {
-				first_button = {
-					order = 1,
-					type = "execute",
-					name = "<<",
-					disabled = (currentPage <= 1),
-					func = function() addon:FMG_GoToFirstPage() end,
-					width = 0.5,
-				},
-				prev_button = {
-					order = 2,
-					type = "execute",
-					name = "<",
-					disabled = (currentPage <= 1),
-					func = function() addon:FMG_PrevPage() end,
-					width = 0.5,
-				},
-				page_info = {
-					order = 3,
-					type = "description",
-					name = string.format("                                    %d / %d", currentPage, totalPages),
-					width = 1.6,
-				},
-				next_button = {
-					order = 4,
-					type = "execute",
-					name = ">",
-					disabled = (currentPage >= totalPages),
-					func = function() addon:FMG_NextPage() end,
-					width = 0.5,
-				},
-				last_button = {
-					order = 5,
-					type = "execute",
-					name = ">>",
-					disabled = (currentPage >= totalPages),
-					func = function() addon:FMG_GoToLastPage() end,
-					width = 0.5,
-				},
-			},
+			args = paginationArgs,
 		},
 	}
+end
+
+-- Calculate which page numbers to show in navigation
+function MountUIComponents:CalculatePageRange(currentPage, totalPages)
+	local maxButtons = 25 -- Maximum page buttons to show
+	local range = {}
+	if totalPages <= maxButtons then
+		-- Show all pages if total is small
+		for i = 1, totalPages do
+			table.insert(range, i)
+		end
+	else
+		-- Smart range calculation for larger page counts
+		local halfRange = math.floor((maxButtons - 3) / 2) -- Reserve space for 1, ..., last
+		-- Always show page 1
+		table.insert(range, 1)
+		-- Calculate start and end of middle range
+		local rangeStart = math.max(2, currentPage - halfRange)
+		local rangeEnd = math.min(totalPages - 1, currentPage + halfRange)
+		-- Adjust range if it's too close to beginning or end
+		if rangeStart <= 3 then
+			rangeEnd = math.min(totalPages - 1, maxButtons - 1)
+			rangeStart = 2
+		elseif rangeEnd >= totalPages - 2 then
+			rangeStart = math.max(2, totalPages - maxButtons + 2)
+			rangeEnd = totalPages - 1
+		end
+
+		-- Add ellipsis before middle range if needed
+		if rangeStart > 2 then
+			table.insert(range, "...")
+		end
+
+		-- Add middle range
+		for i = rangeStart, rangeEnd do
+			table.insert(range, i)
+		end
+
+		-- Add ellipsis after middle range if needed
+		if rangeEnd < totalPages - 1 then
+			table.insert(range, "...")
+		end
+
+		-- Always show last page (if different from first)
+		if totalPages > 1 then
+			table.insert(range, totalPages)
+		end
+	end
+
+	return range
 end
 
 -- ============================================================================

@@ -78,7 +78,7 @@ print("RMB_DEBUG: NewAddon SUCCEEDED. Addon valid: " ..
 -- Initialize addon state
 addon.RMB_DataReadyForUI = false
 addon.fmCurrentPage = 1
-addon.fmItemsPerPage = 15
+addon.fmItemsPerPage = 14
 -- Keybinding headers
 BINDING_HEADER_RANDOMMOUNTBUDDY = "Random Mount Buddy"
 BINDING_NAME_CLICK_RMBSmartButton_LeftButton = "Smart Mount/Travel Form"

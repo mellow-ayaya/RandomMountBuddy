@@ -10,7 +10,7 @@ function addon:InitializeMountUI()
 	print("RMB_UI: Initializing mount UI systems...")
 	-- Initialize UI state
 	self.fmCurrentPage = 1
-	self.fmItemsPerPage = self.fmItemsPerPage or 15
+	self.fmItemsPerPage = self.fmItemsPerPage or 14
 	print("RMB_UI: Mount UI system initialized")
 end
 
@@ -31,17 +31,17 @@ function addon:BuildFamilyManagementArgs()
 		return pageArgs
 	end
 
-	-- ADD SEARCH UI SECTION
-	pageArgs.search_header = {
+	pageArgs.search_description = {
 		order = displayOrder,
-		type = "header",
-		name = "Search Your Mounts",
+		type = "description",
+		name = "|cffffd700  Search:|r",
+		width = 0.34,
 	}
 	displayOrder = displayOrder + 1
 	pageArgs.search_input = {
 		order = displayOrder,
 		type = "input",
-		name = "Search",
+		name = "",
 		desc = "Type 3+ characters to search mount names, families, or groups",
 		get = function()
 			return self.SearchSystem and self.SearchSystem:GetSearchTerm() or ""
@@ -54,7 +54,7 @@ function addon:BuildFamilyManagementArgs()
 				self:ClearSearch()
 			end
 		end,
-		width = "full",
+		width = 1.02,
 	}
 	displayOrder = displayOrder + 1
 	-- Show search status if active
@@ -63,8 +63,8 @@ function addon:BuildFamilyManagementArgs()
 		pageArgs.search_status = {
 			order = displayOrder,
 			type = "description",
-			name = "|cff00ff00" .. searchStatus .. "|r",
-			width = "full",
+			name = "  |cff00ff00" .. searchStatus .. "|r",
+			width = 2.6,
 		}
 		displayOrder = displayOrder + 1
 		pageArgs.search_clear = {
@@ -164,13 +164,15 @@ function addon:BuildFamilyManagementArgs()
 
 	-- Add pagination controls (only if not searching)
 	if not usingSearchResults and self.MountUIComponents then
-		local paginationComponents = self.MountUIComponents:CreatePaginationControls(currentPage, totalPages, groupEntryOrder)
+		local paginationComponents = self.MountUIComponents:CreateSmartPaginationControls(currentPage, totalPages,
+			groupEntryOrder)
 		for k, v in pairs(paginationComponents) do
 			pageArgs[k] = v
 		end
 	end
 
 	-- Add refresh button
+	--[[
 	pageArgs["manual_refresh_button"] = {
 		order = 9999,
 		type = "execute",
@@ -180,6 +182,7 @@ function addon:BuildFamilyManagementArgs()
 		end,
 		width = 3.6,
 	}
+	--]]
 	print("RMB_UI: Built UI with " .. (endIndex - startIndex + 1) .. " group entries")
 	return pageArgs
 end
@@ -486,19 +489,23 @@ end
 -- PAGINATION FUNCTIONS
 -- ============================================================================
 function addon:FMG_GetItemsPerPage()
-	return self.fmItemsPerPage or 15
+	return self.fmItemsPerPage or 14
 end
 
 function addon:FMG_SetItemsPerPage(items)
 	local numItems = tonumber(items)
-	if numItems and numItems >= 5 and numItems <= 50 then
+	-- Increased max limit to support more items per page
+	if numItems and numItems >= 5 and numItems <= 100 then
 		self.fmItemsPerPage = numItems
 		if self.db and self.db.profile then
 			self.db.profile.fmItemsPerPage = numItems
 		end
 
-		self.fmCurrentPage = 1
-		self:TriggerFamilyManagementUIRefresh()
+		self.fmCurrentPage = 1          -- Reset to first page
+		self:PopulateFamilyManagementUI() -- Refresh UI
+		print("RMB_NAV: Items per page set to " .. numItems)
+	else
+		print("RMB_NAV: Invalid items per page value: " .. tostring(items))
 	end
 end
 
@@ -511,8 +518,13 @@ function addon:FMG_GoToPage(pageNumber)
 	local totalPages = math.max(1, math.ceil(#allGroups / self:FMG_GetItemsPerPage()))
 	local targetPage = tonumber(pageNumber)
 	if targetPage and targetPage >= 1 and targetPage <= totalPages then
+		-- Collapse any expanded groups when changing pages
+		self:CollapseAllExpanded()
 		self.fmCurrentPage = targetPage
-		self:TriggerFamilyManagementUIRefresh()
+		self:PopulateFamilyManagementUI()
+		print("RMB_NAV: Jumped to page " .. targetPage)
+	else
+		print("RMB_NAV: Invalid page number: " .. tostring(pageNumber) .. " (valid range: 1-" .. totalPages .. ")")
 	end
 end
 
@@ -525,7 +537,9 @@ function addon:FMG_NextPage()
 	local totalPages = math.max(1, math.ceil(#allGroups / self:FMG_GetItemsPerPage()))
 	if self.fmCurrentPage < totalPages then
 		self:CollapseAllExpanded()
-		self:FMG_GoToPage(self.fmCurrentPage + 1)
+		self.fmCurrentPage = self.fmCurrentPage + 1
+		self:PopulateFamilyManagementUI()
+		print("RMB_NAV: Next page -> " .. self.fmCurrentPage)
 	end
 end
 
@@ -534,15 +548,19 @@ function addon:FMG_PrevPage()
 
 	if self.fmCurrentPage > 1 then
 		self:CollapseAllExpanded()
-		self:FMG_GoToPage(self.fmCurrentPage - 1)
+		self.fmCurrentPage = self.fmCurrentPage - 1
+		self:PopulateFamilyManagementUI()
+		print("RMB_NAV: Previous page -> " .. self.fmCurrentPage)
 	end
 end
 
 function addon:FMG_GoToFirstPage()
 	if not self.RMB_DataReadyForUI then return end
 
-	self:CollapseAllExpanded()
-	self:FMG_GoToPage(1)
+	if self.fmCurrentPage ~= 1 then
+		self:CollapseAllExpanded()
+		self:FMG_GoToPage(1)
+	end
 end
 
 function addon:FMG_GoToLastPage()
@@ -552,8 +570,10 @@ function addon:FMG_GoToLastPage()
 	if not allGroups then return end
 
 	local totalPages = math.max(1, math.ceil(#allGroups / self:FMG_GetItemsPerPage()))
-	self:CollapseAllExpanded()
-	self:FMG_GoToPage(totalPages)
+	if self.fmCurrentPage ~= totalPages then
+		self:CollapseAllExpanded()
+		self:FMG_GoToPage(totalPages)
+	end
 end
 
 -- ============================================================================

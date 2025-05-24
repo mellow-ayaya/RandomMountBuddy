@@ -1,3 +1,6 @@
+# 0.7.5
+Updated pagination.
+
 # 0.7.4
 Added search bar for mount list.
 

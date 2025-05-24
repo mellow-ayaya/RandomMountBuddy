@@ -259,6 +259,57 @@ local rootOptionsTable = {
 			end,
 			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
 		},
+		groupDos = {
+			order = 200,
+			type = "group",
+			inline = true,
+			name = "",
+			args = {
+				displaySettingsHeader = {
+					order = 9,
+					type = "header",
+					name = "Display Settings",
+				},
+
+				itemsPerPage = {
+					order = 9.1,
+					type = "select",
+					name = "Items per Page",
+					desc = "Number of groups to show per page in Family & Groups",
+					values = {
+						[14] = "14 (Default)",
+						[30] = "30",
+						[60] = "60",
+						[90] = "90",
+						[1000] = "All",
+					},
+					get = function()
+						return addon:FMG_GetItemsPerPage()
+					end,
+					set = function(info, value)
+						addon:FMG_SetItemsPerPage(value)
+					end,
+					width = 1.5,
+				},
+
+				currentTotalInfo = {
+					order = 9.2,
+					type = "description",
+					name = function()
+						if not addon.RMB_DataReadyForUI then
+							return "Loading mount data..."
+						end
+
+						local allGroups = addon:GetDisplayableGroups() or {}
+						local totalGroups = #allGroups
+						local itemsPerPage = addon:FMG_GetItemsPerPage()
+						local totalPages = math.max(1, math.ceil(totalGroups / itemsPerPage))
+						return string.format("Currently: %d total groups across %d pages", totalGroups, totalPages)
+					end,
+					width = "full",
+				},
+			},
+		},
 	},
 }
 LibAceConfig:RegisterOptionsTable(rootOptions_InternalName, rootOptionsTable)
