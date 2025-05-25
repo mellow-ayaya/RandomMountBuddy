@@ -300,6 +300,7 @@ function addon:OnInitialize()
 	}
 	print("RMB_DEBUG: OnInitialize - Initialized empty self.processedData.")
 	self.RMB_DataReadyForUI = false
+	self:InitializeBulkPrioritySystem()
 	-- Load mount type data
 	self.mountTypeTraits = MountTypeTraits_Input_Helper or {}
 	self.mountIDtoTypeID = MountIDtoMountTypeID or {}
@@ -928,6 +929,406 @@ function addon:SetGroupEnabled(gk, e)
 	print("RMB_SET:SetGE K:'" .. tostring(gk) .. "',E:" .. tostring(be))
 end
 
+-- ============================================================================
+-- BULK PRIORITY CHANGE FUNCTIONS (Add to Core.lua)
+-- ============================================================================
+-- Initialize bulk priority system
+function addon:InitializeBulkPrioritySystem()
+	self.pendingBulkOperation = nil
+	print("RMB_BULK: Bulk priority system initialized")
+end
+
+-- Get all group keys currently visible on the page
+function addon:GetCurrentPageGroupKeys()
+	if not self.RMB_DataReadyForUI or not self.processedData then
+		return {}
+	end
+
+	local groupKeys = {}
+	-- Get displayable groups (same logic as UI)
+	local allDisplayableGroups
+	if self:IsSearchActive() then
+		allDisplayableGroups = self:GetSearchResults()
+		if self:AreFiltersActive() then
+			allDisplayableGroups = self:GetFilteredGroups(allDisplayableGroups)
+		end
+	else
+		allDisplayableGroups = self:GetDisplayableGroups()
+		if self:AreFiltersActive() then
+			allDisplayableGroups = self:GetFilteredGroups(allDisplayableGroups)
+		end
+	end
+
+	if not allDisplayableGroups or #allDisplayableGroups == 0 then
+		return {}
+	end
+
+	-- Apply pagination
+	local totalGroups = #allDisplayableGroups
+	local itemsPerPage = self:FMG_GetItemsPerPage()
+	local currentPage = math.max(1, math.min(self.fmCurrentPage or 1, math.max(1, math.ceil(totalGroups / itemsPerPage))))
+	-- Don't paginate search results
+	if self:IsSearchActive() then
+		itemsPerPage = math.min(totalGroups, 100)
+		currentPage = 1
+	end
+
+	local startIndex = (currentPage - 1) * itemsPerPage + 1
+	local endIndex = math.min(startIndex + itemsPerPage - 1, totalGroups)
+	-- Collect all group keys for current page
+	for i = startIndex, endIndex do
+		local groupData = allDisplayableGroups[i]
+		if groupData then
+			-- Add the main group
+			table.insert(groupKeys, {
+				key = groupData.key,
+				type = groupData.type,
+			})
+			-- If it's a supergroup, also add all families within it
+			if groupData.type == "superGroup" then
+				local familiesInSG = self:GetSuperGroupFamilies(groupData.key)
+				for _, familyName in ipairs(familiesInSG) do
+					if not self:IsFamilyStandalone(familyName) then
+						table.insert(groupKeys, {
+							key = familyName,
+							type = "familyName",
+						})
+						-- Add all mounts in this family
+						local mountIDs = self.processedData.familyToMountIDsMap and
+								self.processedData.familyToMountIDsMap[familyName] or {}
+						for _, mountID in ipairs(mountIDs) do
+							table.insert(groupKeys, {
+								key = "mount_" .. mountID,
+								type = "mountID",
+							})
+						end
+
+						-- Also add uncollected mounts if showing them
+						if self:GetSetting("showUncollectedMounts") then
+							local uncollectedIDs = self.processedData.familyToUncollectedMountIDsMap and
+									self.processedData.familyToUncollectedMountIDsMap[familyName] or {}
+							for _, mountID in ipairs(uncollectedIDs) do
+								table.insert(groupKeys, {
+									key = "mount_" .. mountID,
+									type = "mountID",
+								})
+							end
+						end
+					end
+				end
+			elseif groupData.type == "familyName" then
+				-- Add all mounts in this standalone family
+				local mountIDs = self.processedData.familyToMountIDsMap and
+						self.processedData.familyToMountIDsMap[groupData.key] or {}
+				for _, mountID in ipairs(mountIDs) do
+					table.insert(groupKeys, {
+						key = "mount_" .. mountID,
+						type = "mountID",
+					})
+				end
+
+				-- Also add uncollected mounts if showing them
+				if self:GetSetting("showUncollectedMounts") then
+					local uncollectedIDs = self.processedData.familyToUncollectedMountIDsMap and
+							self.processedData.familyToUncollectedMountIDsMap[groupData.key] or {}
+					for _, mountID in ipairs(uncollectedIDs) do
+						table.insert(groupKeys, {
+							key = "mount_" .. mountID,
+							type = "mountID",
+						})
+					end
+				end
+			end
+		end
+	end
+
+	return groupKeys
+end
+
+-- Get all group keys in the entire database
+function addon:GetAllDatabaseGroupKeys()
+	if not self.RMB_DataReadyForUI or not self.processedData then
+		return {}
+	end
+
+	local groupKeys = {}
+	-- Add all supergroups
+	local superGroupMap = self.processedData.dynamicSuperGroupMap or self.processedData.superGroupMap or {}
+	for sgName, _ in pairs(superGroupMap) do
+		table.insert(groupKeys, {
+			key = sgName,
+			type = "superGroup",
+		})
+	end
+
+	-- Add all families (both standalone and those in supergroups)
+	local allFamilies = {}
+	-- Collect families from supergroups
+	for _, familiesInSG in pairs(superGroupMap) do
+		for _, familyName in ipairs(familiesInSG) do
+			allFamilies[familyName] = true
+		end
+	end
+
+	-- Collect standalone families
+	local standaloneFamilies = self.processedData.dynamicStandaloneFamilies or self.processedData.standaloneFamilyNames or
+			{}
+	for familyName, _ in pairs(standaloneFamilies) do
+		allFamilies[familyName] = true
+	end
+
+	-- Add all families
+	for familyName, _ in pairs(allFamilies) do
+		table.insert(groupKeys, {
+			key = familyName,
+			type = "familyName",
+		})
+	end
+
+	-- Add all individual mounts (collected)
+	if self.processedData.allCollectedMountFamilyInfo then
+		for mountID, _ in pairs(self.processedData.allCollectedMountFamilyInfo) do
+			table.insert(groupKeys, {
+				key = "mount_" .. mountID,
+				type = "mountID",
+			})
+		end
+	end
+
+	-- Add all individual uncollected mounts if they exist
+	if self.processedData.allUncollectedMountFamilyInfo then
+		for mountID, _ in pairs(self.processedData.allUncollectedMountFamilyInfo) do
+			table.insert(groupKeys, {
+				key = "mount_" .. mountID,
+				type = "mountID",
+			})
+		end
+	end
+
+	return groupKeys
+end
+
+-- Apply bulk priority change to a list of group keys
+function addon:ApplyBulkPriorityChange(groupKeys, newPriority, skipConfirmation)
+	if not groupKeys or #groupKeys == 0 then
+		print("RMB_BULK: No groups to update")
+		return
+	end
+
+	-- Validate priority
+	local priority = tonumber(newPriority)
+	if not priority or priority < 0 or priority > 6 then
+		print("RMB_BULK: Invalid priority value:", newPriority)
+		return
+	end
+
+	print("RMB_BULK: ApplyBulkPriorityChange called - " ..
+		#groupKeys .. " items, priority " .. priority .. ", skipConfirmation: " .. tostring(skipConfirmation))
+	-- For large operations, store the data and show a confirmation message instead of StaticPopup
+	if not skipConfirmation and #groupKeys > 50 then
+		local priorityNames = {
+			[0] = "Never",
+			[1] = "Occasional",
+			[2] = "Uncommon",
+			[3] = "Normal",
+			[4] = "Common",
+			[5] = "Often",
+			[6] = "Always",
+		}
+		-- Store the pending operation
+		self.pendingBulkOperation = {
+			groupKeys = groupKeys,
+			priority = priority,
+			priorityName = priorityNames[priority] or tostring(priority),
+		}
+		print("RMB_BULK: Storing pending bulk operation for " ..
+			#groupKeys .. " items to " .. (priorityNames[priority] or tostring(priority)))
+		-- Trigger UI refresh to show the confirmation option
+		if self.PopulateFamilyManagementUI then
+			self:PopulateFamilyManagementUI()
+		end
+
+		return
+	end
+
+	-- Perform the bulk update directly (no confirmation needed)
+	print("RMB_BULK: Performing direct bulk update (no confirmation)")
+	self:PerformBulkPriorityUpdate(groupKeys, priority)
+end
+
+-- Execute the pending bulk operation
+function addon:ExecutePendingBulkOperation()
+	if not self.pendingBulkOperation then
+		print("RMB_BULK: No pending operation to execute")
+		return
+	end
+
+	local operation = self.pendingBulkOperation
+	self.pendingBulkOperation = nil -- Clear it first
+	print("RMB_BULK: Executing pending bulk operation - " ..
+		#operation.groupKeys .. " items to priority " .. operation.priority)
+	self:PerformBulkPriorityUpdate(operation.groupKeys, operation.priority)
+	-- Refresh UI to remove confirmation section and show updated weights
+	if self.PopulateFamilyManagementUI then
+		self:PopulateFamilyManagementUI()
+	end
+end
+
+-- Cancel the pending bulk operation
+function addon:CancelPendingBulkOperation()
+	if self.pendingBulkOperation then
+		print("RMB_BULK: Cancelling pending bulk operation")
+		self.pendingBulkOperation = nil
+		-- Refresh UI to remove confirmation buttons
+		if self.PopulateFamilyManagementUI then
+			self:PopulateFamilyManagementUI()
+		end
+	end
+end
+
+-- Add this to your OnInitialize() function in Core.lua:
+-- self:InitializeBulkPrioritySystem()
+-- Actually perform the bulk priority update
+function addon:PerformBulkPriorityUpdate(groupKeys, priority)
+	if not (self.db and self.db.profile and self.db.profile.groupWeights) then
+		print("RMB_BULK: Database not available")
+		return
+	end
+
+	local updateCount = 0
+	local syncNeeded = false
+	print("RMB_BULK: Starting bulk priority update - " .. #groupKeys .. " items to priority " .. priority)
+	-- Disable weight syncing temporarily to avoid redundant operations
+	local originalSyncFunction = self.SyncWeightForSingleMountFamily
+	self.SyncWeightForSingleMountFamily = function() end
+	-- Update all weights
+	for _, groupInfo in ipairs(groupKeys) do
+		local currentWeight = self.db.profile.groupWeights[groupInfo.key] or 0
+		if currentWeight ~= priority then
+			self.db.profile.groupWeights[groupInfo.key] = priority
+			updateCount = updateCount + 1
+			-- Check if this change needs syncing (single-mount families)
+			if not groupInfo.key:match("^mount_") then
+				local isSingleMount, mountID = self:IsSingleMountFamily(groupInfo.key)
+				if isSingleMount then
+					syncNeeded = true
+				end
+			else
+				local familyName = self:GetMountFamilyFromMountKey(groupInfo.key)
+				if familyName then
+					local isSingleMount = self:IsSingleMountFamily(familyName)
+					if isSingleMount then
+						syncNeeded = true
+					end
+				end
+			end
+		end
+	end
+
+	-- Restore syncing function
+	self.SyncWeightForSingleMountFamily = originalSyncFunction
+	-- Perform all syncing at once if needed
+	if syncNeeded then
+		self:PerformBulkWeightSync(groupKeys, priority)
+	end
+
+	print("RMB_BULK: Updated " .. updateCount .. " items to priority " .. priority)
+	-- Always refresh after bulk update
+	self:NotifyModulesSettingChanged("groupWeights", priority)
+	-- Refresh mount pools
+	if self.MountSummon and self.MountSummon.RefreshMountPools then
+		self.MountSummon:RefreshMountPools()
+	end
+
+	-- Show completion message
+	print("RMB_BULK: Bulk priority update completed - " .. updateCount .. " items updated")
+end
+
+-- Perform weight syncing for single-mount families after bulk update
+function addon:PerformBulkWeightSync(groupKeys, priority)
+	if not (self.db and self.db.profile and self.db.profile.groupWeights) then
+		return
+	end
+
+	local syncCount = 0
+	-- Track families and mounts we've already processed to avoid duplicates
+	local processedFamilies = {}
+	local processedMounts = {}
+	for _, groupInfo in ipairs(groupKeys) do
+		-- Case 1: Family weight changed, sync to mount (if single-mount family)
+		if not groupInfo.key:match("^mount_") and not processedFamilies[groupInfo.key] then
+			processedFamilies[groupInfo.key] = true
+			local isSingleMount, mountID = self:IsSingleMountFamily(groupInfo.key)
+			if isSingleMount and mountID then
+				local mountKey = "mount_" .. mountID
+				if not processedMounts[mountKey] then
+					processedMounts[mountKey] = true
+					local currentMountWeight = self.db.profile.groupWeights[mountKey] or 0
+					if currentMountWeight ~= priority then
+						self.db.profile.groupWeights[mountKey] = priority
+						syncCount = syncCount + 1
+					end
+				end
+			end
+		end
+
+		-- Case 2: Mount weight changed, sync to family (if single-mount family)
+		if groupInfo.key:match("^mount_") and not processedMounts[groupInfo.key] then
+			processedMounts[groupInfo.key] = true
+			local familyName = self:GetMountFamilyFromMountKey(groupInfo.key)
+			if familyName and not processedFamilies[familyName] then
+				local isSingleMount, mountID = self:IsSingleMountFamily(familyName)
+				if isSingleMount and mountID then
+					local currentMountID = tonumber(groupInfo.key:match("^mount_(%d+)$"))
+					if currentMountID == mountID then
+						processedFamilies[familyName] = true
+						local currentFamilyWeight = self.db.profile.groupWeights[familyName] or 0
+						if currentFamilyWeight ~= priority then
+							self.db.profile.groupWeights[familyName] = priority
+							syncCount = syncCount + 1
+						end
+					end
+				end
+			end
+		end
+	end
+
+	if syncCount > 0 then
+		print("RMB_BULK: Synced weights for " .. syncCount .. " single-mount family pairs")
+	end
+end
+
+-- Create StaticPopup for bulk confirmation
+StaticPopupDialogs["RMB_BULK_PRIORITY_CONFIRM"] = {
+	text = "Set priority for %d items to '%s'?\n\nThis will update supergroups, families, and individual mounts.",
+	button1 = "Yes",
+	button2 = "Cancel",
+	OnAccept = function(self, data)
+		print("RMB_BULK: StaticPopup OnAccept called")
+		if data then
+			print("RMB_BULK: Data exists - groupKeys: " ..
+				tostring(data.groupKeys and #data.groupKeys) .. ", priority: " .. tostring(data.priority))
+			if data.groupKeys and data.priority then
+				print("RMB_BULK: Calling PerformBulkPriorityUpdate from popup")
+				addon:PerformBulkPriorityUpdate(data.groupKeys, data.priority)
+				print("RMB_BULK: PerformBulkPriorityUpdate completed, triggering UI refresh")
+				-- Use a more immediate refresh approach
+				addon:PopulateFamilyManagementUI()
+			else
+				print("RMB_BULK: ERROR - Missing data in popup callback")
+			end
+		else
+			print("RMB_BULK: ERROR - No data passed to popup callback")
+		end
+	end,
+	OnCancel = function()
+		print("RMB_BULK: Bulk priority change cancelled")
+	end,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
 -- ============================================================================
 -- DISPLAYABLE GROUPS LOGIC WITH ENHANCED FILTERING
 -- ============================================================================

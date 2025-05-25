@@ -1,8 +1,7 @@
--- MountSummon.lua - Refactored as Clean Module
--- Handles all mount summoning logic and contextual selection
+-- MountSummon.lua - Updated with Weight 6 (Always) Priority Logic
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
-print("RMB_DEBUG: MountSummon.lua START (Clean Module).")
+print("RMB_DEBUG: MountSummon.lua START (Updated Weight 6 Logic).")
 -- ============================================================================
 -- MOUNT SUMMON CLASS
 -- ============================================================================
@@ -41,7 +40,7 @@ function MountSummon:Initialize()
 end
 
 -- ============================================================================
--- MOUNT TYPE & CAPABILITY DETECTION
+-- MOUNT TYPE & CAPABILITY DETECTION (unchanged from original)
 -- ============================================================================
 -- Get mount type traits for a given mount ID
 function MountSummon:GetMountTypeTraits(mountID)
@@ -135,7 +134,7 @@ function MountSummon:RegisterFlightStyleEvents()
 end
 
 -- ============================================================================
--- CONTEXT DETECTION
+-- CONTEXT DETECTION (unchanged from original)
 -- ============================================================================
 -- Determine the current player context for contextual summoning
 function MountSummon:GetCurrentContext()
@@ -186,7 +185,7 @@ function MountSummon:GetCurrentContext()
 end
 
 -- ============================================================================
--- MOUNT POOL MANAGEMENT
+-- MOUNT POOL MANAGEMENT (unchanged from original, includes all helper functions)
 -- ============================================================================
 -- Build mount pools for different contexts
 function MountSummon:BuildMountPools()
@@ -433,7 +432,7 @@ function MountSummon:MapWeightToProbability(userWeight)
 end
 
 -- ============================================================================
--- POOL-BASED MOUNT SELECTION
+-- UPDATED POOL-BASED MOUNT SELECTION WITH WEIGHT 6 PRIORITY
 -- ============================================================================
 -- Select a mount from a specific pool
 function MountSummon:SelectMountFromPool(poolName)
@@ -466,419 +465,8 @@ function MountSummon:SelectMountFromPool(poolName)
 	return self:SelectMountFromPoolFamily(pool, familyName)
 end
 
--- Select a group from a pool
-function MountSummon:SelectGroupFromPool(pool)
-	-- Build list of eligible groups
-	local eligibleGroups = {}
-	local totalWeight = 0
-	local priority6Groups = {}
-	local hasPriority6Groups = false
-	-- Add supergroups
-	for sgName, families in pairs(pool.superGroups) do
-		if #families > 0 then
-			-- Additional check to verify families have mounts
-			local sgHasValidFamilies = false
-			for _, familyName in ipairs(families) do
-				if pool.mountsByFamily[familyName] and #pool.mountsByFamily[familyName] > 0 then
-					sgHasValidFamilies = true
-					break
-				end
-			end
-
-			if sgHasValidFamilies then
-				local groupWeight = addon:GetGroupWeight(sgName)
-				if groupWeight > 0 then
-					if groupWeight == 6 then
-						table.insert(priority6Groups, {
-							name = sgName,
-							type = "superGroup",
-							weight = 100,
-						})
-						hasPriority6Groups = true
-					else
-						-- Regular weighted group
-						local probWeight = self:MapWeightToProbability(groupWeight)
-						table.insert(eligibleGroups, {
-							name = sgName,
-							type = "superGroup",
-							weight = probWeight,
-						})
-						totalWeight = totalWeight + probWeight
-					end
-
-					print("RMB_SUMMON: Added eligible supergroup:", sgName, "Weight:", groupWeight)
-				end
-			else
-				print("RMB_SUMMON: Skipping supergroup with no valid families:", sgName)
-			end
-		end
-	end
-
-	-- Add standalone families
-	for familyName, _ in pairs(pool.families) do
-		-- Make sure the family actually has mounts in this pool
-		if pool.mountsByFamily[familyName] and #pool.mountsByFamily[familyName] > 0 then
-			local groupWeight = addon:GetGroupWeight(familyName)
-			if groupWeight > 0 then
-				if groupWeight == 6 then
-					table.insert(priority6Groups, {
-						name = familyName,
-						type = "family",
-						weight = 100,
-					})
-					hasPriority6Groups = true
-				else
-					-- Regular weighted group
-					local probWeight = self:MapWeightToProbability(groupWeight)
-					table.insert(eligibleGroups, {
-						name = familyName,
-						type = "family",
-						weight = probWeight,
-					})
-					totalWeight = totalWeight + probWeight
-				end
-
-				print("RMB_SUMMON: Added eligible standalone family:", familyName, "Weight:", groupWeight)
-			end
-		else
-			print("RMB_SUMMON: Skipping family with no valid mounts:", familyName)
-		end
-	end
-
-	-- Handle priority 6 groups
-	if hasPriority6Groups then
-		local selectedGroup = priority6Groups[math.random(#priority6Groups)]
-		print("RMB_SUMMON: Selected priority 6 group:", selectedGroup.name, selectedGroup.type)
-		return selectedGroup.name, selectedGroup.type
-	end
-
-	-- Handle regular groups
-	if #eligibleGroups == 0 or totalWeight == 0 then
-		print("RMB_SUMMON: No eligible groups found")
-		return nil, nil
-	end
-
-	-- Weighted selection
-	local roll = math.random(1, totalWeight)
-	print("RMB_SUMMON: Group selection roll:", roll, "out of", totalWeight)
-	local currentSum = 0
-	for _, group in ipairs(eligibleGroups) do
-		currentSum = currentSum + group.weight
-		if roll <= currentSum then
-			print("RMB_SUMMON: Selected group:", group.name, group.type)
-			return group.name, group.type
-		end
-	end
-
-	-- Fallback
-	return eligibleGroups[1].name, eligibleGroups[1].type
-end
-
--- Select a family from a supergroup in a specific pool
-function MountSummon:SelectFamilyFromPoolSuperGroup(pool, superGroupName)
-	-- Get families in this supergroup for this pool
-	local families = pool.superGroups[superGroupName] or {}
-	if #families == 0 then
-		print("RMB_SUMMON: Supergroup has no families in this pool:", superGroupName)
-		return nil
-	end
-
-	-- Build list of eligible families with weights
-	local eligibleFamilies = {}
-	local totalWeight = 0
-	local priority6Families = {}
-	local hasPriority6Families = false
-	for _, familyName in ipairs(families) do
-		-- Make sure family has mounts in this pool
-		if pool.mountsByFamily[familyName] and #pool.mountsByFamily[familyName] > 0 then
-			local familyWeight = addon:GetGroupWeight(familyName)
-			if familyWeight > 0 then
-				if familyWeight == 6 then
-					table.insert(priority6Families, {
-						name = familyName,
-						weight = 100,
-					})
-					hasPriority6Families = true
-				else
-					local probWeight = self:MapWeightToProbability(familyWeight)
-					table.insert(eligibleFamilies, {
-						name = familyName,
-						weight = probWeight,
-					})
-					totalWeight = totalWeight + probWeight
-				end
-
-				print("RMB_SUMMON: Added eligible family from supergroup:", familyName, "Weight:", familyWeight)
-			end
-		end
-	end
-
-	-- Handle priority 6 families
-	if hasPriority6Families then
-		local selectedFamily = priority6Families[math.random(#priority6Families)]
-		print("RMB_SUMMON: Selected priority 6 family:", selectedFamily.name)
-		return selectedFamily.name
-	end
-
-	-- If no eligible families, return nil
-	if #eligibleFamilies == 0 or totalWeight == 0 then
-		print("RMB_SUMMON: No eligible families found in supergroup")
-		return nil
-	end
-
-	-- Weighted random selection
-	local roll = math.random(1, totalWeight)
-	print("RMB_SUMMON: Family selection roll:", roll, "out of", totalWeight)
-	local currentSum = 0
-	for _, family in ipairs(eligibleFamilies) do
-		currentSum = currentSum + family.weight
-		if roll <= currentSum then
-			print("RMB_SUMMON: Selected family:", family.name)
-			return family.name
-		end
-	end
-
-	-- Fallback
-	return eligibleFamilies[1].name
-end
-
--- Select a mount from a family in a specific pool
-function MountSummon:SelectMountFromPoolFamily(pool, familyName)
-	-- Get mounts in this family for this pool
-	local familyMounts = pool.mountsByFamily[familyName] or {}
-	if #familyMounts == 0 then
-		print("RMB_SUMMON: Family has no mounts in this pool:", familyName)
-		return nil, nil
-	end
-
-	-- Build list of eligible mounts (only those with weight > 0)
-	local eligibleMounts = {}
-	local totalWeight = 0
-	local priority6Mounts = {}
-	local hasPriority6Mounts = false
-	for _, mountID in ipairs(familyMounts) do
-		local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
-		-- Double-check mount is still usable
-		if isUsable then
-			-- Get mount weight - if it's explicitly set to 0, EXCLUDE this mount
-			local mountKey = "mount_" .. mountID
-			local mountWeight = addon:GetGroupWeight(mountKey)
-			-- Skip mounts with explicit 0 weight
-			if mountWeight ~= 0 then
-				-- If mount has no specific weight, use family weight
-				if mountWeight == 0 then
-					mountWeight = addon:GetGroupWeight(familyName)
-				end
-
-				-- Only include if mount has weight > 0
-				if mountWeight > 0 then
-					if mountWeight == 6 then
-						table.insert(priority6Mounts, {
-							id = mountID,
-							name = name,
-							weight = 100,
-						})
-						hasPriority6Mounts = true
-					else
-						local probWeight = self:MapWeightToProbability(mountWeight)
-						table.insert(eligibleMounts, {
-							id = mountID,
-							name = name,
-							weight = probWeight,
-						})
-						totalWeight = totalWeight + probWeight
-					end
-
-					print("RMB_SUMMON: Added eligible mount from family:", name, "Weight:", mountWeight)
-				else
-					print("RMB_SUMMON_DEBUG: Mount " .. name .. " and family have weight 0, skipping")
-				end
-			else
-				print("RMB_SUMMON_DEBUG: Skipping mount " .. name .. " with weight 0")
-			end
-		end
-	end
-
-	-- Handle priority 6 mounts
-	if hasPriority6Mounts then
-		local selectedMount = priority6Mounts[math.random(#priority6Mounts)]
-		print("RMB_SUMMON: Selected priority 6 mount:", selectedMount.name)
-		return selectedMount.id, selectedMount.name
-	end
-
-	-- If no eligible mounts, return nil
-	if #eligibleMounts == 0 or totalWeight == 0 then
-		print("RMB_SUMMON: No eligible mounts found in family")
-		return nil, nil
-	end
-
-	-- Weighted random selection
-	local roll = math.random(1, totalWeight)
-	print("RMB_SUMMON: Mount selection roll:", roll, "out of", totalWeight)
-	local currentSum = 0
-	for _, mount in ipairs(eligibleMounts) do
-		currentSum = currentSum + mount.weight
-		if roll <= currentSum then
-			print("RMB_SUMMON: Selected mount:", mount.name)
-			return mount.id, mount.name
-		end
-	end
-
-	-- Fallback
-	return eligibleMounts[1].id, eligibleMounts[1].name
-end
-
--- Refactored function to select specific mount types while respecting weight hierarchy
-function MountSummon:SelectSpecificMountTypeFromPool(poolName, mountType)
-	local pool = self.mountPools[poolName]
-	if not pool then
-		print("RMB_SUMMON_ERROR: Invalid pool name:", poolName)
-		return nil, nil
-	end
-
-	-- Build list of eligible groups first (respecting the hierarchy)
-	local eligibleGroups = {}
-	-- Add supergroups with weight > 0
-	for sgName, families in pairs(pool.superGroups) do
-		local superGroupWeight = addon:GetGroupWeight(sgName)
-		if superGroupWeight > 0 then
-			table.insert(eligibleGroups, {
-				name = sgName,
-				type = "superGroup",
-				weight = self:MapWeightToProbability(superGroupWeight),
-			})
-		end
-	end
-
-	-- Add standalone families with weight > 0
-	for familyName, _ in pairs(pool.families) do
-		local familyWeight = addon:GetGroupWeight(familyName)
-		if familyWeight > 0 then
-			table.insert(eligibleGroups, {
-				name = familyName,
-				type = "family",
-				weight = self:MapWeightToProbability(familyWeight),
-			})
-		end
-	end
-
-	-- If no eligible groups, return nil
-	if #eligibleGroups == 0 then
-		print("RMB_SUMMON: No eligible groups found for " .. mountType .. " mount selection")
-		return nil, nil
-	end
-
-	-- Try each eligible group until we find one with matching mount type
-	-- Randomize the order to prevent always checking the same groups first
-	for i = #eligibleGroups, 2, -1 do
-		local j = math.random(i)
-		eligibleGroups[i], eligibleGroups[j] = eligibleGroups[j], eligibleGroups[i]
-	end
-
-	for _, group in ipairs(eligibleGroups) do
-		local eligibleFamilies = {}
-		if group.type == "superGroup" then
-			-- Get all families in this supergroup
-			for _, familyName in ipairs(pool.superGroups[group.name] or {}) do
-				local familyWeight = addon:GetGroupWeight(familyName)
-				if familyWeight > 0 then
-					table.insert(eligibleFamilies, {
-						name = familyName,
-						weight = self:MapWeightToProbability(familyWeight),
-					})
-				end
-			end
-		else
-			-- Just the standalone family
-			table.insert(eligibleFamilies, {
-				name = group.name,
-				weight = group.weight,
-			})
-		end
-
-		-- If no eligible families in this group, skip
-		if #eligibleFamilies > 0 then
-			-- Randomize family order
-			for i = #eligibleFamilies, 2, -1 do
-				local j = math.random(i)
-				eligibleFamilies[i], eligibleFamilies[j] = eligibleFamilies[j], eligibleFamilies[i]
-			end
-
-			-- Try each family until we find one with matching mount type
-			for _, family in ipairs(eligibleFamilies) do
-				local eligibleMounts = {}
-				local totalWeight = 0
-				-- Get all mounts in this family
-				for _, mountID in ipairs(pool.mountsByFamily[family.name] or {}) do
-					local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
-					-- Skip unusable mounts
-					if isUsable then
-						local traits = self:GetMountTypeTraits(mountID)
-						local isEligible = false
-						-- Check if this mount matches the desired type
-						if mountType == "skyriding" and traits.isSkyriding then
-							isEligible = true
-						elseif mountType == "steadyflight" and traits.isSteadyFly then
-							isEligible = true
-						end
-
-						if isEligible then
-							-- Get mount weight
-							local mountKey = "mount_" .. mountID
-							local mountWeight = addon:GetGroupWeight(mountKey)
-							-- Skip mounts with explicit weight 0
-							if mountWeight ~= 0 then
-								-- If mount has no specific weight, use family weight
-								if mountWeight == nil or mountWeight == 0 then
-									mountWeight = addon:GetGroupWeight(family.name)
-								end
-
-								-- Only include if weight > 0
-								if mountWeight > 0 then
-									local probWeight = self:MapWeightToProbability(mountWeight)
-									table.insert(eligibleMounts, {
-										id = mountID,
-										name = name,
-										weight = probWeight,
-									})
-									totalWeight = totalWeight + probWeight
-									print("RMB_SUMMON: Added eligible " .. mountType .. " mount from "
-										.. family.name .. ":", name, "Weight:", mountWeight)
-								end
-							end
-						end
-					end
-				end
-
-				-- If eligible mounts found in this family, make a selection
-				if #eligibleMounts > 0 and totalWeight > 0 then
-					-- Weighted random selection
-					local roll = math.random(1, totalWeight)
-					local currentSum = 0
-					for _, mount in ipairs(eligibleMounts) do
-						currentSum = currentSum + mount.weight
-						if roll <= currentSum then
-							print("RMB_SUMMON: Selected " .. mountType .. " mount:", mount.name,
-								"from family:", family.name,
-								group.type == "superGroup" and "in supergroup: " .. group.name or "")
-							return mount.id, mount.name
-						end
-					end
-
-					-- Fallback
-					return eligibleMounts[1].id, eligibleMounts[1].name
-				end
-			end
-		end
-	end
-
-	-- If we got here, no eligible mounts were found
-	print("RMB_SUMMON: No eligible " .. mountType .. " mounts found in any group")
-	return nil, nil
-end
-
 -- ============================================================================
--- MOUNT SUMMONING
+-- MOUNT SUMMONING (unchanged from original)
 -- ============================================================================
 -- Summon a specific mount by ID
 function MountSummon:SummonMount(mountID)
@@ -945,7 +533,7 @@ function MountSummon:SummonRandomMount(useContext)
 end
 
 -- ============================================================================
--- INTEGRATION WITH BLIZZARD UI
+-- INTEGRATION WITH BLIZZARD UI (unchanged from original)
 -- ============================================================================
 -- Hook into Blizzard's Random Favorite Mount button
 function MountSummon:HookRandomFavoriteButton()
@@ -977,7 +565,7 @@ function MountSummon:HookRandomFavoriteButton()
 end
 
 -- ============================================================================
--- PUBLIC INTERFACE METHODS
+-- PUBLIC INTERFACE METHODS (unchanged from original)
 -- ============================================================================
 -- Called when data is ready
 function MountSummon:OnDataReady()
@@ -1009,7 +597,7 @@ function MountSummon:GetSmartButtonAction()
 end
 
 -- ============================================================================
--- AUTO-INITIALIZATION
+-- AUTO-INITIALIZATION (unchanged from original)
 -- ============================================================================
 -- Auto-initialize when addon loads
 function addon:InitializeMountSummon()
@@ -1031,4 +619,449 @@ function addon:InitializeMountSummon()
 	print("RMB_SUMMON: Integration complete")
 end
 
-print("RMB_DEBUG: MountSummon.lua END (Clean Module).")
+print("RMB_DEBUG: MountSummon.lua END (Updated Weight 6 Logic).")
+function MountSummon:SelectGroupFromPool(pool)
+	-- Build list of eligible groups
+	local eligibleGroups = {}
+	local totalWeight = 0
+	local priority6Groups = {}
+	-- Add supergroups
+	for sgName, families in pairs(pool.superGroups) do
+		if #families > 0 then
+			-- Additional check to verify families have mounts
+			local sgHasValidFamilies = false
+			for _, familyName in ipairs(families) do
+				if pool.mountsByFamily[familyName] and #pool.mountsByFamily[familyName] > 0 then
+					sgHasValidFamilies = true
+					break
+				end
+			end
+
+			if sgHasValidFamilies then
+				local groupWeight = addon:GetGroupWeight(sgName)
+				if groupWeight > 0 then
+					if groupWeight == 6 then
+						-- Priority 6 groups get special handling
+						table.insert(priority6Groups, {
+							name = sgName,
+							type = "superGroup",
+						})
+					else
+						-- Regular weighted group
+						local probWeight = self:MapWeightToProbability(groupWeight)
+						table.insert(eligibleGroups, {
+							name = sgName,
+							type = "superGroup",
+							weight = probWeight,
+						})
+						totalWeight = totalWeight + probWeight
+					end
+
+					print("RMB_SUMMON: Added eligible supergroup:", sgName, "Weight:", groupWeight)
+				end
+			else
+				print("RMB_SUMMON: Skipping supergroup with no valid families:", sgName)
+			end
+		end
+	end
+
+	-- Add standalone families
+	for familyName, _ in pairs(pool.families) do
+		-- Make sure the family actually has mounts in this pool
+		if pool.mountsByFamily[familyName] and #pool.mountsByFamily[familyName] > 0 then
+			local groupWeight = addon:GetGroupWeight(familyName)
+			if groupWeight > 0 then
+				if groupWeight == 6 then
+					-- Priority 6 groups get special handling
+					table.insert(priority6Groups, {
+						name = familyName,
+						type = "family",
+					})
+				else
+					-- Regular weighted group
+					local probWeight = self:MapWeightToProbability(groupWeight)
+					table.insert(eligibleGroups, {
+						name = familyName,
+						type = "family",
+						weight = probWeight,
+					})
+					totalWeight = totalWeight + probWeight
+				end
+
+				print("RMB_SUMMON: Added eligible standalone family:", familyName, "Weight:", groupWeight)
+			end
+		else
+			print("RMB_SUMMON: Skipping family with no valid mounts:", familyName)
+		end
+	end
+
+	-- UPDATED: Handle priority 6 groups first - if any exist, ONLY consider them
+	if #priority6Groups > 0 then
+		local selectedGroup = priority6Groups[math.random(#priority6Groups)]
+		print("RMB_SUMMON: Selected priority 6 group:", selectedGroup.name, selectedGroup.type)
+		return selectedGroup.name, selectedGroup.type
+	end
+
+	-- Handle regular groups only if no priority 6 groups exist
+	if #eligibleGroups == 0 or totalWeight == 0 then
+		print("RMB_SUMMON: No eligible groups found")
+		return nil, nil
+	end
+
+	-- Weighted selection
+	local roll = math.random(1, totalWeight)
+	print("RMB_SUMMON: Group selection roll:", roll, "out of", totalWeight)
+	local currentSum = 0
+	for _, group in ipairs(eligibleGroups) do
+		currentSum = currentSum + group.weight
+		if roll <= currentSum then
+			print("RMB_SUMMON: Selected group:", group.name, group.type)
+			return group.name, group.type
+		end
+	end
+
+	-- Fallback
+	return eligibleGroups[1].name, eligibleGroups[1].type
+end
+
+-- Select a family from a supergroup in a specific pool - UPDATED for Weight 6 Always logic
+function MountSummon:SelectFamilyFromPoolSuperGroup(pool, superGroupName)
+	-- Get families in this supergroup for this pool
+	local families = pool.superGroups[superGroupName] or {}
+	if #families == 0 then
+		print("RMB_SUMMON: Supergroup has no families in this pool:", superGroupName)
+		return nil
+	end
+
+	-- Build list of eligible families with weights
+	local eligibleFamilies = {}
+	local totalWeight = 0
+	local priority6Families = {}
+	for _, familyName in ipairs(families) do
+		-- Make sure family has mounts in this pool
+		if pool.mountsByFamily[familyName] and #pool.mountsByFamily[familyName] > 0 then
+			local familyWeight = addon:GetGroupWeight(familyName)
+			if familyWeight > 0 then
+				if familyWeight == 6 then
+					-- Priority 6 families get special handling
+					table.insert(priority6Families, {
+						name = familyName,
+					})
+				else
+					local probWeight = self:MapWeightToProbability(familyWeight)
+					table.insert(eligibleFamilies, {
+						name = familyName,
+						weight = probWeight,
+					})
+					totalWeight = totalWeight + probWeight
+				end
+
+				print("RMB_SUMMON: Added eligible family from supergroup:", familyName, "Weight:", familyWeight)
+			end
+		end
+	end
+
+	-- UPDATED: Handle priority 6 families first - if any exist, ONLY consider them
+	if #priority6Families > 0 then
+		local selectedFamily = priority6Families[math.random(#priority6Families)]
+		print("RMB_SUMMON: Selected priority 6 family:", selectedFamily.name)
+		return selectedFamily.name
+	end
+
+	-- If no eligible families, return nil
+	if #eligibleFamilies == 0 or totalWeight == 0 then
+		print("RMB_SUMMON: No eligible families found in supergroup")
+		return nil
+	end
+
+	-- Weighted random selection
+	local roll = math.random(1, totalWeight)
+	print("RMB_SUMMON: Family selection roll:", roll, "out of", totalWeight)
+	local currentSum = 0
+	for _, family in ipairs(eligibleFamilies) do
+		currentSum = currentSum + family.weight
+		if roll <= currentSum then
+			print("RMB_SUMMON: Selected family:", family.name)
+			return family.name
+		end
+	end
+
+	-- Fallback
+	return eligibleFamilies[1].name
+end
+
+-- Select a mount from a family in a specific pool - UPDATED for Weight 6 Always logic
+function MountSummon:SelectMountFromPoolFamily(pool, familyName)
+	-- Get mounts in this family for this pool
+	local familyMounts = pool.mountsByFamily[familyName] or {}
+	if #familyMounts == 0 then
+		print("RMB_SUMMON: Family has no mounts in this pool:", familyName)
+		return nil, nil
+	end
+
+	-- Build list of eligible mounts (only those with weight > 0)
+	local eligibleMounts = {}
+	local totalWeight = 0
+	local priority6Mounts = {}
+	for _, mountID in ipairs(familyMounts) do
+		local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
+		-- Double-check mount is still usable
+		if isUsable then
+			-- Get mount weight - if it's explicitly set to 0, EXCLUDE this mount
+			local mountKey = "mount_" .. mountID
+			local mountWeight = addon:GetGroupWeight(mountKey)
+			-- Skip mounts with explicit 0 weight
+			if mountWeight ~= 0 then
+				-- If mount has no specific weight, use family weight
+				if mountWeight == 0 then
+					mountWeight = addon:GetGroupWeight(familyName)
+				end
+
+				-- Only include if mount has weight > 0
+				if mountWeight > 0 then
+					if mountWeight == 6 then
+						-- Priority 6 mounts get special handling
+						table.insert(priority6Mounts, {
+							id = mountID,
+							name = name,
+						})
+					else
+						local probWeight = self:MapWeightToProbability(mountWeight)
+						table.insert(eligibleMounts, {
+							id = mountID,
+							name = name,
+							weight = probWeight,
+						})
+						totalWeight = totalWeight + probWeight
+					end
+
+					print("RMB_SUMMON: Added eligible mount from family:", name, "Weight:", mountWeight)
+				else
+					print("RMB_SUMMON_DEBUG: Mount " .. name .. " and family have weight 0, skipping")
+				end
+			else
+				print("RMB_SUMMON_DEBUG: Skipping mount " .. name .. " with weight 0")
+			end
+		end
+	end
+
+	-- UPDATED: Handle priority 6 mounts first - if any exist, ONLY consider them
+	if #priority6Mounts > 0 then
+		local selectedMount = priority6Mounts[math.random(#priority6Mounts)]
+		print("RMB_SUMMON: Selected priority 6 mount:", selectedMount.name)
+		return selectedMount.id, selectedMount.name
+	end
+
+	-- If no eligible mounts, return nil
+	if #eligibleMounts == 0 or totalWeight == 0 then
+		print("RMB_SUMMON: No eligible mounts found in family")
+		return nil, nil
+	end
+
+	-- Weighted random selection
+	local roll = math.random(1, totalWeight)
+	print("RMB_SUMMON: Mount selection roll:", roll, "out of", totalWeight)
+	local currentSum = 0
+	for _, mount in ipairs(eligibleMounts) do
+		currentSum = currentSum + mount.weight
+		if roll <= currentSum then
+			print("RMB_SUMMON: Selected mount:", mount.name)
+			return mount.id, mount.name
+		end
+	end
+
+	-- Fallback
+	return eligibleMounts[1].id, eligibleMounts[1].name
+end
+
+-- Updated SelectSpecificMountTypeFromPool to also handle Weight 6 priority
+function MountSummon:SelectSpecificMountTypeFromPool(poolName, mountType)
+	local pool = self.mountPools[poolName]
+	if not pool then
+		print("RMB_SUMMON_ERROR: Invalid pool name:", poolName)
+		return nil, nil
+	end
+
+	-- Build list of eligible groups first (respecting the hierarchy)
+	local eligibleGroups = {}
+	local priority6Groups = {}
+	-- Add supergroups
+	for sgName, families in pairs(pool.superGroups) do
+		local superGroupWeight = addon:GetGroupWeight(sgName)
+		if superGroupWeight > 0 then
+			if superGroupWeight == 6 then
+				table.insert(priority6Groups, {
+					name = sgName,
+					type = "superGroup",
+				})
+			else
+				table.insert(eligibleGroups, {
+					name = sgName,
+					type = "superGroup",
+					weight = self:MapWeightToProbability(superGroupWeight),
+				})
+			end
+		end
+	end
+
+	-- Add standalone families
+	for familyName, _ in pairs(pool.families) do
+		local familyWeight = addon:GetGroupWeight(familyName)
+		if familyWeight > 0 then
+			if familyWeight == 6 then
+				table.insert(priority6Groups, {
+					name = familyName,
+					type = "family",
+				})
+			else
+				table.insert(eligibleGroups, {
+					name = familyName,
+					type = "family",
+					weight = self:MapWeightToProbability(familyWeight),
+				})
+			end
+		end
+	end
+
+	-- Combine priority 6 groups first, then regular groups
+	local groupsToCheck = {}
+	if #priority6Groups > 0 then
+		-- If priority 6 groups exist, randomize and check them first
+		for i = #priority6Groups, 2, -1 do
+			local j = math.random(i)
+			priority6Groups[i], priority6Groups[j] = priority6Groups[j], priority6Groups[i]
+		end
+
+		for _, group in ipairs(priority6Groups) do
+			table.insert(groupsToCheck, group)
+		end
+	else
+		-- If no priority 6 groups, randomize regular groups
+		for i = #eligibleGroups, 2, -1 do
+			local j = math.random(i)
+			eligibleGroups[i], eligibleGroups[j] = eligibleGroups[j], eligibleGroups[i]
+		end
+
+		for _, group in ipairs(eligibleGroups) do
+			table.insert(groupsToCheck, group)
+		end
+	end
+
+	-- Try each group until we find one with matching mount type
+	for _, group in ipairs(groupsToCheck) do
+		local eligibleFamilies = {}
+		if group.type == "superGroup" then
+			-- Get all families in this supergroup
+			for _, familyName in ipairs(pool.superGroups[group.name] or {}) do
+				local familyWeight = addon:GetGroupWeight(familyName)
+				if familyWeight > 0 then
+					table.insert(eligibleFamilies, {
+						name = familyName,
+						weight = self:MapWeightToProbability(familyWeight),
+					})
+				end
+			end
+		else
+			-- Just the standalone family
+			table.insert(eligibleFamilies, {
+				name = group.name,
+				weight = group.weight or 100,
+			})
+		end
+
+		-- If no eligible families in this group, skip
+		if #eligibleFamilies > 0 then
+			-- Randomize family order
+			for i = #eligibleFamilies, 2, -1 do
+				local j = math.random(i)
+				eligibleFamilies[i], eligibleFamilies[j] = eligibleFamilies[j], eligibleFamilies[i]
+			end
+
+			-- Try each family until we find one with matching mount type
+			for _, family in ipairs(eligibleFamilies) do
+				local eligibleMounts = {}
+				local priority6Mounts = {}
+				local totalWeight = 0
+				-- Get all mounts in this family
+				for _, mountID in ipairs(pool.mountsByFamily[family.name] or {}) do
+					local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
+					-- Skip unusable mounts
+					if isUsable then
+						local traits = self:GetMountTypeTraits(mountID)
+						local isEligible = false
+						-- Check if this mount matches the desired type
+						if mountType == "skyriding" and traits.isSkyriding then
+							isEligible = true
+						elseif mountType == "steadyflight" and traits.isSteadyFly then
+							isEligible = true
+						end
+
+						if isEligible then
+							-- Get mount weight
+							local mountKey = "mount_" .. mountID
+							local mountWeight = addon:GetGroupWeight(mountKey)
+							-- Skip mounts with explicit weight 0
+							if mountWeight ~= 0 then
+								-- If mount has no specific weight, use family weight
+								if mountWeight == nil or mountWeight == 0 then
+									mountWeight = addon:GetGroupWeight(family.name)
+								end
+
+								-- Only include if weight > 0
+								if mountWeight > 0 then
+									if mountWeight == 6 then
+										table.insert(priority6Mounts, {
+											id = mountID,
+											name = name,
+										})
+									else
+										local probWeight = self:MapWeightToProbability(mountWeight)
+										table.insert(eligibleMounts, {
+											id = mountID,
+											name = name,
+											weight = probWeight,
+										})
+										totalWeight = totalWeight + probWeight
+									end
+
+									print("RMB_SUMMON: Added eligible " .. mountType .. " mount from "
+										.. family.name .. ":", name, "Weight:", mountWeight)
+								end
+							end
+						end
+					end
+				end
+
+				-- If eligible mounts found in this family, make a selection
+				if #priority6Mounts > 0 then
+					-- Priority 6 mounts take precedence
+					local selectedMount = priority6Mounts[math.random(#priority6Mounts)]
+					print("RMB_SUMMON: Selected priority 6 " .. mountType .. " mount:", selectedMount.name,
+						"from family:", family.name,
+						group.type == "superGroup" and "in supergroup: " .. group.name or "")
+					return selectedMount.id, selectedMount.name
+				elseif #eligibleMounts > 0 and totalWeight > 0 then
+					-- Weighted random selection from regular mounts
+					local roll = math.random(1, totalWeight)
+					local currentSum = 0
+					for _, mount in ipairs(eligibleMounts) do
+						currentSum = currentSum + mount.weight
+						if roll <= currentSum then
+							print("RMB_SUMMON: Selected " .. mountType .. " mount:", mount.name,
+								"from family:", family.name,
+								group.type == "superGroup" and "in supergroup: " .. group.name or "")
+							return mount.id, mount.name
+						end
+					end
+
+					-- Fallback
+					return eligibleMounts[1].id, eligibleMounts[1].name
+				end
+			end
+		end
+	end
+
+	-- If we got here, no eligible mounts were found
+	print("RMB_SUMMON: No eligible " .. mountType .. " mounts found in any group")
+	return nil, nil
+end

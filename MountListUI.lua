@@ -50,7 +50,7 @@ end
 -- MAIN UI BUILDING FUNCTION
 -- ============================================================================
 function addon:BuildFamilyManagementArgs()
-	print("RMB_UI: BuildFamilyManagementArgs called (With Search and Filters)")
+	print("RMB_UI: BuildFamilyManagementArgs called (With Bulk Priority, Search and Filters)")
 	local pageArgs = {}
 	local displayOrder = 1
 	-- Check if data is ready
@@ -68,9 +68,58 @@ function addon:BuildFamilyManagementArgs()
 		order = displayOrder,
 		type = "description",
 		name = "|cffffd700  Search:|r",
-		width = 0.34,
+		width = 0.28,
 	}
 	displayOrder = displayOrder + 1
+	-- PENDING BULK OPERATION CONFIRMATION (NEW - shows when there's a pending operation)
+	if self.pendingBulkOperation then
+		pageArgs.pending_confirmation_header = {
+			order = displayOrder,
+			type = "header",
+			name = "Confirm Bulk Priority Change",
+		}
+		displayOrder = displayOrder + 1
+		pageArgs.pending_confirmation_desc = {
+			order = displayOrder,
+			type = "description",
+			name = "|cffff9900Set priority for " .. #self.pendingBulkOperation.groupKeys ..
+					" items to '" .. self.pendingBulkOperation.priorityName .. "'?\n\n" ..
+					"This will update ALL supergroups, families, and individual mounts in your collection.|r",
+			width = "full",
+			fontSize = "medium",
+		}
+		displayOrder = displayOrder + 1
+		pageArgs.pending_confirmation_execute = {
+			order = displayOrder,
+			type = "execute",
+			name = "Yes, Apply Changes",
+			desc = "Execute the bulk priority change",
+			func = function()
+				self:ExecutePendingBulkOperation()
+			end,
+			width = 0.8,
+		}
+		displayOrder = displayOrder + 1
+		pageArgs.pending_confirmation_cancel = {
+			order = displayOrder,
+			type = "execute",
+			name = "Cancel",
+			desc = "Cancel the bulk priority change",
+			func = function()
+				self:CancelPendingBulkOperation()
+			end,
+			width = 0.8,
+		}
+		displayOrder = displayOrder + 1
+		pageArgs.pending_confirmation_spacer = {
+			order = displayOrder,
+			type = "description",
+			name = " ",
+			width = "full",
+		}
+		displayOrder = displayOrder + 1
+	end
+
 	pageArgs.search_input = {
 		order = displayOrder,
 		type = "input",
@@ -87,10 +136,78 @@ function addon:BuildFamilyManagementArgs()
 				self:ClearSearch()
 			end
 		end,
-		width = 1.02,
+		width = 0.82,
 	}
 	displayOrder = displayOrder + 1
-	-- FILTER SECTION (to the right of search)
+	-- BULK PRIORITY SECTION (NEW - between search and filter)
+	pageArgs.bulk_priority_description = {
+		order = displayOrder,
+		type = "description",
+		name = "|cffffd700  Bulk Priority:|r",
+		width = 0.28,
+	}
+	displayOrder = displayOrder + 1
+	pageArgs.bulk_priority_dropdown = {
+		order = displayOrder,
+		type = "select",
+		name = "",
+		desc = "Set priority for multiple items at once",
+		values = {
+			[""] = "Select Action...",
+			["page_0"] = "Set Page Items to Never (0)",
+			["page_1"] = "Set Page Items to Occasional (1)",
+			["page_2"] = "Set Page Items to Uncommon (2)",
+			["page_3"] = "Set Page Items to Normal (3)",
+			["page_4"] = "Set Page Items to Common (4)",
+			["page_5"] = "Set Page Items to Often (5)",
+			["page_6"] = "Set Page Items to Always (6)",
+			["separator1"] = "─────────────────────",
+			["all_0"] = "Set ALL Items to Never (0)",
+			["all_1"] = "Set ALL Items to Occasional (1)",
+			["all_2"] = "Set ALL Items to Uncommon (2)",
+			["all_3"] = "Set ALL Items to Normal (3)",
+			["all_4"] = "Set ALL Items to Common (4)",
+			["all_5"] = "Set ALL Items to Often (5)",
+			["all_6"] = "Set ALL Items to Always (6)",
+		},
+		get = function() return "" end, -- Always show "Select Action..."
+		set = function(info, value)
+			if value == "" or value == "separator1" then
+				return -- Ignore separators and empty selection
+			end
+
+			-- Parse the selection
+			local scope, priority = value:match("^([^_]+)_(%d+)$")
+			if not scope or not priority then
+				return
+			end
+
+			priority = tonumber(priority)
+			if not priority or priority < 0 or priority > 6 then
+				return
+			end
+
+			-- Get the appropriate group keys
+			local groupKeys = {}
+			if scope == "page" then
+				groupKeys = self:GetCurrentPageGroupKeys()
+			elseif scope == "all" then
+				groupKeys = self:GetAllDatabaseGroupKeys()
+			end
+
+			if #groupKeys == 0 then
+				print("RMB_BULK: No items found to update")
+				return
+			end
+
+			-- Apply bulk change with confirmation for "all" operations
+			local needsConfirmation = (scope == "all")
+			self:ApplyBulkPriorityChange(groupKeys, priority, not needsConfirmation)
+		end,
+		width = 0.82,
+	}
+	displayOrder = displayOrder + 1
+	-- FILTER SECTION (existing, moved after bulk priority)
 	pageArgs.filter_description = {
 		order = displayOrder,
 		type = "description",
@@ -162,7 +279,7 @@ function addon:BuildFamilyManagementArgs()
 		displayOrder = displayOrder + 1
 	end
 
-	-- EXPANDABLE FILTER PANEL
+	-- EXPANDABLE FILTER PANEL (existing code continues unchanged...)
 	if self:GetSetting("filtersExpanded") then
 		pageArgs.filter_panel = {
 			order = displayOrder,
@@ -174,7 +291,7 @@ function addon:BuildFamilyManagementArgs()
 		displayOrder = displayOrder + 1
 	end
 
-	-- MOUNT GROUP SELECTION LOGIC (Updated to respect filters)
+	-- MOUNT GROUP SELECTION LOGIC (existing code continues unchanged...)
 	local allDisplayableGroups
 	local usingSearchResults = false
 	if self:IsSearchActive() then
@@ -213,7 +330,7 @@ function addon:BuildFamilyManagementArgs()
 		return pageArgs
 	end
 
-	-- PAGINATION LOGIC (rest remains the same)
+	-- PAGINATION LOGIC (existing code continues unchanged...)
 	local totalGroups = #allDisplayableGroups
 	local itemsPerPage = self:FMG_GetItemsPerPage()
 	if usingSearchResults then

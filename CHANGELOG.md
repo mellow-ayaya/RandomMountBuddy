@@ -1,3 +1,7 @@
+# 0.7.9
+Fixed Always weight to work as expected.
+Added bulk weight change dropdown.
+
 # 0.7.8
 Added separate toggle for showing groups and families with no collected mounts.
 
