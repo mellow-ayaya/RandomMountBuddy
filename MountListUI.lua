@@ -1,8 +1,40 @@
--- MountListUI.lua - Properly Integrated with MountUIComponents and Clean Architecture
--- Main UI controller for mount list interface
+-- MountListUI.lua - Fixed to Use Dynamic Grouping
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
-print("RMB_DEBUG: MountListUI.lua (Properly Integrated) START.")
+print("RMB_DEBUG: MountListUI.lua (Fixed Dynamic Grouping) START.")
+-- ============================================================================
+-- DYNAMIC GROUPING HELPERS
+-- ============================================================================
+-- Get families that should be displayed in a supergroup (respects dynamic grouping)
+function addon:GetSuperGroupFamilies(superGroupKey)
+	-- First try to use dynamic grouping if available
+	if self.processedData.dynamicSuperGroupMap then
+		return self.processedData.dynamicSuperGroupMap[superGroupKey] or {}
+	end
+
+	-- Fallback to original grouping
+	if self.processedData.superGroupMap then
+		return self.processedData.superGroupMap[superGroupKey] or {}
+	end
+
+	return {}
+end
+
+-- Check if a family should be displayed as standalone (respects dynamic grouping)
+function addon:IsFamilyStandalone(familyName)
+	-- First check dynamic standalone families
+	if self.processedData.dynamicStandaloneFamilies then
+		return self.processedData.dynamicStandaloneFamilies[familyName] == true
+	end
+
+	-- Fallback: check if family has no supergroup in original mapping
+	if self.processedData.standaloneFamilyNames then
+		return self.processedData.standaloneFamilyNames[familyName] == true
+	end
+
+	return false
+end
+
 -- ============================================================================
 -- MAIN UI CONTROLLER
 -- ============================================================================
@@ -102,7 +134,7 @@ function addon:BuildFamilyManagementArgs()
 			order = displayOrder,
 			type = "description",
 			name = "  |cffff9900" .. filterStatus .. "|r",
-			width = "full", -- Changed from 2.0 to use full available width
+			width = "full",
 		}
 		displayOrder = displayOrder + 1
 	end
@@ -208,7 +240,7 @@ function addon:BuildFamilyManagementArgs()
 		return pageArgs
 	end
 
-	-- Calculate page bounds and build group entries (rest unchanged)
+	-- Calculate page bounds and build group entries
 	local startIndex = (currentPage - 1) * itemsPerPage + 1
 	local endIndex = math.min(startIndex + itemsPerPage - 1, totalGroups)
 	print("RMB_UI: Building page " .. currentPage .. " (" .. startIndex .. "-" .. endIndex .. " of " .. totalGroups .. ")")
@@ -238,8 +270,8 @@ function addon:BuildFamilyManagementArgs()
 
 	-- Add pagination controls (only if not searching)
 	if not usingSearchResults and self.MountUIComponents then
-		local paginationComponents = self.MountUIComponents:CreateSmartPaginationControls(currentPage, totalPages,
-			groupEntryOrder)
+		local paginationComponents = self.MountUIComponents:CreateSmartPaginationControls(
+			currentPage, totalPages, groupEntryOrder)
 		for k, v in pairs(paginationComponents) do
 			pageArgs[k] = v
 		end
@@ -353,13 +385,11 @@ function addon:BuildFilterPanelArgs()
 		end
 	end
 
-	-- Reset button (removed - now in main UI)
-	-- filterArgs.reset_filters = { ... }
 	return filterArgs
 end
 
 -- ============================================================================
--- EXPANDED DETAILS BUILDER
+-- EXPANDED DETAILS BUILDER - FIXED TO USE DYNAMIC GROUPING
 -- ============================================================================
 function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 	print("RMB_UI_DETAILS: GetExpandedGroupDetailsArgs for " .. tostring(groupKey) .. " (" .. tostring(groupType) .. ")")
@@ -371,7 +401,7 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 	end
 
 	if groupType == "superGroup" then
-		-- Build supergroup details (families within the supergroup)
+		-- Build supergroup details (families within the supergroup) - FIXED
 		detailsArgs = self:BuildSuperGroupDetails(groupKey, displayOrder, showUncollected)
 	elseif groupType == "familyName" then
 		-- Build family details (individual mounts)
@@ -388,22 +418,46 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 	return detailsArgs
 end
 
+-- FIXED: Now uses dynamic grouping instead of original grouping
 function addon:BuildSuperGroupDetails(groupKey, startOrder, showUncollected)
 	local detailsArgs = {}
 	local displayOrder = startOrder
-	-- Get families in this supergroup
-	local familyNamesInSG = self.processedData.superGroupMap and self.processedData.superGroupMap[groupKey]
+	-- *** FIXED: Use dynamic grouping helper instead of original superGroupMap ***
+	local familyNamesInSG = self:GetSuperGroupFamilies(groupKey)
 	if not familyNamesInSG or #familyNamesInSG == 0 then
-		return { no_families = { order = 1, type = "description", name = "No families found in this supergroup.", width = "full" } }
+		return {
+			no_families = {
+				order = 1,
+				type = "description",
+				name = "No families found in this supergroup (all may have been separated due to trait settings).",
+				width = "full",
+			},
+		}
 	end
 
 	-- Sort families for consistent display
 	local sortedFamilies = {}
 	for _, familyName in ipairs(familyNamesInSG) do
-		table.insert(sortedFamilies, familyName)
+		-- *** ADDITIONAL FIX: Double-check that family should still be in this supergroup ***
+		-- Skip families that have been moved to standalone due to trait settings
+		if not self:IsFamilyStandalone(familyName) then
+			table.insert(sortedFamilies, familyName)
+		end
 	end
 
 	table.sort(sortedFamilies)
+	-- If no families remain after filtering, show appropriate message
+	if #sortedFamilies == 0 then
+		return {
+			no_families_after_traits = {
+				order = 1,
+				type = "description",
+				name = "All families in this supergroup have been separated due to trait distinctness settings.",
+				width = "full",
+			},
+		}
+	end
+
 	-- Build each family entry
 	for _, familyName in ipairs(sortedFamilies) do
 		-- Count mounts in this family
@@ -425,8 +479,8 @@ function addon:BuildSuperGroupDetails(groupKey, startOrder, showUncollected)
 			local isFamilyExpanded = self:IsGroupExpanded(familyName)
 			-- Build family entry using MountUIComponents
 			if self.MountUIComponents then
-				local familyEntry = self.MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isFamilyExpanded,
-					displayOrder)
+				local familyEntry = self.MountUIComponents:BuildFamilyEntry(
+					familyName, familyDisplayName, isFamilyExpanded, displayOrder)
 				-- Add family entry to details
 				for k, v in pairs(familyEntry) do
 					detailsArgs["fam_" .. familyName .. "_" .. k] = v
@@ -541,7 +595,7 @@ end
 -- UI REFRESH AND POPULATION
 -- ============================================================================
 function addon:PopulateFamilyManagementUI()
-	print("RMB_UI: PopulateFamilyManagementUI called (Properly Integrated)")
+	print("RMB_UI: PopulateFamilyManagementUI called (Fixed Dynamic Grouping)")
 	if not self.fmArgsRef then
 		print("RMB_UI_ERROR: self.fmArgsRef is nil! Options.lua problem.")
 		return
@@ -750,15 +804,8 @@ end
 -- ============================================================================
 -- CLEAN MODULE INTERFACE FUNCTIONS
 -- ============================================================================
-function addon:GetDisplayableGroups()
-	if self.MountDataManager and self.MountDataManager.GetDisplayableGroups then
-		return self.MountDataManager:GetDisplayableGroups()
-	end
-
-	print("RMB_UI_ERROR: MountDataManager not available for GetDisplayableGroups")
-	return {}
-end
-
+-- GetDisplayableGroups is now implemented directly in Core.lua with enhanced filtering
+-- No wrapper function needed
 function addon:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
 	if self.MountDataManager and self.MountDataManager.GetRandomMountFromGroup then
 		return self.MountDataManager:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
@@ -806,4 +853,4 @@ function addon:TriggerFamilyManagementUIRefresh()
 	self:PopulateFamilyManagementUI()
 end
 
-print("RMB_DEBUG: MountListUI.lua (Properly Integrated) END.")
+print("RMB_DEBUG: MountListUI.lua (Fixed Dynamic Grouping) END.")

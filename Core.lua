@@ -1,4 +1,4 @@
--- Core.lua - Updated for Refactored Mount System
+-- Core.lua - Enhanced with Better Uncollected Mount Handling
 local addonNameFromToc, addonTableProvidedByWoW = ...
 RandomMountBuddy = addonTableProvidedByWoW
 local dbDefaults = {
@@ -32,6 +32,7 @@ local dbDefaults = {
 		-- Mount list options
 		useSuperGrouping = true,
 		showUncollectedMounts = true,
+		showAllUncollectedGroups = true, -- NEW: Show families/supergroups with only uncollected mounts
 		filtersExpanded = false,
 		filterSettings = nil,
 		--
@@ -42,7 +43,7 @@ local dbDefaults = {
 		fmItemsPerPage = 14,
 	},
 }
-print("RMB_DEBUG: Core.lua START (Refactored). Addon Name: " ..
+print("RMB_DEBUG: Core.lua START (Enhanced Uncollected). Addon Name: " ..
 	tostring(addonNameFromToc) .. ". Time: " .. tostring(time()))
 -- Library initialization
 local LibAceAddon = LibStub("AceAddon-3.0")
@@ -419,7 +420,7 @@ function addon:OnPlayerLoginAttemptProcessData(eventArg)
 end
 
 -- ============================================================================
--- DYNAMIC GROUPING SYSTEM
+-- ENHANCED DYNAMIC GROUPING SYSTEM
 -- ============================================================================
 function addon:RebuildMountGrouping()
 	-- Create temporary tables for the new organization
@@ -433,8 +434,9 @@ function addon:RebuildMountGrouping()
 	print("RMB_DYNAMIC: Rebuilding groups with settings - MinorArmor:", treatMinorArmorAsDistinct,
 		"MajorArmor:", treatMajorArmorAsDistinct, "ModelVariants:", treatModelVariantsAsDistinct,
 		"UniqueEffects:", treatUniqueEffectsAsDistinct)
-	-- First pass: identify families with distinguishing traits
+	-- ENHANCED: Consider both collected AND uncollected mounts for trait analysis
 	local familiesWithDistinguishingTraits = {}
+	-- Check collected mounts
 	for mountID, mountInfo in pairs(self.processedData.allCollectedMountFamilyInfo) do
 		local familyName = mountInfo.familyName
 		local traits = mountInfo.traits or {}
@@ -446,31 +448,85 @@ function addon:RebuildMountGrouping()
 		end
 	end
 
-	-- Second pass: create the new grouping structure
+	-- ENHANCED: Also check uncollected mounts for traits
+	if self.processedData.allUncollectedMountFamilyInfo then
+		for mountID, mountInfo in pairs(self.processedData.allUncollectedMountFamilyInfo) do
+			local familyName = mountInfo.familyName
+			local traits = mountInfo.traits or {}
+			if (treatMinorArmorAsDistinct and traits.hasMinorArmor) or
+					(treatMajorArmorAsDistinct and traits.hasMajorArmor) or
+					(treatModelVariantsAsDistinct and traits.hasModelVariant) or
+					(treatUniqueEffectsAsDistinct and traits.isUniqueEffect) then
+				familiesWithDistinguishingTraits[familyName] = true
+			end
+		end
+	end
+
+	-- Second pass: create the new grouping structure using ALL mounts (collected + uncollected)
+	local allFamiliesProcessed = {}
+	-- Process collected mounts
 	for mountID, mountInfo in pairs(self.processedData.allCollectedMountFamilyInfo) do
 		local familyName = mountInfo.familyName
 		local superGroup = mountInfo.superGroup
 		local shouldBeStandalone = familiesWithDistinguishingTraits[familyName] or false
-		if superGroup and not shouldBeStandalone then
-			-- Keep in supergroup
-			if not newSuperGroupMap[superGroup] then
-				newSuperGroupMap[superGroup] = {}
-			end
-
-			local found = false
-			for _, familyInGroup in ipairs(newSuperGroupMap[superGroup] or {}) do
-				if familyInGroup == familyName then
-					found = true
-					break
+		if not allFamiliesProcessed[familyName] then
+			if superGroup and not shouldBeStandalone then
+				-- Keep in supergroup
+				if not newSuperGroupMap[superGroup] then
+					newSuperGroupMap[superGroup] = {}
 				end
+
+				local found = false
+				for _, familyInGroup in ipairs(newSuperGroupMap[superGroup] or {}) do
+					if familyInGroup == familyName then
+						found = true
+						break
+					end
+				end
+
+				if not found then
+					table.insert(newSuperGroupMap[superGroup], familyName)
+				end
+			else
+				-- Make standalone
+				newStandaloneFamilies[familyName] = true
 			end
 
-			if not found then
-				table.insert(newSuperGroupMap[superGroup], familyName)
+			allFamiliesProcessed[familyName] = true
+		end
+	end
+
+	-- ENHANCED: Also process uncollected mounts
+	if self.processedData.allUncollectedMountFamilyInfo then
+		for mountID, mountInfo in pairs(self.processedData.allUncollectedMountFamilyInfo) do
+			local familyName = mountInfo.familyName
+			local superGroup = mountInfo.superGroup
+			local shouldBeStandalone = familiesWithDistinguishingTraits[familyName] or false
+			if not allFamiliesProcessed[familyName] then
+				if superGroup and not shouldBeStandalone then
+					-- Keep in supergroup
+					if not newSuperGroupMap[superGroup] then
+						newSuperGroupMap[superGroup] = {}
+					end
+
+					local found = false
+					for _, familyInGroup in ipairs(newSuperGroupMap[superGroup] or {}) do
+						if familyInGroup == familyName then
+							found = true
+							break
+						end
+					end
+
+					if not found then
+						table.insert(newSuperGroupMap[superGroup], familyName)
+					end
+				else
+					-- Make standalone
+					newStandaloneFamilies[familyName] = true
+				end
+
+				allFamiliesProcessed[familyName] = true
 			end
-		else
-			-- Make standalone
-			newStandaloneFamilies[familyName] = true
 		end
 	end
 
@@ -540,6 +596,118 @@ function addon:GetDynamicSuperGroup(familyName)
 end
 
 -- ============================================================================
+-- ENHANCED GROUP FILTERING FOR UNCOLLECTED MOUNTS
+-- ============================================================================
+-- Check if a family should be visible based on uncollected mount settings
+function addon:ShouldShowFamily(familyName)
+	local showUncollected = self:GetSetting("showUncollectedMounts")
+	-- Count collected and uncollected mounts in this family
+	local collectedCount = (self.processedData.familyToMountIDsMap and
+		self.processedData.familyToMountIDsMap[familyName] and
+		#(self.processedData.familyToMountIDsMap[familyName])) or 0
+	local uncollectedCount = (self.processedData.familyToUncollectedMountIDsMap and
+		self.processedData.familyToUncollectedMountIDsMap[familyName] and
+		#(self.processedData.familyToUncollectedMountIDsMap[familyName])) or 0
+	local totalMounts = collectedCount + uncollectedCount
+	-- Rule 1: If showing uncollected is disabled AND this is a single-mount family with only uncollected mount, hide it
+	if not showUncollected and totalMounts == 1 and collectedCount == 0 then
+		return false
+	end
+
+	-- Rule 2: If showing uncollected is disabled AND family has only uncollected mounts (any count), hide it
+	if not showUncollected and collectedCount == 0 and uncollectedCount > 0 then
+		-- Check the new setting for families with only uncollected mounts
+		local showAllUncollected = self:GetSetting("showAllUncollectedGroups")
+		return showAllUncollected
+	end
+
+	-- Rule 3: If showing uncollected is enabled, check the "all uncollected groups" setting
+	if showUncollected and collectedCount == 0 and uncollectedCount > 0 then
+		local showAllUncollected = self:GetSetting("showAllUncollectedGroups")
+		return showAllUncollected
+	end
+
+	-- Show if family has any collected mounts
+	return collectedCount > 0
+end
+
+-- Check if a supergroup should be visible based on uncollected mount settings
+function addon:ShouldShowSuperGroup(superGroupName)
+	-- Get families in this supergroup (using dynamic grouping)
+	local familiesInSG = self:GetSuperGroupFamilies(superGroupName)
+	if not familiesInSG or #familiesInSG == 0 then
+		return false
+	end
+
+	local showUncollected = self:GetSetting("showUncollectedMounts")
+	local showAllUncollected = self:GetSetting("showAllUncollectedGroups")
+	local hasVisibleFamilies = false
+	local totalCollectedInSG = 0
+	local totalUncollectedInSG = 0
+	-- Check each family in the supergroup
+	for _, familyName in ipairs(familiesInSG) do
+		-- Skip families that have been moved to standalone
+		if not self:IsFamilyStandalone(familyName) then
+			local collectedCount = (self.processedData.familyToMountIDsMap and
+				self.processedData.familyToMountIDsMap[familyName] and
+				#(self.processedData.familyToMountIDsMap[familyName])) or 0
+			local uncollectedCount = (self.processedData.familyToUncollectedMountIDsMap and
+				self.processedData.familyToUncollectedMountIDsMap[familyName] and
+				#(self.processedData.familyToUncollectedMountIDsMap[familyName])) or 0
+			totalCollectedInSG = totalCollectedInSG + collectedCount
+			totalUncollectedInSG = totalUncollectedInSG + uncollectedCount
+			-- Check if this family should be visible
+			if self:ShouldShowFamily(familyName) then
+				hasVisibleFamilies = true
+			end
+		end
+	end
+
+	-- If no visible families, don't show the supergroup
+	if not hasVisibleFamilies then
+		return false
+	end
+
+	-- If supergroup has only uncollected mounts, check the setting
+	if totalCollectedInSG == 0 and totalUncollectedInSG > 0 then
+		return showUncollected and showAllUncollected
+	end
+
+	-- Show if supergroup has any collected mounts
+	return totalCollectedInSG > 0
+end
+
+-- Check if a family has been moved to standalone due to trait settings
+function addon:IsFamilyStandalone(familyName)
+	-- First check dynamic standalone families
+	if self.processedData.dynamicStandaloneFamilies then
+		return self.processedData.dynamicStandaloneFamilies[familyName] == true
+	end
+
+	-- Fallback: check if family has no supergroup in original mapping
+	if self.processedData.standaloneFamilyNames then
+		return self.processedData.standaloneFamilyNames[familyName] == true
+	end
+
+	return false
+end
+
+-- Get families that should be displayed in a supergroup (respects dynamic grouping)
+function addon:GetSuperGroupFamilies(superGroupKey)
+	-- First try to use dynamic grouping if available
+	if self.processedData.dynamicSuperGroupMap then
+		return self.processedData.dynamicSuperGroupMap[superGroupKey] or {}
+	end
+
+	-- Fallback to original grouping
+	if self.processedData.superGroupMap then
+		return self.processedData.superGroupMap[superGroupKey] or {}
+	end
+
+	return {}
+end
+
+-- ============================================================================
 -- SETTINGS MANAGEMENT
 -- ============================================================================
 function addon:GetSetting(key)
@@ -565,6 +733,13 @@ function addon:SetSetting(key, value)
 	-- Trigger grouping rebuild for trait-related settings
 	if key:find("treat") and key:find("AsDistinct") then
 		self:RebuildMountGrouping()
+	end
+
+	-- Trigger UI refresh for uncollected mount settings
+	if key == "showUncollectedMounts" or key == "showAllUncollectedGroups" then
+		if self.PopulateFamilyManagementUI then
+			self:PopulateFamilyManagementUI()
+		end
 	end
 end
 
@@ -754,6 +929,145 @@ function addon:SetGroupEnabled(gk, e)
 end
 
 -- ============================================================================
+-- DISPLAYABLE GROUPS LOGIC WITH ENHANCED FILTERING
+-- ============================================================================
+function addon:GetDisplayableGroups()
+	if not self.RMB_DataReadyForUI or not self.processedData then
+		print("RMB_DISPLAYABLE: Data not ready")
+		return {}
+	end
+
+	local displayableGroups = {}
+	local showUncollected = self:GetSetting("showUncollectedMounts")
+	local showAllUncollected = self:GetSetting("showAllUncollectedGroups")
+	print("RMB_DISPLAYABLE: Building displayable groups with settings - showUncollected:", showUncollected,
+		"showAllUncollected:", showAllUncollected)
+	-- Add supergroups (using dynamic grouping)
+	local superGroupMap = self.processedData.dynamicSuperGroupMap or self.processedData.superGroupMap or {}
+	for sgName, familiesInSG in pairs(superGroupMap) do
+		if self:ShouldShowSuperGroup(sgName) then
+			-- Count mounts in this supergroup
+			local totalCollected, totalUncollected = 0, 0
+			for _, familyName in ipairs(familiesInSG) do
+				-- Skip families that have been moved to standalone
+				if not self:IsFamilyStandalone(familyName) then
+					local collectedCount = (self.processedData.familyToMountIDsMap and
+						self.processedData.familyToMountIDsMap[familyName] and
+						#(self.processedData.familyToMountIDsMap[familyName])) or 0
+					local uncollectedCount = 0
+					if showUncollected then
+						uncollectedCount = (self.processedData.familyToUncollectedMountIDsMap and
+							self.processedData.familyToUncollectedMountIDsMap[familyName] and
+							#(self.processedData.familyToUncollectedMountIDsMap[familyName])) or 0
+					end
+
+					totalCollected = totalCollected + collectedCount
+					totalUncollected = totalUncollected + uncollectedCount
+				end
+			end
+
+			if totalCollected > 0 or totalUncollected > 0 then
+				table.insert(displayableGroups, {
+					key = sgName,
+					type = "superGroup",
+					displayName = sgName,
+					mountCount = totalCollected,
+					uncollectedCount = totalUncollected,
+				})
+			end
+		end
+	end
+
+	-- Add standalone families (using dynamic grouping)
+	local standaloneFamilies = self.processedData.dynamicStandaloneFamilies or self.processedData.standaloneFamilyNames or
+			{}
+	for familyName, _ in pairs(standaloneFamilies) do
+		if self:ShouldShowFamily(familyName) then
+			local collectedCount = (self.processedData.familyToMountIDsMap and
+				self.processedData.familyToMountIDsMap[familyName] and
+				#(self.processedData.familyToMountIDsMap[familyName])) or 0
+			local uncollectedCount = 0
+			if showUncollected then
+				uncollectedCount = (self.processedData.familyToUncollectedMountIDsMap and
+					self.processedData.familyToUncollectedMountIDsMap[familyName] and
+					#(self.processedData.familyToUncollectedMountIDsMap[familyName])) or 0
+			end
+
+			if collectedCount > 0 or uncollectedCount > 0 then
+				table.insert(displayableGroups, {
+					key = familyName,
+					type = "familyName",
+					displayName = familyName,
+					mountCount = collectedCount,
+					uncollectedCount = uncollectedCount,
+				})
+			end
+		end
+	end
+
+	-- Also add families that are still in supergroups but should be shown (edge case handling)
+	if self.processedData.superGroupMap then
+		for sgName, familiesInOriginalSG in pairs(self.processedData.superGroupMap) do
+			for _, familyName in ipairs(familiesInOriginalSG) do
+				-- Check if this family is standalone in dynamic grouping but wasn't added yet
+				if self:IsFamilyStandalone(familyName) and self:ShouldShowFamily(familyName) then
+					-- Check if we already added this family
+					local alreadyAdded = false
+					for _, group in ipairs(displayableGroups) do
+						if group.key == familyName and group.type == "familyName" then
+							alreadyAdded = true
+							break
+						end
+					end
+
+					if not alreadyAdded then
+						local collectedCount = (self.processedData.familyToMountIDsMap and
+							self.processedData.familyToMountIDsMap[familyName] and
+							#(self.processedData.familyToMountIDsMap[familyName])) or 0
+						local uncollectedCount = 0
+						if showUncollected then
+							uncollectedCount = (self.processedData.familyToUncollectedMountIDsMap and
+								self.processedData.familyToUncollectedMountIDsMap[familyName] and
+								#(self.processedData.familyToUncollectedMountIDsMap[familyName])) or 0
+						end
+
+						if collectedCount > 0 or uncollectedCount > 0 then
+							table.insert(displayableGroups, {
+								key = familyName,
+								type = "familyName",
+								displayName = familyName,
+								mountCount = collectedCount,
+								uncollectedCount = uncollectedCount,
+							})
+						end
+					end
+				end
+			end
+		end
+	end
+
+	-- Sort groups alphabetically
+	table.sort(displayableGroups, function(a, b)
+		return (a.displayName or a.key) < (b.displayName or b.key)
+	end)
+	local totalGroups = #displayableGroups
+	local collectedGroups = 0
+	local uncollectedOnlyGroups = 0
+	for _, group in ipairs(displayableGroups) do
+		if group.mountCount > 0 then
+			collectedGroups = collectedGroups + 1
+		elseif group.uncollectedCount > 0 then
+			uncollectedOnlyGroups = uncollectedOnlyGroups + 1
+		end
+	end
+
+	print("RMB_DISPLAYABLE: Built " ..
+		totalGroups ..
+		" displayable groups (" .. collectedGroups .. " with collected, " .. uncollectedOnlyGroups .. " uncollected-only)")
+	return displayableGroups
+end
+
+-- ============================================================================
 -- CLEAN PUBLIC INTERFACE
 -- ============================================================================
 -- Main summoning interface
@@ -850,4 +1164,4 @@ function addon:GetFavoriteMountsForOptions()
 	}
 end
 
-print("RMB_DEBUG: Core.lua END (Refactored).")
+print("RMB_DEBUG: Core.lua END (Enhanced Uncollected).")

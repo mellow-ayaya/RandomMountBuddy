@@ -1,3 +1,6 @@
+# 0.7.8
+Added separate toggle for showing groups and families with no collected mounts.
+
 # 0.7.7
 Added filtering for the mount list.
 
