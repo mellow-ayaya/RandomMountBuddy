@@ -484,12 +484,6 @@ function addon:InitializeMountDataManager()
 	end
 
 	self.MountDataManager:Initialize()
-	-- Hook the original SetSetting to invalidate cache
-	local originalSetSetting = self.SetSetting
-	self.SetSetting = function(self, key, value)
-		originalSetSetting(self, key, value)
-		self.MountDataManager:OnSettingChanged(key, value)
-	end
 	print("RMB_DATA_MANAGER: Integration complete")
 end
 

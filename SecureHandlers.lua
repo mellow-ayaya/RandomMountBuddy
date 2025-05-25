@@ -1,6 +1,9 @@
 -- SecureHandlers.lua - Refactored Version with Zone Ability Support
 local addonName, addonTable = ...
 print("RMB_DEBUG: SecureHandlers.lua START.")
+-- Create SecureHandlers class to avoid global pollution
+local SecureHandlers = {}
+RandomMountBuddy.SecureHandlers = SecureHandlers
 -- Cache frequently accessed settings and spell info
 local settingsCache = {}
 local spellCache = {}
@@ -9,7 +12,7 @@ local CACHE_DURATION = 1 -- Cache for 1 second
 -- Zone-specific configuration for G-99 abilities using location IDs
 local G99_ZONES = {
 	[2346] = 1215279, -- Undermine - Original G-99 zone
-	[2406] = 1218373, -- Nerub-ar Palace - Raid zone
+	[2406] = 1215279, -- Nerub-ar Palace - Raid zone
 	-- Add more location IDs here as needed
 }
 -- Cache system for zone abilities
@@ -402,8 +405,6 @@ function addonTable:SetupSecureHandlers()
 		addonTable:createSmartButton()
 		-- Setup zone ability event handling
 		addonTable:setupZoneAbilityHandling()
-		-- Setup setting hooks
-		addonTable:hookSettingChanges()
 		-- Initialize macros
 		addonTable:UpdateShapeshiftMacros()
 		print("RMB_SECURE: Secure handlers initialized")
@@ -604,10 +605,9 @@ function addonTable:setupZoneAbilityHandling()
 	zoneUpdateFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 	zoneUpdateFrame:SetScript("OnEvent", function(self, event)
 		if event == "ZONE_CHANGED_NEW_AREA" then
-			C_Timer.After(2, function()
-				updateZoneAbilityCache(true)
-				addonTable:UpdateShapeshiftMacros()
-			end)
+			-- Update immediately on zone change to prevent G-99 sticking
+			updateZoneAbilityCache(true)
+			addonTable:UpdateShapeshiftMacros()
 		elseif event == "PLAYER_ENTERING_WORLD" then
 			C_Timer.After(3, function()
 				updateZoneAbilityCache(true)
@@ -617,9 +617,45 @@ function addonTable:setupZoneAbilityHandling()
 	end)
 end
 
--- Setup setting change hooks
-function addonTable:hookSettingChanges()
+-- FIXED: Use notification system instead of direct hook
+function SecureHandlers:OnSettingChanged(key, value)
+	-- Only update for relevant settings
+	local relevantSettings = {
+		keepTravelFormActive = true,
+		useTravelFormWhileMoving = true,
+		useGhostWolfWhileMoving = true,
+		useZenFlightWhileMoving = true,
+		keepGhostWolfActive = true,
+		keepZenFlightActive = true,
+		useSlowFallWhileFalling = true,
+		useSlowFallOnOthers = true,
+		useLevitateWhileFalling = true,
+		useLevitateOnOthers = true,
+		useSmartFormSwitching = true,
+	}
+	if relevantSettings[key] then
+		print("RMB_SECURE: Setting changed notification received for:", key, "->", value)
+		-- Clear cache and update
+		settingsCache = {}
+		-- Use C_Timer to avoid any potential recursion
+		C_Timer.After(0.01, function()
+			if not InCombatLockdown() then
+				addonTable:UpdateShapeshiftMacros()
+			end
+		end)
+	end
+end
+
+-- Setup basic references and initialization
+function addonTable:setupSecureReferences()
 	-- Safe wrapper for clicking mount button
+	RandomMountBuddy.ClickSecureButton = function(self)
+		if self.ClickMountButton then
+			return self:ClickMountButton()
+		end
+
+		return false
+	end
 	RandomMountBuddy.ClickMountButton = function(self)
 		if self.visibleButton then
 			self.visibleButton:Click()
@@ -630,43 +666,13 @@ function addonTable:hookSettingChanges()
 	end
 	-- Direct reference to avoid recursion
 	RandomMountBuddy.UpdateShapeshiftMacros = addonTable.UpdateShapeshiftMacros
-	-- Hook SetSetting with recursion protection
-	local originalSetSetting = RandomMountBuddy.SetSetting
-	local isUpdatingFromHook = false
-	RandomMountBuddy.SetSetting = function(self, key, value)
-		-- Call original function first
-		originalSetSetting(self, key, value)
-		-- Prevent recursion
-		if isUpdatingFromHook then return end
+end
 
-		-- Only update for relevant settings
-		local relevantSettings = {
-			keepTravelFormActive = true,
-			useTravelFormWhileMoving = true,
-			useGhostWolfWhileMoving = true,
-			useZenFlightWhileMoving = true,
-			keepGhostWolfActive = true,
-			keepZenFlightActive = true,
-			useSlowFallWhileFalling = true,
-			useSlowFallOnOthers = true,
-			useLevitateWhileFalling = true,
-			useLevitateOnOthers = true,
-			useSmartFormSwitching = true,
-		}
-		if relevantSettings[key] then
-			isUpdatingFromHook = true
-			-- Clear cache and update
-			settingsCache = {}
-			-- Use C_Timer to break the call chain and prevent recursion
-			C_Timer.After(0.01, function()
-				if not InCombatLockdown() then
-					addonTable:UpdateShapeshiftMacros()
-				end
-
-				isUpdatingFromHook = false
-			end)
-		end
-	end
+-- Initialize
+function RandomMountBuddy:InitializeSecureHandlers()
+	print("RMB_SECURE: InitializeSecureHandlers called from Core.lua")
+	addonTable:SetupSecureHandlers()
+	addonTable:setupSecureReferences()
 end
 
 -- Initialize

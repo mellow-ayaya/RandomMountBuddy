@@ -1,3 +1,8 @@
+# 0.7.11
+Fixed hook issue between MountDataManager and SecureHandlers.
+Fixed G99 not summoning in raid.
+Fixed G99 sometimes trying to summon after changing zones from undermine to Dorn.
+
 # 0.7.10
 Fixed context summon.
 Set the default weight for new mounts/families/groups to 3/Normal.

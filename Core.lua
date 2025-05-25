@@ -482,7 +482,7 @@ function addon:HandleMountCollectionChange(changeType, mountID)
 	end)
 end
 
--- Mthod to actually refresh the data and UI:
+-- Method to actually refresh the data and UI:
 function addon:RefreshMountDataAndUI(changeType, mountID)
 	print("RMB_EVENTS: Refreshing mount data and UI due to:", changeType)
 	local startTime = debugprofilestop()
@@ -867,6 +867,11 @@ function addon:NotifyModulesSettingChanged(key, value)
 
 	if self.MountPreview and self.MountPreview.OnSettingChanged then
 		self.MountPreview:OnSettingChanged(key, value)
+	end
+
+	-- FIXED: Add secure handler notifications
+	if self.SecureHandlers and self.SecureHandlers.OnSettingChanged then
+		self.SecureHandlers:OnSettingChanged(key, value)
 	end
 end
 
@@ -1290,8 +1295,6 @@ function addon:CancelPendingBulkOperation()
 	end
 end
 
--- Add this to your OnInitialize() function in Core.lua:
--- self:InitializeBulkPrioritySystem()
 -- Actually perform the bulk priority update
 function addon:PerformBulkPriorityUpdate(groupKeys, priority)
 	if not (self.db and self.db.profile and self.db.profile.groupWeights) then
