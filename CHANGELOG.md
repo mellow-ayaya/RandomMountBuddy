@@ -1,3 +1,8 @@
+# 0.7.10
+Fixed context summon.
+Set the default weight for new mounts/families/groups to 3/Normal.
+Added deterministic summon method.
+
 # 0.7.9
 Fixed Always weight to work as expected.
 Added bulk weight change dropdown.

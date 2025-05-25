@@ -33,14 +33,27 @@ function MountSummon:Initialize()
 		hasZoneAbility = false,
 		lastUpdateTime = 0,
 	}
+	-- Initialize deterministic summoning
+	self:InitializeDeterministicSystem()
 	-- Set up flight style tracking
 	self:CheckCurrentFlightStyle()
 	self:RegisterFlightStyleEvents()
 	print("RMB_SUMMON: Initialized successfully")
 end
 
+function MountSummon:OnMountCollectionChanged()
+	print("RMB_SUMMON: Mount collection changed, rebuilding pools...")
+	-- Rebuild pools if data is ready
+	if addon.RMB_DataReadyForUI and addon.processedData then
+		self:BuildMountPools()
+		print("RMB_SUMMON: Mount pools rebuilt successfully")
+	else
+		print("RMB_SUMMON: Skipping pool rebuild - data not ready")
+	end
+end
+
 -- ============================================================================
--- MOUNT TYPE & CAPABILITY DETECTION (unchanged from original)
+-- MOUNT TYPE & CAPABILITY DETECTION
 -- ============================================================================
 -- Get mount type traits for a given mount ID
 function MountSummon:GetMountTypeTraits(mountID)
@@ -117,12 +130,30 @@ function MountSummon:RegisterFlightStyleEvents()
 			if event == "UNIT_SPELLCAST_SUCCEEDED" then
 				local unit, castGUID, spellID = ...
 				if unit == "player" then
+					-- Handle flight style changes (existing code)
 					if spellID == 460003 then -- Switch TO skyriding
 						self.isInSkyridingMode = true
 						print("RMB_DEBUG: Switched TO skyriding mode")
 					elseif spellID == 460002 then -- Switch TO steady flight
 						self.isInSkyridingMode = false
 						print("RMB_DEBUG: Switched TO steady flight mode")
+					else
+						-- Check if this is a mount summon spell (NEW)
+						local isMountSpell, mountID = self:IsMountSummonSpell(spellID)
+						if isMountSpell and mountID then
+							print("RMB_DETERMINISTIC: Detected successful mount summon - Spell: " .. spellID .. ", Mount: " .. mountID)
+							-- Find which pool this summon was from by checking pending summons
+							local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+							if deterministicCache then
+								for poolName, cache in pairs(deterministicCache) do
+									local pendingSummon = cache and cache.pendingSummon
+									if pendingSummon and pendingSummon.mountID and pendingSummon.mountID == mountID then
+										self:ProcessSuccessfulSummon(poolName)
+										break
+									end
+								end
+							end
+						end
 					end
 				end
 			end
@@ -130,11 +161,11 @@ function MountSummon:RegisterFlightStyleEvents()
 	end
 
 	self.eventFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-	print("RMB_DEBUG: Registered for flight style change events")
+	print("RMB_DEBUG: Registered for flight style change and mount summon events")
 end
 
 -- ============================================================================
--- CONTEXT DETECTION (unchanged from original)
+-- CONTEXT DETECTION
 -- ============================================================================
 -- Determine the current player context for contextual summoning
 function MountSummon:GetCurrentContext()
@@ -185,6 +216,232 @@ function MountSummon:GetCurrentContext()
 end
 
 -- ============================================================================
+-- DETERMINISTIC SUMMMON MODE
+-- ============================================================================
+-- Initialize deterministic summoning system
+function MountSummon:InitializeDeterministicSystem()
+	print("RMB_DETERMINISTIC: Initializing deterministic summoning system...")
+	-- Ensure cache structure exists
+	if not addon.db or not addon.db.profile then
+		print("RMB_DETERMINISTIC: No database available, skipping initialization")
+		return
+	end
+
+	if not addon.db.profile.deterministicCache then
+		addon.db.profile.deterministicCache = {
+			flying = { unavailableGroups = {}, pendingSummon = nil },
+			ground = { unavailableGroups = {}, pendingSummon = nil },
+			underwater = { unavailableGroups = {}, pendingSummon = nil },
+		}
+	end
+
+	print("RMB_DETERMINISTIC: System initialized")
+end
+
+-- Check if deterministic mode is enabled
+function MountSummon:IsDeterministicModeEnabled()
+	return addon:GetSetting("useDeterministicSummoning") == true
+end
+
+-- Get total available groups count for a pool (before filtering)
+function MountSummon:GetTotalGroupsInPool(poolName)
+	local pool = self.mountPools[poolName]
+	if not pool then return 0 end
+
+	local totalGroups = 0
+	-- Count supergroups
+	for _ in pairs(pool.superGroups) do
+		totalGroups = totalGroups + 1
+	end
+
+	-- Count standalone families
+	for _ in pairs(pool.families) do
+		totalGroups = totalGroups + 1
+	end
+
+	return totalGroups
+end
+
+-- Calculate unavailability duration for a group
+function MountSummon:CalculateUnavailabilityDuration(poolName)
+	local totalGroups = self:GetTotalGroupsInPool(poolName)
+	local duration = math.floor(totalGroups * 0.7) - 4
+	-- Apply constraints: minimum 0, maximum 30
+	duration = math.max(0, math.min(30, duration))
+	print("RMB_DETERMINISTIC: Pool " .. poolName .. " has " .. totalGroups ..
+		" groups, calculated duration: " .. duration)
+	return duration
+end
+
+-- Filter pool to remove unavailable groups
+function MountSummon:FilterPoolForDeterministic(pool, poolName)
+	if not self:IsDeterministicModeEnabled() then
+		return pool -- Return original pool if deterministic mode disabled
+	end
+
+	local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+	local cache = deterministicCache and deterministicCache[poolName]
+	if not cache or not cache.unavailableGroups then
+		return pool -- Return original if no cache
+	end
+
+	-- Create filtered pool
+	local filteredPool = {
+		superGroups = {},
+		families = {},
+		mountsByFamily = pool.mountsByFamily, -- Keep mount lists unchanged
+		mountWeights = pool.mountWeights,   -- Keep weights unchanged
+	}
+	-- Filter supergroups
+	for sgName, families in pairs(pool.superGroups) do
+		local unavailableCount = cache.unavailableGroups[sgName]
+		if not unavailableCount or unavailableCount <= 0 then
+			filteredPool.superGroups[sgName] = families
+		else
+			print("RMB_DETERMINISTIC: Filtered out supergroup " .. sgName ..
+				" (unavailable for " .. unavailableCount .. " more summons)")
+		end
+	end
+
+	-- Filter standalone families
+	for familyName, _ in pairs(pool.families) do
+		local unavailableCount = cache.unavailableGroups[familyName]
+		if not unavailableCount or unavailableCount <= 0 then
+			filteredPool.families[familyName] = true
+		else
+			print("RMB_DETERMINISTIC: Filtered out family " .. familyName ..
+				" (unavailable for " .. unavailableCount .. " more summons)")
+		end
+	end
+
+	return filteredPool
+end
+
+-- Mark a group as unavailable
+function MountSummon:MarkGroupUnavailable(poolName, groupKey, groupType)
+	if not self:IsDeterministicModeEnabled() then
+		return
+	end
+
+	local duration = self:CalculateUnavailabilityDuration(poolName)
+	if duration <= 0 then
+		print("RMB_DETERMINISTIC: Duration is 0, not marking group unavailable")
+		return
+	end
+
+	local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+	local cache = deterministicCache and deterministicCache[poolName]
+	if not cache then
+		print("RMB_DETERMINISTIC: No cache for pool " .. poolName)
+		return
+	end
+
+	if not cache.unavailableGroups then
+		cache.unavailableGroups = {}
+	end
+
+	cache.unavailableGroups[groupKey] = duration
+	print("RMB_DETERMINISTIC: Marked " ..
+		groupKey .. " unavailable for " .. duration .. " summons in " .. poolName .. " pool")
+end
+
+-- Decrement unavailability counters for all groups in a pool
+function MountSummon:DecrementUnavailabilityCounters(poolName)
+	if not self:IsDeterministicModeEnabled() then
+		return
+	end
+
+	local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+	local cache = deterministicCache and deterministicCache[poolName]
+	if not cache or not cache.unavailableGroups then
+		return
+	end
+
+	local groupsToRemove = {}
+	for groupKey, count in pairs(cache.unavailableGroups) do
+		if count and count > 0 then
+			cache.unavailableGroups[groupKey] = count - 1
+			if cache.unavailableGroups[groupKey] <= 0 then
+				table.insert(groupsToRemove, groupKey)
+			end
+		else
+			table.insert(groupsToRemove, groupKey)
+		end
+	end
+
+	-- Clean up groups that are no longer unavailable
+	for _, groupKey in ipairs(groupsToRemove) do
+		cache.unavailableGroups[groupKey] = nil
+		print("RMB_DETERMINISTIC: " .. groupKey .. " is now available again in " .. poolName .. " pool")
+	end
+end
+
+-- Store pending summon for tracking
+function MountSummon:StorePendingSummon(poolName, groupKey, groupType, mountID)
+	if not self:IsDeterministicModeEnabled() then
+		return
+	end
+
+	local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+	local cache = deterministicCache and deterministicCache[poolName]
+	if not cache then
+		return
+	end
+
+	cache.pendingSummon = {
+		groupKey = groupKey,
+		groupType = groupType,
+		mountID = mountID,
+		timestamp = GetTime(),
+	}
+	print("RMB_DETERMINISTIC: Stored pending summon - Group: " .. groupKey .. ", Mount: " .. mountID)
+end
+
+-- Process successful summon
+function MountSummon:ProcessSuccessfulSummon(poolName)
+	if not self:IsDeterministicModeEnabled() then
+		return
+	end
+
+	local cache = addon.db.profile.deterministicCache and addon.db.profile.deterministicCache[poolName]
+	if not cache or not cache.pendingSummon then
+		return
+	end
+
+	local pending = cache.pendingSummon
+	if not pending or not pending.groupKey or not pending.groupType then
+		print("RMB_DETERMINISTIC: Invalid pending summon data")
+		cache.pendingSummon = nil
+		return
+	end
+
+	-- Mark the group unavailable
+	self:MarkGroupUnavailable(poolName, pending.groupKey, pending.groupType)
+	-- Decrement all counters
+	self:DecrementUnavailabilityCounters(poolName)
+	-- Clear pending summon
+	cache.pendingSummon = nil
+	print("RMB_DETERMINISTIC: Processed successful summon for " .. pending.groupKey)
+end
+
+-- Check if a spell is a mount summon spell
+function MountSummon:IsMountSummonSpell(spellID)
+	-- Get all collected mounts and check if any match this spell ID
+	if not addon.processedData or not addon.processedData.allCollectedMountFamilyInfo then
+		return false
+	end
+
+	for mountID, mountInfo in pairs(addon.processedData.allCollectedMountFamilyInfo) do
+		local _, spellIdFromMount = C_MountJournal.GetMountInfoByID(mountID)
+		if spellIdFromMount == spellID then
+			return true, mountID
+		end
+	end
+
+	return false
+end
+
+-- ============================================================================
 -- MOUNT POOL MANAGEMENT (unchanged from original, includes all helper functions)
 -- ============================================================================
 -- Build mount pools for different contexts
@@ -198,6 +455,13 @@ function MountSummon:BuildMountPools()
 		pool.mountWeights = {}
 	end
 
+	-- Add unified pool for non-contextual summoning
+	self.mountPools.unified = {
+		superGroups = {},
+		families = {},
+		mountsByFamily = {},
+		mountWeights = {},
+	}
 	-- Process all collected mounts
 	local mountsProcessed = 0
 	for mountID, mountInfo in pairs(addon.processedData.allCollectedMountFamilyInfo) do
@@ -206,31 +470,29 @@ function MountSummon:BuildMountPools()
 		local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
 		if isUsable then
 			mountsProcessed = mountsProcessed + 1
-			-- Determine effective weight using priority:
-			-- 1. Mount-specific weight (most specific, always wins)
-			-- 2. Family weight (medium specific)
-			-- 3. Supergroup weight (least specific)
+			-- Determine effective weight
 			local mountKey = "mount_" .. mountID
 			local mountWeight = addon:GetGroupWeight(mountKey)
-			-- Mount weight of 0 means explicitly excluded, no matter what family/supergroup says
+			-- Mount weight of 0 means explicitly excluded
 			if mountWeight ~= 0 then
 				-- Get mount capabilities
 				local canFly = self:CanMountFly(mountID)
 				local canSwim = self:CanMountSwim(mountID)
 				local traits = self:GetMountTypeTraits(mountID)
-				-- Add to flying pool if it can fly
-				if canFly then
-					self:AddMountToPool("flying", mountID, name, familyName, superGroup, mountWeight)
-				end
-
-				-- Add to ground pool if it's a ground mount
-				if traits.isGround then
-					self:AddMountToPool("ground", mountID, name, familyName, superGroup, mountWeight)
-				end
-
-				-- Add to underwater pool if it can swim
+				-- Always add to unified pool (for non-contextual summoning)
+				self:AddMountToPool("unified", mountID, name, familyName, superGroup, mountWeight)
+				-- Add to contextual pools based on EXCLUSIVE logic
 				if canSwim then
+					-- Add to underwater pool (regardless of other skills per spec)
 					self:AddMountToPool("underwater", mountID, name, familyName, superGroup, mountWeight)
+				end
+
+				if canFly then
+					-- Add to flying pool (regardless of other skills per spec)
+					self:AddMountToPool("flying", mountID, name, familyName, superGroup, mountWeight)
+				elseif traits.isGround then
+					-- FIXED: Only add to ground pool if it CAN'T fly (ground-only mounts)
+					self:AddMountToPool("ground", mountID, name, familyName, superGroup, mountWeight)
 				end
 			else
 				print("RMB_SUMMON_DEBUG: Mount " .. name .. " explicitly excluded (weight 0)")
@@ -239,7 +501,7 @@ function MountSummon:BuildMountPools()
 	end
 
 	print("RMB_SUMMON: Processed " .. mountsProcessed .. " mounts into context pools")
-	-- Now handle family and supergroup-level weights
+	-- Apply family and supergroup weights to all pools
 	self:ApplyFamilyAndSuperGroupWeights()
 	-- Log pool sizes
 	self:LogPoolStats()
@@ -265,6 +527,7 @@ end
 
 -- Apply family and supergroup weights after all mounts are processed
 function MountSummon:ApplyFamilyAndSuperGroupWeights()
+	-- Process all pools including the new unified pool
 	for poolName, pool in pairs(self.mountPools) do
 		-- First, determine which families have usable mounts
 		local familiesWithUsableMounts = {}
@@ -432,16 +695,104 @@ function MountSummon:MapWeightToProbability(userWeight)
 end
 
 -- ============================================================================
--- UPDATED POOL-BASED MOUNT SELECTION WITH WEIGHT 6 PRIORITY
+-- MOUNT SUMMONING
 -- ============================================================================
--- Select a mount from a specific pool
-function MountSummon:SelectMountFromPool(poolName)
-	local pool = self.mountPools[poolName]
-	if not pool then
+-- Summon a specific mount by ID
+function MountSummon:SummonMount(mountID)
+	if not mountID then
+		print("RMB_SUMMON_ERROR: No mount ID provided.")
+		return false
+	end
+
+	local name = C_MountJournal.GetMountInfoByID(mountID)
+	print("RMB_SUMMON: Summoning mount:", name, "ID:", mountID)
+	-- Use Blizzard's function to summon the mount
+	C_MountJournal.SummonByID(mountID)
+	return true
+end
+
+-- Main function to pick and summon a random mount
+function MountSummon:SummonRandomMount(useContext)
+	print("RMB_SUMMON: SummonRandomMount called with useContext:", useContext)
+	-- Determine which pool to use based on context
+	local poolName = "unified" -- Default to unified pool
+	local mountTypeFilter = nil -- No specific type filter by default
+	if useContext and addon:GetSetting("contextualSummoning") then
+		local context = self:GetCurrentContext()
+		if context.isUnderwater then
+			-- Underwater context
+			poolName = "underwater"
+			print("RMB_SUMMON: Using underwater pool based on context")
+		elseif context.canFly then
+			-- Flying context - determine which type
+			poolName = "flying"
+			if context.isInSkyridingMode and context.canDragonride then
+				-- Player is in skyriding mode and can dragonride in this zone
+				mountTypeFilter = "skyriding"
+				print("RMB_SUMMON: Using flying pool with skyriding filter based on context")
+			else
+				-- Player is in steady flight mode or can't dragonride here
+				mountTypeFilter = "steadyflight"
+				print("RMB_SUMMON: Using flying pool with steady flight filter based on context")
+			end
+		else
+			-- Ground-only context
+			poolName = "ground"
+			print("RMB_SUMMON: Using ground pool based on context")
+		end
+	else
+		print("RMB_SUMMON: Using unified pool (contextual summoning disabled)")
+	end
+
+	-- Select mount from the appropriate pool with proper deterministic integration
+	local mountID, mountName = self:SelectMountFromPoolWithFilter(poolName, mountTypeFilter)
+	if mountID then
+		return self:SummonMount(mountID)
+	else
+		print("RMB_SUMMON: No eligible mounts found in " .. poolName .. " pool" ..
+			(mountTypeFilter and (" with " .. mountTypeFilter .. " filter") or ""))
+		return false
+	end
+end
+
+-- New method that integrates deterministic filtering with mount type filtering:
+function MountSummon:SelectMountFromPoolWithFilter(poolName, mountTypeFilter)
+	local originalPool = self.mountPools[poolName]
+	if not originalPool then
 		print("RMB_SUMMON_ERROR: Invalid pool name:", poolName)
 		return nil, nil
 	end
 
+	-- Apply deterministic filtering first
+	local pool = self:FilterPoolForDeterministic(originalPool, poolName)
+	-- Check if filtering left us with no groups
+	local hasGroups = false
+	for _ in pairs(pool.superGroups) do
+		hasGroups = true; break
+	end
+
+	if not hasGroups then
+		for _ in pairs(pool.families) do
+			hasGroups = true; break
+		end
+	end
+
+	if not hasGroups then
+		print("RMB_DETERMINISTIC: No available groups after filtering, falling back to random mode")
+		pool = originalPool -- Fall back to original pool
+	end
+
+	-- If no mount type filter, use normal selection
+	if not mountTypeFilter then
+		return self:SelectMountFromFilteredPool(pool, poolName)
+	end
+
+	-- Apply mount type filtering for contextual summoning
+	return self:SelectSpecificMountTypeFromFilteredPool(pool, poolName, mountTypeFilter)
+end
+
+-- Updated method that works with already-filtered pools:
+function MountSummon:SelectMountFromFilteredPool(pool, poolName)
 	-- Step 1: Select group (supergroup or standalone family)
 	local groupName, groupType = self:SelectGroupFromPool(pool)
 	if not groupName then
@@ -462,78 +813,216 @@ function MountSummon:SelectMountFromPool(poolName)
 	end
 
 	-- Step 3: Select mount from family
-	return self:SelectMountFromPoolFamily(pool, familyName)
-end
-
--- ============================================================================
--- MOUNT SUMMONING (unchanged from original)
--- ============================================================================
--- Summon a specific mount by ID
-function MountSummon:SummonMount(mountID)
-	if not mountID then
-		print("RMB_SUMMON_ERROR: No mount ID provided.")
-		return false
+	local mountID, mountName = self:SelectMountFromPoolFamily(pool, familyName)
+	-- Store pending summon for deterministic tracking
+	if mountID then
+		self:StorePendingSummon(poolName, groupName, groupType, mountID)
 	end
 
-	local name = C_MountJournal.GetMountInfoByID(mountID)
-	print("RMB_SUMMON: Summoning mount:", name, "ID:", mountID)
-	-- Use Blizzard's function to summon the mount
-	C_MountJournal.SummonByID(mountID)
-	return true
+	return mountID, mountName
 end
 
--- Main function to pick and summon a random mount
-function MountSummon:SummonRandomMount(useContext)
-	-- Determine which pool to use
-	local poolName = "ground" -- Default to ground
-	if useContext and addon:GetSetting("contextualSummoning") then
-		local context = self:GetCurrentContext()
-		if context.isUnderwater then
-			poolName = "underwater"
-		elseif context.canFly then
-			if context.isInSkyridingMode and context.canDragonride then
-				-- If player is in skyriding mode and can dragonride in this zone
-				-- Only use skyriding mounts
-				poolName = "flying"
-				-- Filter only skyriding mounts
-				local mountID, mountName = self:SelectSpecificMountTypeFromPool(poolName, "skyriding")
-				if mountID then
-					return self:SummonMount(mountID)
-				end
+-- Updated SelectSpecificMountTypeFromFilteredPool that works with deterministic filtering:
+function MountSummon:SelectSpecificMountTypeFromFilteredPool(pool, poolName, mountType)
+	print("RMB_SUMMON: SelectSpecificMountTypeFromFilteredPool for", mountType, "in", poolName, "pool")
+	-- Build list of eligible groups with proper deterministic filtering already applied
+	local eligibleGroups = {}
+	local priority6Groups = {}
+	-- Add supergroups from filtered pool
+	for sgName, families in pairs(pool.superGroups) do
+		local superGroupWeight = addon:GetGroupWeight(sgName)
+		if superGroupWeight > 0 then
+			if superGroupWeight == 6 then
+				table.insert(priority6Groups, {
+					name = sgName,
+					type = "superGroup",
+				})
 			else
-				-- If in steady flight mode or can't dragonride here
-				-- Only use steady flight mounts
-				poolName = "flying"
-				-- Filter only steady flight mounts
-				local mountID, mountName = self:SelectSpecificMountTypeFromPool(poolName, "steadyflight")
-				if mountID then
-					return self:SummonMount(mountID)
-				end
+				table.insert(eligibleGroups, {
+					name = sgName,
+					type = "superGroup",
+					weight = self:MapWeightToProbability(superGroupWeight),
+				})
 			end
+		end
+	end
 
-			-- Fallback to any flying mount if specific type selection failed
-			poolName = "flying"
-		else
-			poolName = "ground"
+	-- Add standalone families from filtered pool
+	for familyName, _ in pairs(pool.families) do
+		local familyWeight = addon:GetGroupWeight(familyName)
+		if familyWeight > 0 then
+			if familyWeight == 6 then
+				table.insert(priority6Groups, {
+					name = familyName,
+					type = "family",
+				})
+			else
+				table.insert(eligibleGroups, {
+					name = familyName,
+					type = "family",
+					weight = self:MapWeightToProbability(familyWeight),
+				})
+			end
+		end
+	end
+
+	-- Combine priority 6 groups first, then regular groups
+	local groupsToCheck = {}
+	if #priority6Groups > 0 then
+		-- If priority 6 groups exist, randomize and check them first
+		for i = #priority6Groups, 2, -1 do
+			local j = math.random(i)
+			priority6Groups[i], priority6Groups[j] = priority6Groups[j], priority6Groups[i]
 		end
 
-		print("RMB_SUMMON: Using " .. poolName .. " mount pool based on context")
+		for _, group in ipairs(priority6Groups) do
+			table.insert(groupsToCheck, group)
+		end
 	else
-		print("RMB_SUMMON: Using general ground mount pool (contextual summoning disabled)")
+		-- If no priority 6 groups, randomize regular groups
+		for i = #eligibleGroups, 2, -1 do
+			local j = math.random(i)
+			eligibleGroups[i], eligibleGroups[j] = eligibleGroups[j], eligibleGroups[i]
+		end
+
+		for _, group in ipairs(eligibleGroups) do
+			table.insert(groupsToCheck, group)
+		end
 	end
 
-	-- Select mount from the appropriate pool
-	local mountID, mountName = self:SelectMountFromPool(poolName)
-	if mountID then
-		return self:SummonMount(mountID)
-	else
-		print("RMB_SUMMON: No eligible mounts found in " .. poolName .. " pool")
-		return false
+	-- Try each group until we find one with matching mount type
+	for _, group in ipairs(groupsToCheck) do
+		local eligibleFamilies = {}
+		if group.type == "superGroup" then
+			-- Get all families in this supergroup from the filtered pool
+			for _, familyName in ipairs(pool.superGroups[group.name] or {}) do
+				local familyWeight = addon:GetGroupWeight(familyName)
+				if familyWeight > 0 then
+					table.insert(eligibleFamilies, {
+						name = familyName,
+						weight = self:MapWeightToProbability(familyWeight),
+					})
+				end
+			end
+		else
+			-- Just the standalone family
+			table.insert(eligibleFamilies, {
+				name = group.name,
+				weight = group.weight or 100,
+			})
+		end
+
+		-- If no eligible families in this group, skip
+		if #eligibleFamilies > 0 then
+			-- Randomize family order
+			for i = #eligibleFamilies, 2, -1 do
+				local j = math.random(i)
+				eligibleFamilies[i], eligibleFamilies[j] = eligibleFamilies[j], eligibleFamilies[i]
+			end
+
+			-- Try each family until we find one with matching mount type
+			for _, family in ipairs(eligibleFamilies) do
+				local eligibleMounts = {}
+				local priority6Mounts = {}
+				local totalWeight = 0
+				-- Get all mounts in this family
+				for _, mountID in ipairs(pool.mountsByFamily[family.name] or {}) do
+					local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
+					-- Skip unusable mounts
+					if isUsable then
+						local traits = self:GetMountTypeTraits(mountID)
+						local isEligible = false
+						-- Check if this mount matches the desired type
+						if mountType == "skyriding" and traits.isSkyriding then
+							isEligible = true
+						elseif mountType == "steadyflight" and traits.isSteadyFly then
+							isEligible = true
+						end
+
+						if isEligible then
+							-- Get mount weight
+							local mountKey = "mount_" .. mountID
+							local mountWeight = addon:GetGroupWeight(mountKey)
+							-- Skip mounts with explicit weight 0
+							if mountWeight ~= 0 then
+								-- If mount has no specific weight, use family weight
+								if mountWeight == nil or mountWeight == 0 then
+									mountWeight = addon:GetGroupWeight(family.name)
+								end
+
+								-- Only include if weight > 0
+								if mountWeight > 0 then
+									if mountWeight == 6 then
+										table.insert(priority6Mounts, {
+											id = mountID,
+											name = name,
+										})
+									else
+										local probWeight = self:MapWeightToProbability(mountWeight)
+										table.insert(eligibleMounts, {
+											id = mountID,
+											name = name,
+											weight = probWeight,
+										})
+										totalWeight = totalWeight + probWeight
+									end
+
+									print("RMB_SUMMON: Added eligible " .. mountType .. " mount from "
+										.. family.name .. ":", name, "Weight:", mountWeight)
+								end
+							end
+						end
+					end
+				end
+
+				-- If eligible mounts found in this family, make a selection
+				if #priority6Mounts > 0 then
+					-- Priority 6 mounts take precedence
+					local selectedMount = priority6Mounts[math.random(#priority6Mounts)]
+					print("RMB_SUMMON: Selected priority 6 " .. mountType .. " mount:", selectedMount.name,
+						"from family:", family.name,
+						group.type == "superGroup" and ("in supergroup: " .. group.name) or "")
+					-- Store pending summon for deterministic tracking
+					self:StorePendingSummon(poolName, group.name, group.type, selectedMount.id)
+					return selectedMount.id, selectedMount.name
+				elseif #eligibleMounts > 0 and totalWeight > 0 then
+					-- Weighted random selection from regular mounts
+					local roll = math.random(1, totalWeight)
+					local currentSum = 0
+					for _, mount in ipairs(eligibleMounts) do
+						currentSum = currentSum + mount.weight
+						if roll <= currentSum then
+							print("RMB_SUMMON: Selected " .. mountType .. " mount:", mount.name,
+								"from family:", family.name,
+								group.type == "superGroup" and ("in supergroup: " .. group.name) or "")
+							-- Store pending summon for deterministic tracking
+							self:StorePendingSummon(poolName, group.name, group.type, mount.id)
+							return mount.id, mount.name
+						end
+					end
+
+					-- Fallback
+					local fallbackMount = eligibleMounts[1]
+					self:StorePendingSummon(poolName, group.name, group.type, fallbackMount.id)
+					return fallbackMount.id, fallbackMount.name
+				end
+			end
+		end
 	end
+
+	-- If we got here, no eligible mounts were found
+	print("RMB_SUMMON: No eligible " .. mountType .. " mounts found in any group")
+	return nil, nil
+end
+
+-- Remove the old SelectMountFromPool method and replace with:
+function MountSummon:SelectMountFromPool(poolName)
+	-- This is now just a wrapper for the new method
+	return self:SelectMountFromPoolWithFilter(poolName, nil)
 end
 
 -- ============================================================================
--- INTEGRATION WITH BLIZZARD UI (unchanged from original)
+-- INTEGRATION WITH BLIZZARD UI
 -- ============================================================================
 -- Hook into Blizzard's Random Favorite Mount button
 function MountSummon:HookRandomFavoriteButton()
@@ -565,7 +1054,7 @@ function MountSummon:HookRandomFavoriteButton()
 end
 
 -- ============================================================================
--- PUBLIC INTERFACE METHODS (unchanged from original)
+-- PUBLIC INTERFACE METHODS
 -- ============================================================================
 -- Called when data is ready
 function MountSummon:OnDataReady()
@@ -597,7 +1086,7 @@ function MountSummon:GetSmartButtonAction()
 end
 
 -- ============================================================================
--- AUTO-INITIALIZATION (unchanged from original)
+-- AUTO-INITIALIZATION
 -- ============================================================================
 -- Auto-initialize when addon loads
 function addon:InitializeMountSummon()

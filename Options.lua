@@ -94,6 +94,29 @@ local rootOptionsTable = {
 			end,
 		},
 
+		useDeterministicSummoning = {
+			order = 5.1,
+			type = "toggle",
+			name = "Use Deterministic Summoning",
+			desc =
+			"When enabled, recently used mount groups become temporarily unavailable, ensuring more variety in mount selection. Groups become unavailable for a duration based on your collection size.",
+			get = function() return addon:GetSetting("useDeterministicSummoning") end,
+			set = function(i, v)
+				addon:SetSetting("useDeterministicSummoning", v)
+				-- Reset cache when toggling mode
+				if addon.db and addon.db.profile and addon.db.profile.deterministicCache then
+					for poolName, cache in pairs(addon.db.profile.deterministicCache) do
+						if cache then
+							cache.unavailableGroups = {}
+							cache.pendingSummon = nil
+						end
+					end
+
+					print("RMB_DETERMINISTIC: Cache reset due to mode toggle")
+				end
+			end,
+		},
+
 		showUncollectedMounts = {
 			order = 6,
 			type = "toggle",

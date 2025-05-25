@@ -48,6 +48,15 @@ function MountDataManager:Initialize()
 	print("RMB_DATA_MANAGER: Initialized successfully")
 end
 
+function MountDataManager:OnMountCollectionChanged()
+	print("RMB_DATA_MANAGER: Mount collection changed, invalidating caches...")
+	-- Clear all caches since mount collection has changed
+	self:InvalidateCache("mount_collection_changed")
+	-- Rebuild unified group system
+	self:BuildUnifiedGroupSystem()
+	print("RMB_DATA_MANAGER: Cache invalidation completed")
+end
+
 -- ============================================================================
 -- UNIFIED GROUP PROCESSING (replaces multiple family systems)
 -- ============================================================================

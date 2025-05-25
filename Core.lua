@@ -6,6 +6,7 @@ local dbDefaults = {
 		overrideBlizzardButton = true,
 		-- Summoning
 		contextualSummoning = true,
+		useDeterministicSummoning = false,
 		-- Class Spells
 		-- Druid
 		useTravelFormWhileMoving = true,
@@ -32,11 +33,12 @@ local dbDefaults = {
 		-- Mount list options
 		useSuperGrouping = true,
 		showUncollectedMounts = true,
-		showAllUncollectedGroups = true, -- NEW: Show families/supergroups with only uncollected mounts
+		showAllUncollectedGroups = true,
 		filtersExpanded = false,
 		filterSettings = nil,
 		--
 		expansionStates = {},
+		defaultGroupWeight = 3,
 		groupWeights = {},
 		groupEnabledStates = {},
 		familyOverrides = {},
@@ -129,6 +131,24 @@ function addon:InitializeProcessedData()
 		superGroupToUncollectedMountIDsMap = {},
 		allUncollectedMountFamilyInfo = {},
 	}
+	-- Initialize deterministic cache if not exists
+	if not self.db.profile.deterministicCache then
+		self.db.profile.deterministicCache = {
+			flying = {
+				unavailableGroups = {},
+				pendingSummon = nil,
+			},
+			ground = {
+				unavailableGroups = {},
+				pendingSummon = nil,
+			},
+			underwater = {
+				unavailableGroups = {},
+				pendingSummon = nil,
+			},
+		}
+	end
+
 	-- Check API availability
 	if not C_MountJournal or not C_MountJournal.GetMountIDs then
 		print("RMB_DEBUG_DATA: C_MountJournal API missing!")
@@ -304,6 +324,8 @@ function addon:OnInitialize()
 	-- Load mount type data
 	self.mountTypeTraits = MountTypeTraits_Input_Helper or {}
 	self.mountIDtoTypeID = MountIDtoMountTypeID or {}
+	-- Register for mount collection events
+	self:RegisterMountCollectionEvents()
 	-- Clear global tables to save memory
 	MountTypeTraits_Input_Helper = nil
 	MountIDtoMountTypeID = nil
@@ -418,6 +440,88 @@ function addon:OnPlayerLoginAttemptProcessData(eventArg)
 	self.lastProcessingEventName = nil
 	self:UnregisterEvent("PLAYER_LOGIN")
 	print("RMB_EVENT_DEBUG: Unregistered PLAYER_LOGIN.")
+end
+
+-- ============================================================================
+-- MOUNT COLLECTION DETECTION
+-- ============================================================================
+function addon:RegisterMountCollectionEvents()
+	print("RMB_EVENTS: Registering mount collection event handlers...")
+	-- Register for mount collection events
+	if self.RegisterEvent then
+		self:RegisterEvent("NEW_MOUNT_ADDED", "OnNewMountAdded")
+		print("RMB_EVENTS: Registered for mount collection events")
+	else
+		print("RMB_EVENTS_ERROR: Cannot register events - RegisterEvent not available")
+	end
+end
+
+-- Event handler methods
+function addon:OnNewMountAdded(eventName, mountID)
+	print("RMB_EVENTS: NEW_MOUNT_ADDED - Mount ID:", mountID)
+	self:HandleMountCollectionChange("new_mount", mountID)
+end
+
+-- Method to handle all mount collection changes:
+function addon:HandleMountCollectionChange(changeType, mountID)
+	print("RMB_EVENTS: Handling mount collection change:", changeType, mountID or "")
+	-- Avoid processing during combat or loading
+	if InCombatLockdown() then
+		print("RMB_EVENTS: Deferring mount collection update - in combat")
+		-- Could queue this for after combat if needed
+		return
+	end
+
+	-- Use a brief delay to batch multiple rapid changes
+	if self.mountCollectionUpdateTimer then
+		self.mountCollectionUpdateTimer:Cancel()
+	end
+
+	self.mountCollectionUpdateTimer = C_Timer.NewTimer(1.5, function()
+		self:RefreshMountDataAndUI(changeType, mountID)
+	end)
+end
+
+-- Mthod to actually refresh the data and UI:
+function addon:RefreshMountDataAndUI(changeType, mountID)
+	print("RMB_EVENTS: Refreshing mount data and UI due to:", changeType)
+	local startTime = debugprofilestop()
+	-- Step 1: Reprocess mount data
+	print("RMB_EVENTS: Reprocessing mount data...")
+	self.lastProcessingEventName = changeType
+	self:InitializeProcessedData() -- This rebuilds all the processed data
+	self.lastProcessingEventName = nil
+	-- Step 2: Rebuild mount pools
+	if self.MountSummon and self.MountSummon.BuildMountPools then
+		print("RMB_EVENTS: Rebuilding mount pools...")
+		self.MountSummon:BuildMountPools()
+	end
+
+	-- Step 3: Invalidate data manager caches
+	if self.MountDataManager and self.MountDataManager.InvalidateCache then
+		print("RMB_EVENTS: Invalidating data manager cache...")
+		self.MountDataManager:InvalidateCache("mount_collection_changed")
+	end
+
+	-- Step 4: Refresh UI
+	if self.PopulateFamilyManagementUI then
+		print("RMB_EVENTS: Refreshing family management UI...")
+		self:PopulateFamilyManagementUI()
+	end
+
+	-- Step 5: Notify other modules
+	self:NotifyModulesDataReady()
+	local endTime = debugprofilestop()
+	local elapsed = endTime - startTime
+	print(string.format("RMB_EVENTS: Mount collection refresh completed in %.2fms", elapsed))
+	-- Show user feedback for new mounts
+	if changeType == "new_mount" and mountID then
+		local mountName = C_MountJournal.GetMountInfoByID(mountID)
+		if mountName then
+			print("RMB: New mount added to collection: " .. mountName)
+			-- Could show a more prominent message here if desired
+		end
+	end
 end
 
 -- ============================================================================
@@ -833,13 +937,13 @@ end
 -- ============================================================================
 function addon:GetGroupWeight(gk)
 	if not (self.db and self.db.profile and self.db.profile.groupWeights) then
-		return 0
+		return 3 -- Default to "Normal" instead of "Never"
 	end
 
 	local w = self.db.profile.groupWeights[gk]
-	if w == nil then return 0 end
+	if w == nil then return 3 end -- Default to "Normal" for unset groups
 
-	return tonumber(w) or 0
+	return tonumber(w) or 3
 end
 
 function addon:SetGroupWeight(gk, w)
@@ -1537,6 +1641,15 @@ function addon:NotifyModulesDataReady()
 	if self.MountPreview and self.MountPreview.OnDataReady then
 		self.MountPreview:OnDataReady()
 		print("RMB_DEBUG: Notified MountPreview")
+	end
+
+	-- Also notify about mount collection changes
+	if self.MountDataManager and self.MountDataManager.OnMountCollectionChanged then
+		self.MountDataManager:OnMountCollectionChanged()
+	end
+
+	if self.MountSummon and self.MountSummon.OnMountCollectionChanged then
+		self.MountSummon:OnMountCollectionChanged()
 	end
 end
 
