@@ -1,3 +1,6 @@
+# 0.7.12
+Added syncing between favorited mounts and the addon's weight system.
+
 # 0.7.11
 Fixed hook issue between MountDataManager and SecureHandlers.
 Fixed G99 not summoning in raid.

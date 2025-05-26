@@ -349,6 +349,219 @@ local rootOptionsTable = {
 				},
 			},
 		},
+		favoriteSyncHeader = {
+			order = 16,
+			type = "header",
+			name = "Favorite Mount Synchronization",
+		},
+
+		enableFavoriteSync = {
+			order = 17,
+			type = "toggle",
+			name = "Enable Favorite Sync",
+			desc = "Automatically sync your WoW Mount Journal favorites with RMB mount weights",
+			get = function()
+				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync") or false
+			end,
+			set = function(i, v)
+				if addon.FavoriteSync then
+					addon.FavoriteSync:SetSetting("enableFavoriteSync", v)
+				end
+			end,
+			width = "full",
+		},
+
+		syncOnLogin = {
+			order = 18,
+			type = "toggle",
+			name = "Sync on Login",
+			desc = "Automatically sync favorites when you log in (WARNING: May cause brief lag with large mount collections)",
+			get = function()
+				-- FIXED: Remove the "or true" that was causing it to be stuck on
+				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("syncOnLogin") or false
+			end,
+			set = function(i, v)
+				if addon.FavoriteSync then
+					addon.FavoriteSync:SetSetting("syncOnLogin", v)
+				end
+			end,
+			disabled = function()
+				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+			end,
+			width = 1.2,
+		},
+		favoriteWeight = {
+			order = 19,
+			type = "select",
+			name = "Favorite Mount Weight",
+			desc = "What weight to assign to your favorite mounts",
+			values = {
+				[0] = "Never (0)",
+				[1] = "Occasional (1)",
+				[2] = "Uncommon (2)",
+				[3] = "Normal (3)",
+				[4] = "Common (4)",
+				[5] = "Often (5)",
+				[6] = "Always (6)",
+			},
+			get = function()
+				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("favoriteWeight") or 4
+			end,
+			set = function(i, v)
+				if addon.FavoriteSync then
+					addon.FavoriteSync:SetSetting("favoriteWeight", v)
+				end
+			end,
+			disabled = function()
+				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+			end,
+			width = 1.2,
+		},
+
+		nonFavoriteWeight = {
+			order = 20,
+			type = "select",
+			name = "Non-Favorite Mount Weight",
+			desc = "What weight to assign to non-favorite mounts (set to Normal to leave unchanged)",
+			values = {
+				[0] = "Never (0)",
+				[1] = "Occasional (1)",
+				[2] = "Uncommon (2)",
+				[3] = "Normal (3) - No Change",
+				[4] = "Common (4)",
+				[5] = "Often (5)",
+				[6] = "Always (6)",
+			},
+			get = function()
+				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("nonFavoriteWeight") or 3
+			end,
+			set = function(i, v)
+				if addon.FavoriteSync then
+					addon.FavoriteSync:SetSetting("nonFavoriteWeight", v)
+				end
+			end,
+			disabled = function()
+				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+			end,
+			width = 1.2,
+		},
+
+		favoriteWeightMode = {
+			order = 21,
+			type = "select",
+			name = "Weight Mode",
+			desc = "How to handle existing weights when syncing",
+			values = {
+				["set"] = "Set Exact Weight - Replace current weights",
+				["minimum"] = "Set Minimum Weight - Only increase weights",
+			},
+			get = function()
+				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("favoriteWeightMode") or "set"
+			end,
+			set = function(i, v)
+				if addon.FavoriteSync then
+					addon.FavoriteSync:SetSetting("favoriteWeightMode", v)
+				end
+			end,
+			disabled = function()
+				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+			end,
+			width = "full",
+		},
+
+		syncFamilyWeights = {
+			order = 22,
+			type = "toggle",
+			name = "Sync Family Weights",
+			desc = "Also update the weights of families that contain favorite mounts",
+			get = function()
+				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("syncFamilyWeights") or false
+			end,
+			set = function(i, v)
+				if addon.FavoriteSync then
+					addon.FavoriteSync:SetSetting("syncFamilyWeights", v)
+				end
+			end,
+			disabled = function()
+				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+			end,
+			width = 1.2,
+		},
+
+		syncSuperGroupWeights = {
+			order = 23,
+			type = "toggle",
+			name = "Sync SuperGroup Weights",
+			desc = "Also update the weights of supergroups that contain favorite mounts",
+			get = function()
+				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("syncSuperGroupWeights") or false
+			end,
+			set = function(i, v)
+				if addon.FavoriteSync then
+					addon.FavoriteSync:SetSetting("syncSuperGroupWeights", v)
+				end
+			end,
+			disabled = function()
+				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+			end,
+			width = 1.2,
+		},
+		favoriteSyncControlsGroup = {
+			order = 24,
+			type = "group",
+			inline = true,
+			name = "",
+			args = {
+				syncPreview = {
+					order = 1,
+					type = "description",
+					name = function()
+						if not addon.FavoriteSync then
+							return "Favorite sync system not loaded."
+						end
+
+						if not addon.FavoriteSync:GetSetting("enableFavoriteSync") then
+							return "Enable favorite sync to see preview."
+						end
+
+						return addon.FavoriteSync:PreviewSync() or "Error generating preview."
+					end,
+					width = "full",
+					fontSize = "medium",
+				},
+
+				manualSyncButton = {
+					order = 2,
+					type = "execute",
+					name = "Sync Now",
+					desc = "Manually trigger favorite mount synchronization",
+					func = function()
+						if addon.FavoriteSync then
+							addon.FavoriteSync:ManualSync()
+						end
+					end,
+					disabled = function()
+						return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+					end,
+					width = 0.8,
+				},
+
+				syncStats = {
+					order = 3,
+					type = "description",
+					name = function()
+						if not addon.FavoriteSync then
+							return ""
+						end
+
+						local stats = addon.FavoriteSync:GetSyncStatistics()
+						return string.format("Stats: %d favorite, %d total mounts | Last sync: %s",
+							stats.favoriteMountCount, stats.totalMountCount, stats.lastSyncTimeFormatted)
+					end,
+					width = "full",
+				},
+			},
+		},
 	},
 }
 LibAceConfig:RegisterOptionsTable(rootOptions_InternalName, rootOptionsTable)

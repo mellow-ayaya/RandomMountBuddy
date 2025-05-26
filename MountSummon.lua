@@ -520,7 +520,7 @@ function MountSummon:AddMountToPool(poolName, mountID, mountName, familyName, su
 	end
 
 	table.insert(pool.mountsByFamily[familyName], mountID)
-	print("RMB_SUMMON_DEBUG: Added " .. mountName .. " to " .. poolName .. " pool for family " .. familyName)
+	--print("RMB_SUMMON_DEBUG: Added " .. mountName .. " to " .. poolName .. " pool for family " .. familyName)
 	-- Note: We'll handle families and supergroups in ApplyFamilyAndSuperGroupWeights
 	-- to properly handle weight inheritance
 end
@@ -556,7 +556,7 @@ function MountSummon:ApplyFamilyAndSuperGroupWeights()
 			local superGroup = addon:GetDynamicSuperGroup(familyName)
 			if not superGroup then
 				pool.families[familyName] = true
-				print("RMB_SUMMON_DEBUG: Added standalone family " .. familyName .. " to " .. poolName .. " pool")
+				--print("RMB_SUMMON_DEBUG: Added standalone family " .. familyName .. " to " .. poolName .. " pool")
 			end
 		end
 
@@ -584,8 +584,8 @@ function MountSummon:ApplyFamilyAndSuperGroupWeights()
 						local familyWeight = addon:GetGroupWeight(familyName)
 						if familyWeight > 0 then
 							table.insert(pool.superGroups[superGroup], familyName)
-							print("RMB_SUMMON_DEBUG: Added family " .. familyName ..
-								" to supergroup " .. superGroup .. " in " .. poolName .. " pool")
+							--print("RMB_SUMMON_DEBUG: Added family " .. familyName ..
+							--	" to supergroup " .. superGroup .. " in " .. poolName .. " pool")
 						else
 							print("RMB_SUMMON_DEBUG: Family " .. familyName ..
 								" in supergroup " .. superGroup ..

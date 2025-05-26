@@ -3,6 +3,7 @@ local addonNameFromToc, addonTableProvidedByWoW = ...
 RandomMountBuddy = addonTableProvidedByWoW
 local dbDefaults = {
 	profile = {
+		useSuperGrouping = true,
 		overrideBlizzardButton = true,
 		-- Summoning
 		contextualSummoning = true,
@@ -31,18 +32,25 @@ local dbDefaults = {
 		treatModelVariantsAsDistinct = false,
 		treatUniqueEffectsOrSkin = true,
 		-- Mount list options
-		useSuperGrouping = true,
 		showUncollectedMounts = true,
-		showAllUncollectedGroups = true,
+		showAllUncollectedGroups = false,
 		filtersExpanded = false,
 		filterSettings = nil,
-		--
 		expansionStates = {},
 		defaultGroupWeight = 3,
 		groupWeights = {},
 		groupEnabledStates = {},
 		familyOverrides = {},
 		fmItemsPerPage = 14,
+		-- FavoriteSync settings
+		favoriteSync_enableFavoriteSync = true,
+		favoriteSync_syncOnLogin = true,
+		favoriteSync_favoriteWeight = 4,
+		favoriteSync_nonFavoriteWeight = 2,
+		favoriteSync_syncFamilyWeights = true,
+		favoriteSync_syncSuperGroupWeights = true,
+		favoriteSync_favoriteWeightMode = "set",
+		favoriteSync_lastSyncTime = 0,
 	},
 }
 print("RMB_DEBUG: Core.lua START (Enhanced Uncollected). Addon Name: " ..
@@ -397,7 +405,7 @@ function addon:OnEnable()
 	print("RMB_DEBUG: OnEnable END.")
 end
 
--- NEW: Centralized module initialization
+-- Centralized module initialization
 function addon:InitializeAllMountModules()
 	print("RMB_DEBUG: Initializing all mount system modules...")
 	-- Initialize in dependency order
@@ -423,6 +431,11 @@ function addon:InitializeAllMountModules()
 
 	if self.InitializeMountSummon then
 		self:InitializeMountSummon()
+	end
+
+	-- ADD THIS LINE: Initialize FavoriteSync system
+	if self.InitializeFavoriteSync then
+		self:InitializeFavoriteSync()
 	end
 
 	-- UI components come last as they depend on everything else
@@ -867,6 +880,11 @@ function addon:NotifyModulesSettingChanged(key, value)
 
 	if self.MountPreview and self.MountPreview.OnSettingChanged then
 		self.MountPreview:OnSettingChanged(key, value)
+	end
+
+	-- ADD THESE LINES: Notify FavoriteSync
+	if self.FavoriteSync and self.FavoriteSync.OnSettingChanged then
+		self.FavoriteSync:OnSettingChanged(key, value)
 	end
 
 	-- FIXED: Add secure handler notifications
@@ -1644,6 +1662,12 @@ function addon:NotifyModulesDataReady()
 	if self.MountPreview and self.MountPreview.OnDataReady then
 		self.MountPreview:OnDataReady()
 		print("RMB_DEBUG: Notified MountPreview")
+	end
+
+	-- ADD THESE LINES: Notify FavoriteSync
+	if self.FavoriteSync and self.FavoriteSync.OnDataReady then
+		self.FavoriteSync:OnDataReady()
+		print("RMB_DEBUG: Notified FavoriteSync")
 	end
 
 	-- Also notify about mount collection changes
