@@ -31,7 +31,7 @@ local MACRO_TEMPLATES = {
 /run UIErrorsFrame:Hide() C_Timer.After(0, function() UIErrorsFrame:Clear() UIErrorsFrame:Show() end)]],
 
 	druidSmart = {
-		keepActive = "/cast [swimming,noform:3][outdoors,noform:3] %s\n/cast [indoors,noform:1] %s",
+		keepActive = "/cast [swimming,noform:3][outdoors,noform:3] %s\n/cast [indoors,noform:2] %s",
 		normal = "/cast [swimming][outdoors] %s\n/cast [indoors] %s",
 	},
 

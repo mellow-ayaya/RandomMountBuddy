@@ -1,3 +1,6 @@
+# 0.7.13
+Fixed smart druid macro conditionals to prevent getting stuck in cat form.
+
 # 0.7.12
 Added syncing between favorited mounts and the addon's weight system.
 
