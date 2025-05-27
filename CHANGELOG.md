@@ -1,3 +1,6 @@
+# 0.7.14
+Fixed pagination moving upwards when there are less mounts listed than expected.
+
 # 0.7.13
 Fixed smart druid macro conditionals to prevent getting stuck in cat form.
 

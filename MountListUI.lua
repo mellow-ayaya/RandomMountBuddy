@@ -357,11 +357,13 @@ function addon:BuildFamilyManagementArgs()
 		return pageArgs
 	end
 
+	-- In MountListUI.lua, replace the group entry building section in BuildFamilyManagementArgs() with this:
 	-- Calculate page bounds and build group entries
 	local startIndex = (currentPage - 1) * itemsPerPage + 1
 	local endIndex = math.min(startIndex + itemsPerPage - 1, totalGroups)
 	print("RMB_UI: Building page " .. currentPage .. " (" .. startIndex .. "-" .. endIndex .. " of " .. totalGroups .. ")")
 	local groupEntryOrder = displayOrder
+	local actualItemsOnPage = 0
 	for i = startIndex, endIndex do
 		local groupData = allDisplayableGroups[i]
 		if groupData then
@@ -382,6 +384,38 @@ function addon:BuildFamilyManagementArgs()
 				args = groupEntry,
 			}
 			groupEntryOrder = groupEntryOrder + 1
+			actualItemsOnPage = actualItemsOnPage + 1
+		end
+	end
+
+	-- FIXED: Add empty group slots to maintain consistent pagination position
+	-- Only apply this fix when using exactly 14 items per page
+	if not usingSearchResults then
+		local maxItemsPerPage = self:FMG_GetItemsPerPage()
+		-- Only add spacers when using the 14-item layout
+		if maxItemsPerPage == 14 then
+			local missingItems = maxItemsPerPage - actualItemsOnPage
+			-- Add empty group elements that match the structure of real entries
+			for i = 1, missingItems do
+				pageArgs["empty_slot_" .. i] = {
+					order = groupEntryOrder,
+					type = "group",
+					inline = true,
+					name = "",
+					args = {
+						empty_content = {
+							order = 1,
+							type = "description",
+							name = " ",
+							width = "full",
+							image = "Interface\\AddOns\\RandomMountBuddy\\Media\\Empty",
+							imageWidth = 30,
+							imageHeight = 30,
+						},
+					},
+				}
+				groupEntryOrder = groupEntryOrder + 1
+			end
 		end
 	end
 
