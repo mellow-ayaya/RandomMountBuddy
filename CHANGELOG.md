@@ -1,3 +1,6 @@
+# 0.7.15
+Added element in the weight display to remind users that auto sync is on.
+
 # 0.7.14
 Fixed pagination moving upwards when there are less mounts listed than expected.
 

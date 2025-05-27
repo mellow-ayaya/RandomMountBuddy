@@ -1,8 +1,8 @@
--- MountUIComponents.lua - Fixed for Clean Module Architecture with Proper Nesting
--- Reusable UI component builders for mount interface
+-- MountUIComponents.lua - Enhanced with Conditional Weight Control Buttons
+-- Added visual warnings when FavoriteSync auto-sync is enabled
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
-print("RMB_DEBUG: MountUIComponents.lua (Fixed) START.")
+print("RMB_DEBUG: MountUIComponents.lua (Enhanced Conditional Controls) START.")
 -- ============================================================================
 -- UI COMPONENT BUILDER CLASS
 -- ============================================================================
@@ -18,6 +18,79 @@ local WeightDisplayMapping = {
 	[5] = { text = "         Often", color = "0070dd" }, -- Blue
 	[6] = { text = "        Always", color = "ff8000" }, -- Orange
 }
+-- ============================================================================
+-- FAVORITE SYNC DETECTION HELPERS
+-- ============================================================================
+-- Check if favorite sync will affect this group
+function MountUIComponents:IsFavoriteSyncActive()
+	return addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync") or false
+end
+
+function MountUIComponents:ShouldWarnAboutSync(groupKey, groupType)
+	if not self:IsFavoriteSyncActive() then
+		return false
+	end
+
+	-- Always warn for individual mounts since they could be favorites
+	if groupType == "mountID" or (type(groupKey) == "string" and groupKey:match("^mount_")) then
+		return true
+	end
+
+	-- Warn for families and supergroups if family/supergroup sync is enabled
+	if groupType == "familyName" and addon.FavoriteSync:GetSetting("syncFamilyWeights") then
+		return true
+	end
+
+	if groupType == "superGroup" and addon.FavoriteSync:GetSetting("syncSuperGroupWeights") then
+		return true
+	end
+
+	return false
+end
+
+function MountUIComponents:GetSyncWarningTooltip(groupKey, groupType)
+	if not self:ShouldWarnAboutSync(groupKey, groupType) then
+		return nil
+	end
+
+	local warnings = {}
+	table.insert(warnings, "|cffffcc00 FavoriteSync Active|r")
+	if groupType == "mountID" or (type(groupKey) == "string" and groupKey:match("^mount_")) then
+		table.insert(warnings,
+			"Manual weight changes may be overridden if this mount is marked as favorite/non-favorite in your Mount Journal.")
+	elseif groupType == "familyName" then
+		table.insert(warnings,
+			"Manual weight changes may be overridden if this family contains favorite mounts and 'Sync Family Weights' is enabled.")
+	elseif groupType == "superGroup" then
+		table.insert(warnings,
+			"Manual weight changes may be overridden if this supergroup contains favorite mounts and 'Sync SuperGroup Weights' is enabled.")
+	end
+
+	table.insert(warnings, "")
+	table.insert(warnings,
+		"|cff888888Disable FavoriteSync or adjust its settings in the main options to prevent automatic changes.|r")
+	return table.concat(warnings, "\n")
+end
+
+-- ============================================================================
+-- ENHANCED WEIGHT CONTROL HELPERS
+-- ============================================================================
+function MountUIComponents:GetEnhancedWeightControlProps(groupKey, groupType)
+	local shouldWarn = self:ShouldWarnAboutSync(groupKey, groupType)
+	local warningTooltip = self:GetSyncWarningTooltip(groupKey, groupType)
+	-- Choose button images based on sync status
+	local decrementImage = shouldWarn and "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Disabled" or
+			"Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up"
+	local incrementImage = shouldWarn and "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Disabled" or
+			"Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up"
+	return {
+		shouldWarn = shouldWarn,
+		warningTooltip = warningTooltip,
+		decrementImage = decrementImage,
+		incrementImage = incrementImage,
+	}
+end
+
 -- ============================================================================
 -- INDENTATION HELPER FUNCTIONS
 -- ============================================================================
@@ -65,6 +138,8 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 		displayName = self:CreateFallbackDisplayName(groupData)
 	end
 
+	-- Get enhanced weight control properties
+	local weightProps = self:GetEnhancedWeightControlProps(groupKey, groupData.type)
 	-- Build entry components - MAINTAIN EXACT SAME ORDER AS ORIGINAL
 	local entry = {
 		-- Order 0.2: Preview button
@@ -113,40 +188,81 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 			width = layout.nameSpacerAfter,
 		},
 
-		-- Order 2: Weight decrement
+		-- Order 2: Weight decrement (ENHANCED)
 		weightDecrement = {
 			order = 2,
 			type = "execute",
 			name = "",
-			func = function() addon:DecrementGroupWeight(groupKey) end,
+			func = function()
+				addon:DecrementGroupWeight(groupKey)
+				-- Show brief reminder if sync is active
+				if weightProps.shouldWarn then
+					print("RMB: Weight changed. Note: FavoriteSync may override this change.")
+				end
+			end,
 			disabled = function() return addon:GetGroupWeight(groupKey) == 0 end,
 			width = 0.05,
-			image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
+			image = weightProps.decrementImage,
 			imageWidth = 16,
 			imageHeight = 20,
+			desc = function()
+				local baseDesc = "Decrease weight"
+				if weightProps.warningTooltip then
+					return baseDesc .. "\n\n" .. weightProps.warningTooltip
+				end
+
+				return baseDesc
+			end,
 		},
 
-		-- Order 3: Weight display
+		-- Order 3: Weight display (ENHANCED)
 		weightDisplay = {
 			order = 3,
 			type = "description",
 			name = function()
-				return self:GetWeightDisplayString(addon:GetGroupWeight(groupKey))
+				local weightStr = self:GetWeightDisplayString(addon:GetGroupWeight(groupKey))
+				-- Add sync warning indicator
+				if weightProps.shouldWarn then
+					return weightStr .. "\n|cffffd700 [Auto Sync On]|r"
+				end
+
+				return weightStr
 			end,
 			width = layout.controlsWidth,
+			desc = function()
+				if weightProps.warningTooltip then
+					return "Current weight setting\n\n" .. weightProps.warningTooltip
+				end
+
+				return "Current weight setting"
+			end,
 		},
 
-		-- Order 4: Weight increment
+		-- Order 4: Weight increment (ENHANCED)
 		weightIncrement = {
 			order = 4,
 			type = "execute",
 			name = "",
-			func = function() addon:IncrementGroupWeight(groupKey) end,
+			func = function()
+				addon:IncrementGroupWeight(groupKey)
+				-- Show brief reminder if sync is active
+				if weightProps.shouldWarn then
+					print("RMB: Weight changed. Note: FavoriteSync may override this change.")
+				end
+			end,
 			disabled = function() return addon:GetGroupWeight(groupKey) == 6 end,
 			width = 0.05,
-			image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
+			image = weightProps.incrementImage,
 			imageWidth = 16,
 			imageHeight = 20,
+			desc = function()
+				local baseDesc = "Increase weight"
+				if weightProps.warningTooltip then
+					return baseDesc .. "\n\n" .. weightProps.warningTooltip
+				end
+
+				return baseDesc
+			end,
 		},
 
 		-- Order 6: Spacer for toggles
@@ -166,7 +282,7 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 			width = layout.traitsWidth,
 		},
 
-		-- Order 7-7.3: Trait toggles
+		-- Order 7-7.3: Trait toggles (unchanged for now)
 		toggleMinorArmor = {
 			order = 7,
 			type = "toggle",
@@ -283,6 +399,8 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 	local isSingleMountFamily = (totalMountCount == 1)
 	-- The familyDisplayName passed in should already have the proper [F] or [M] indicator
 	local displayName = familyDisplayName
+	-- Get enhanced weight control properties for families
+	local weightProps = self:GetEnhancedWeightControlProps(familyName, "familyName")
 	-- MAINTAIN EXACT SAME ORDER AS TOP LEVEL, JUST ADJUST WIDTHS
 	local entry = {
 		-- Preview button
@@ -331,36 +449,79 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			width = layout.nameSpacerAfter,
 		},
 
-		-- Weight controls - SAME ORDER AS TOP LEVEL
+		-- Weight controls - SAME ORDER AS ORIGINAL (ENHANCED)
 		weightDecrement = {
 			order = order + 0.4,
 			type = "execute",
 			name = "",
-			func = function() addon:DecrementGroupWeight(familyName) end,
+			func = function()
+				addon:DecrementGroupWeight(familyName)
+				-- Show brief reminder if sync is active
+				if weightProps.shouldWarn then
+					print("RMB: Weight changed. Note: FavoriteSync may override this change.")
+				end
+			end,
 			disabled = function() return addon:GetGroupWeight(familyName) == 0 end,
 			width = 0.05,
-			image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
+			image = weightProps.decrementImage,
 			imageWidth = 16,
 			imageHeight = 20,
+			desc = function()
+				local baseDesc = "Decrease weight"
+				if weightProps.warningTooltip then
+					return baseDesc .. "\n\n" .. weightProps.warningTooltip
+				end
+
+				return baseDesc
+			end,
 		},
 
 		weightDisplay = {
 			order = order + 0.5,
 			type = "description",
-			name = function() return self:GetWeightDisplayString(addon:GetGroupWeight(familyName)) end,
+			name = function()
+				local weightStr = self:GetWeightDisplayString(addon:GetGroupWeight(familyName))
+				-- Add sync warning indicator
+				if weightProps.shouldWarn then
+					return weightStr .. "\n|cffffd700 [Auto Sync On]|r"
+				end
+
+				return weightStr
+			end,
 			width = layout.controlsWidth,
+			desc = function()
+				if weightProps.warningTooltip then
+					return "Current weight setting\n\n" .. weightProps.warningTooltip
+				end
+
+				return "Current weight setting"
+			end,
 		},
 
 		weightIncrement = {
 			order = order + 0.6,
 			type = "execute",
 			name = "",
-			func = function() addon:IncrementGroupWeight(familyName) end,
+			func = function()
+				addon:IncrementGroupWeight(familyName)
+				-- Show brief reminder if sync is active
+				if weightProps.shouldWarn then
+					print("RMB: Weight changed. Note: FavoriteSync may override this change.")
+				end
+			end,
 			disabled = function() return addon:GetGroupWeight(familyName) == 6 end,
 			width = 0.05,
-			image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
+			image = weightProps.incrementImage,
 			imageWidth = 16,
 			imageHeight = 20,
+			desc = function()
+				local baseDesc = "Increase weight"
+				if weightProps.warningTooltip then
+					return baseDesc .. "\n\n" .. weightProps.warningTooltip
+				end
+
+				return baseDesc
+			end,
 		},
 
 		-- Spacer for toggles
@@ -380,7 +541,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			hidden = shouldShowTraits,
 		},
 
-		-- Trait toggles - SAME ORDER AS TOP LEVEL
+		-- Trait toggles - SAME ORDER AS TOP LEVEL (unchanged for now)
 		toggleMinorArmor = {
 			order = order + 0.7,
 			type = "toggle",
@@ -397,7 +558,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			order = order + 0.71,
 			type = "toggle",
 			name = "|TInterface\\ICONS\\Garrison_BlueArmor:18:18:0:-2|t",
-			desc = "Bulky armor or many ornaments",
+			desc = "Bulky armor or ornaments",
 			get = function() return traits.hasMajorArmor or false end,
 			set = function() end,
 			width = 0.27,
@@ -436,7 +597,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			name = "",
 			func = function() addon:ToggleExpansionState(familyName) end,
 			width = layout.expandWidth,
-			hidden = isSingleMountFamily, -- This was the fix - was always false before
+			hidden = isSingleMountFamily,
 			image = isExpanded and "Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonUpLargev11" or
 					"Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonDownLargev11",
 			imageWidth = 40,
@@ -466,6 +627,8 @@ function MountUIComponents:BuildMountEntry(mountData, order, familyPrefix)
 	local nameColor = isCollected and "ffffff" or "9d9d9d"
 	local collectionStatus = isCollected and "" or ""
 	local displayName = "|cff" .. nameColor .. " " .. mountIndicator .. " " .. mountName .. collectionStatus .. "|r"
+	-- Get enhanced weight control properties for individual mounts
+	local weightProps = self:GetEnhancedWeightControlProps("mount_" .. mountID, "mountID")
 	-- MAINTAIN EXACT SAME ORDER AS TOP LEVEL, JUST ADJUST WIDTHS
 	local entry = {
 		-- Preview button
@@ -507,17 +670,31 @@ function MountUIComponents:BuildMountEntry(mountData, order, familyPrefix)
 			width = layout.nameSpacerAfter,
 		},
 
-		-- Weight controls - SAME ORDER AS TOP LEVEL
+		-- Weight controls - SAME ORDER AS ORIGINAL (ENHANCED)
 		weightDecrement = {
 			order = order + 0.4,
 			type = "execute",
 			name = "",
-			func = function() addon:DecrementGroupWeight("mount_" .. mountID) end,
+			func = function()
+				addon:DecrementGroupWeight("mount_" .. mountID)
+				-- Show brief reminder if sync is active
+				if weightProps.shouldWarn then
+					print("RMB: Weight changed. Note: FavoriteSync may override this change.")
+				end
+			end,
 			disabled = function() return addon:GetGroupWeight("mount_" .. mountID) == 0 end,
 			width = 0.05,
-			image = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
+			image = weightProps.decrementImage,
 			imageWidth = 16,
 			imageHeight = 20,
+			desc = function()
+				local baseDesc = "Decrease weight"
+				if weightProps.warningTooltip then
+					return baseDesc .. "\n\n" .. weightProps.warningTooltip
+				end
+
+				return baseDesc
+			end,
 		},
 
 		weightDisplay = {
@@ -532,21 +709,47 @@ function MountUIComponents:BuildMountEntry(mountData, order, familyPrefix)
 					end
 				end
 
+				-- Add sync warning indicator
+				if weightProps.shouldWarn then
+					return weightStr .. "\n|cffffd700 [Auto Sync On]|r"
+				end
+
 				return weightStr
 			end,
 			width = layout.controlsWidth,
+			desc = function()
+				if weightProps.warningTooltip then
+					return "Current weight setting\n\n" .. weightProps.warningTooltip
+				end
+
+				return "Current weight setting"
+			end,
 		},
 
 		weightIncrement = {
 			order = order + 0.6,
 			type = "execute",
 			name = "",
-			func = function() addon:IncrementGroupWeight("mount_" .. mountID) end,
+			func = function()
+				addon:IncrementGroupWeight("mount_" .. mountID)
+				-- Show brief reminder if sync is active
+				if weightProps.shouldWarn then
+					print("RMB: Weight changed. Note: FavoriteSync may override this change.")
+				end
+			end,
 			disabled = function() return addon:GetGroupWeight("mount_" .. mountID) == 6 end,
 			width = 0.05,
-			image = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
+			image = weightProps.incrementImage,
 			imageWidth = 16,
 			imageHeight = 20,
+			desc = function()
+				local baseDesc = "Increase weight"
+				if weightProps.warningTooltip then
+					return baseDesc .. "\n\n" .. weightProps.warningTooltip
+				end
+
+				return baseDesc
+			end,
 		},
 
 		-- Spacer for traits (mounts don't have traits but need spacing)
@@ -569,7 +772,7 @@ function MountUIComponents:BuildMountEntry(mountData, order, familyPrefix)
 end
 
 -- ============================================================================
--- PAGINATION COMPONENTS
+-- PAGINATION COMPONENTS (unchanged)
 -- ============================================================================
 -- Enhanced pagination with smart page range display and centering
 function MountUIComponents:CreateSmartPaginationControls(currentPage, totalPages, order)
@@ -687,7 +890,7 @@ function MountUIComponents:CalculatePageRange(currentPage, totalPages)
 end
 
 -- ============================================================================
--- HEADER COMPONENTS
+-- HEADER COMPONENTS (unchanged)
 -- ============================================================================
 function MountUIComponents:CreateColumnHeaders(order)
 	return {
@@ -740,7 +943,7 @@ function MountUIComponents:CreateColumnHeaders(order)
 end
 
 -- ============================================================================
--- UTILITY FUNCTIONS
+-- UTILITY FUNCTIONS (unchanged)
 -- ============================================================================
 -- Get weight display string
 function MountUIComponents:GetWeightDisplayString(weight)
@@ -856,4 +1059,4 @@ function MountUIComponents:BuildMountList(groupKey, groupType, startOrder)
 	return entries
 end
 
-print("RMB_DEBUG: MountUIComponents.lua (Fixed) END.")
+print("RMB_DEBUG: MountUIComponents.lua (Enhanced Conditional Controls) END.")

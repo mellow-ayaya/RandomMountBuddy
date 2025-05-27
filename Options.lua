@@ -367,6 +367,14 @@ local rootOptionsTable = {
 				if addon.FavoriteSync then
 					addon.FavoriteSync:SetSetting("enableFavoriteSync", v)
 				end
+
+				-- Refresh the Family Management UI to show/hide sync warnings
+				C_Timer.After(0.1, function()
+					if addon.PopulateFamilyManagementUI then
+						print("RMB_OPTIONS: Refreshing UI after FavoriteSync toggle change")
+						addon:PopulateFamilyManagementUI()
+					end
+				end)
 			end,
 			width = "full",
 		},
@@ -481,6 +489,14 @@ local rootOptionsTable = {
 				if addon.FavoriteSync then
 					addon.FavoriteSync:SetSetting("syncFamilyWeights", v)
 				end
+
+				-- Refresh the Family Management UI to show/hide family-level sync warnings
+				C_Timer.After(0.1, function()
+					if addon.PopulateFamilyManagementUI then
+						print("RMB_OPTIONS: Refreshing UI after Family Sync toggle change")
+						addon:PopulateFamilyManagementUI()
+					end
+				end)
 			end,
 			disabled = function()
 				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
@@ -500,6 +516,14 @@ local rootOptionsTable = {
 				if addon.FavoriteSync then
 					addon.FavoriteSync:SetSetting("syncSuperGroupWeights", v)
 				end
+
+				-- Refresh the Family Management UI to show/hide supergroup-level sync warnings
+				C_Timer.After(0.1, function()
+					if addon.PopulateFamilyManagementUI then
+						print("RMB_OPTIONS: Refreshing UI after SuperGroup Sync toggle change")
+						addon:PopulateFamilyManagementUI()
+					end
+				end)
 			end,
 			disabled = function()
 				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
