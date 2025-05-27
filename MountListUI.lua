@@ -79,12 +79,35 @@ function addon:BuildFamilyManagementArgs()
 			name = "Confirm Bulk Priority Change",
 		}
 		displayOrder = displayOrder + 1
+		-- Determine context for better messaging
+		local contextMessage = ""
+		local itemScope = "items"
+		if self:IsSearchActive() and self:AreFiltersActive() then
+			contextMessage = " matching your current search and filter criteria"
+			itemScope = "matching items"
+		elseif self:IsSearchActive() then
+			contextMessage = " from your search results"
+			itemScope = "search results"
+		elseif self:AreFiltersActive() then
+			contextMessage = " matching your current filters"
+			itemScope = "filtered items"
+		else
+			contextMessage = " in your collection"
+			itemScope = "items"
+		end
+
 		pageArgs.pending_confirmation_desc = {
 			order = displayOrder,
 			type = "description",
-			name = "|cffff9900Set priority for " .. #self.pendingBulkOperation.groupKeys ..
-					" items to '" .. self.pendingBulkOperation.priorityName .. "'?\n\n" ..
-					"This will update ALL supergroups, families, and individual mounts in your collection.|r",
+			name = string.format(
+				"|cffff9900Set priority for %d %s%s to '%s'?\n\n" ..
+				"This will update all supergroups, families, and individual mounts%s.|r",
+				#self.pendingBulkOperation.groupKeys,
+				itemScope,
+				contextMessage,
+				self.pendingBulkOperation.priorityName,
+				contextMessage
+			),
 			width = "full",
 			fontSize = "medium",
 		}
@@ -152,27 +175,45 @@ function addon:BuildFamilyManagementArgs()
 		type = "select",
 		name = "",
 		desc = "Set priority for multiple items at once",
-		values = {
-			[""] = "Select Action...",
-			["page_0"] = "Set Page Items to Never (0)",
-			["page_1"] = "Set Page Items to Occasional (1)",
-			["page_2"] = "Set Page Items to Uncommon (2)",
-			["page_3"] = "Set Page Items to Normal (3)",
-			["page_4"] = "Set Page Items to Common (4)",
-			["page_5"] = "Set Page Items to Often (5)",
-			["page_6"] = "Set Page Items to Always (6)",
-			["separator1"] = "─────────────────────",
-			["all_0"] = "Set ALL Items to Never (0)",
-			["all_1"] = "Set ALL Items to Occasional (1)",
-			["all_2"] = "Set ALL Items to Uncommon (2)",
-			["all_3"] = "Set ALL Items to Normal (3)",
-			["all_4"] = "Set ALL Items to Common (4)",
-			["all_5"] = "Set ALL Items to Often (5)",
-			["all_6"] = "Set ALL Items to Always (6)",
-		},
+		values = function()
+			-- Build dynamic labels based on current state
+			local isSearchActive = self:IsSearchActive()
+			local areFiltersActive = self:AreFiltersActive()
+			-- Determine what "all items" means in current context
+			local allItemsLabel = "All Items"
+			if isSearchActive and areFiltersActive then
+				allItemsLabel = "All Search + Filter Results"
+			elseif isSearchActive then
+				allItemsLabel = "All Search Results"
+			elseif areFiltersActive then
+				allItemsLabel = "All Filtered Items"
+			end
+
+			-- Count items for user feedback
+			local pageCount = #(self:GetCurrentPageGroupKeys() or {})
+			local allCount = #(self:GetAllFilteredGroupKeys() or {})
+			return {
+				[""] = "Select Action...",
+				["page_0"] = string.format("Set Page Items (%d) to Never (0)", pageCount),
+				["page_1"] = string.format("Set Page Items (%d) to Occasional (1)", pageCount),
+				["page_2"] = string.format("Set Page Items (%d) to Uncommon (2)", pageCount),
+				["page_3"] = string.format("Set Page Items (%d) to Normal (3)", pageCount),
+				["page_4"] = string.format("Set Page Items (%d) to Common (4)", pageCount),
+				["page_5"] = string.format("Set Page Items (%d) to Often (5)", pageCount),
+				["page_6"] = string.format("Set Page Items (%d) to Always (6)", pageCount),
+				["separator1"] = "─────────────────────",
+				["all_0"] = string.format("Set %s (%d) to Never (0)", allItemsLabel, allCount),
+				["all_1"] = string.format("Set %s (%d) to Occasional (1)", allItemsLabel, allCount),
+				["all_2"] = string.format("Set %s (%d) to Uncommon (2)", allItemsLabel, allCount),
+				["all_3"] = string.format("Set %s (%d) to Normal (3)", allItemsLabel, allCount),
+				["all_4"] = string.format("Set %s (%d) to Common (4)", allItemsLabel, allCount),
+				["all_5"] = string.format("Set %s (%d) to Often (5)", allItemsLabel, allCount),
+				["all_6"] = string.format("Set %s (%d) to Always (6)", allItemsLabel, allCount),
+			}
+		end,
 		get = function() return "" end, -- Always show "Select Action..."
 		set = function(info, value)
-			if value == "" or value == "separator1" then
+			if value == "" or value:find("separator") then
 				return -- Ignore separators and empty selection
 			end
 
@@ -192,7 +233,8 @@ function addon:BuildFamilyManagementArgs()
 			if scope == "page" then
 				groupKeys = self:GetCurrentPageGroupKeys()
 			elseif scope == "all" then
-				groupKeys = self:GetAllDatabaseGroupKeys()
+				-- Now uses the filtered/search-aware method instead of truly everything
+				groupKeys = self:GetAllFilteredGroupKeys()
 			end
 
 			if #groupKeys == 0 then
@@ -200,8 +242,8 @@ function addon:BuildFamilyManagementArgs()
 				return
 			end
 
-			-- Apply bulk change with confirmation for "all" operations
-			local needsConfirmation = (scope == "all")
+			-- Apply bulk change with confirmation for large operations
+			local needsConfirmation = (#groupKeys > 50)
 			self:ApplyBulkPriorityChange(groupKeys, priority, not needsConfirmation)
 		end,
 		width = 0.82,

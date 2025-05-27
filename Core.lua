@@ -1235,7 +1235,101 @@ function addon:GetAllDatabaseGroupKeys()
 	return groupKeys
 end
 
--- Apply bulk priority change to a list of group keys
+-- NEW FUNCTION: Get all group keys that match current filters/search (across all pages)
+function addon:GetAllFilteredGroupKeys()
+	if not self.RMB_DataReadyForUI or not self.processedData then
+		return {}
+	end
+
+	local groupKeys = {}
+	-- Get the same filtered groups that the UI uses (this respects search and filters)
+	local allDisplayableGroups
+	if self:IsSearchActive() then
+		-- Search is active - get search results and apply filters to them
+		allDisplayableGroups = self:GetSearchResults()
+		if self:AreFiltersActive() then
+			allDisplayableGroups = self:GetFilteredGroups(allDisplayableGroups)
+		end
+	else
+		-- No search active - get all groups and apply filters
+		allDisplayableGroups = self:GetDisplayableGroups()
+		if self:AreFiltersActive() then
+			allDisplayableGroups = self:GetFilteredGroups(allDisplayableGroups)
+		end
+	end
+
+	if not allDisplayableGroups or #allDisplayableGroups == 0 then
+		return {}
+	end
+
+	-- Extract all group keys from ALL filtered groups (no pagination)
+	for _, groupData in ipairs(allDisplayableGroups) do
+		-- Add the main group
+		table.insert(groupKeys, {
+			key = groupData.key,
+			type = groupData.type,
+		})
+		-- If it's a supergroup, also add all families within it
+		if groupData.type == "superGroup" then
+			local familiesInSG = self:GetSuperGroupFamilies(groupData.key)
+			for _, familyName in ipairs(familiesInSG) do
+				if not self:IsFamilyStandalone(familyName) then
+					table.insert(groupKeys, {
+						key = familyName,
+						type = "familyName",
+					})
+					-- Add all mounts in this family
+					local mountIDs = self.processedData.familyToMountIDsMap and
+							self.processedData.familyToMountIDsMap[familyName] or {}
+					for _, mountID in ipairs(mountIDs) do
+						table.insert(groupKeys, {
+							key = "mount_" .. mountID,
+							type = "mountID",
+						})
+					end
+
+					-- Also add uncollected mounts if showing them
+					if self:GetSetting("showUncollectedMounts") then
+						local uncollectedIDs = self.processedData.familyToUncollectedMountIDsMap and
+								self.processedData.familyToUncollectedMountIDsMap[familyName] or {}
+						for _, mountID in ipairs(uncollectedIDs) do
+							table.insert(groupKeys, {
+								key = "mount_" .. mountID,
+								type = "mountID",
+							})
+						end
+					end
+				end
+			end
+		elseif groupData.type == "familyName" then
+			-- Add all mounts in this standalone family
+			local mountIDs = self.processedData.familyToMountIDsMap and
+					self.processedData.familyToMountIDsMap[groupData.key] or {}
+			for _, mountID in ipairs(mountIDs) do
+				table.insert(groupKeys, {
+					key = "mount_" .. mountID,
+					type = "mountID",
+				})
+			end
+
+			-- Also add uncollected mounts if showing them
+			if self:GetSetting("showUncollectedMounts") then
+				local uncollectedIDs = self.processedData.familyToUncollectedMountIDsMap and
+						self.processedData.familyToUncollectedMountIDsMap[groupData.key] or {}
+				for _, mountID in ipairs(uncollectedIDs) do
+					table.insert(groupKeys, {
+						key = "mount_" .. mountID,
+						type = "mountID",
+					})
+				end
+			end
+		end
+	end
+
+	return groupKeys
+end
+
+-- MODIFIED FUNCTION: Update the bulk priority change logic
 function addon:ApplyBulkPriorityChange(groupKeys, newPriority, skipConfirmation)
 	if not groupKeys or #groupKeys == 0 then
 		print("RMB_BULK: No groups to update")
@@ -1251,7 +1345,7 @@ function addon:ApplyBulkPriorityChange(groupKeys, newPriority, skipConfirmation)
 
 	print("RMB_BULK: ApplyBulkPriorityChange called - " ..
 		#groupKeys .. " items, priority " .. priority .. ", skipConfirmation: " .. tostring(skipConfirmation))
-	-- For large operations, store the data and show a confirmation message instead of StaticPopup
+	-- For large operations, store the data and show a confirmation message
 	if not skipConfirmation and #groupKeys > 50 then
 		local priorityNames = {
 			[0] = "Never",

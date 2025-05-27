@@ -1,3 +1,6 @@
+# 0.7.16
+Made the bulk weight controls only apply to the filtered mounts, for a more cohersive user experience.
+
 # 0.7.15
 Added element in the weight display to remind users that auto sync is on.
 
