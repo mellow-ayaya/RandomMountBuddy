@@ -1,3 +1,6 @@
+# 0.7.19
+Traits can now be edited.
+
 # 0.7.18
 Moved uncollected mounts toggles to the filter menu.
 

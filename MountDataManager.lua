@@ -171,40 +171,60 @@ function MountDataManager:GetFamilyTraits(familyName)
 	if not familyName then return {} end
 
 	-- Check cache first
-	if self.cache.familyTraits[familyName] then
-		return self.cache.familyTraits[familyName]
+	local cacheKey = familyName .. "_effective"
+	if self.cache.familyTraits[cacheKey] then
+		return self.cache.familyTraits[cacheKey]
 	end
 
-	local traits = {}
-	-- Get traits from the first mount in the family
-	local mountIDs = addon.processedData.familyToMountIDsMap and
-			addon.processedData.familyToMountIDsMap[familyName]
-	if mountIDs and #mountIDs > 0 then
-		local mountID = mountIDs[1]
-		local mountInfo = addon.processedData.allCollectedMountFamilyInfo and
-				addon.processedData.allCollectedMountFamilyInfo[mountID]
-		if mountInfo and mountInfo.traits then
-			traits = mountInfo.traits
+	-- Use effective traits from addon (includes user overrides)
+	local effectiveTraits = {}
+	if addon.GetEffectiveTraits then
+		effectiveTraits = addon:GetEffectiveTraits(familyName)
+	else
+		-- Fallback to original logic if GetEffectiveTraits not available
+		local mountIDs = addon.processedData.familyToMountIDsMap and
+				addon.processedData.familyToMountIDsMap[familyName]
+		if not mountIDs or #mountIDs == 0 then
+			mountIDs = addon.processedData.familyToUncollectedMountIDsMap and
+					addon.processedData.familyToUncollectedMountIDsMap[familyName]
 		end
-	end
 
-	-- If no collected mounts, try uncollected
-	if not traits or not next(traits) then
-		local uncollectedIDs = addon.processedData.familyToUncollectedMountIDsMap and
-				addon.processedData.familyToUncollectedMountIDsMap[familyName]
-		if uncollectedIDs and #uncollectedIDs > 0 then
-			local mountID = uncollectedIDs[1]
-			local mountInfo = addon.processedData.allUncollectedMountFamilyInfo and
-					addon.processedData.allUncollectedMountFamilyInfo[mountID]
+		if mountIDs and #mountIDs > 0 then
+			local mountID = mountIDs[1]
+			local mountInfo = addon.processedData.allCollectedMountFamilyInfo and
+					addon.processedData.allCollectedMountFamilyInfo[mountID]
+			if not mountInfo then
+				mountInfo = addon.processedData.allUncollectedMountFamilyInfo and
+						addon.processedData.allUncollectedMountFamilyInfo[mountID]
+			end
+
 			if mountInfo and mountInfo.traits then
-				traits = mountInfo.traits
+				effectiveTraits = mountInfo.traits
 			end
 		end
 	end
 
 	-- Cache and return
-	self.cache.familyTraits[familyName] = traits or {}
-	return self.cache.familyTraits[familyName]
+	self.cache.familyTraits[cacheKey] = effectiveTraits or {}
+	return self.cache.familyTraits[cacheKey]
+end
+
+-- Add method to invalidate cache when traits change
+function MountDataManager:InvalidateTraitCache(familyName)
+	if familyName then
+		local cacheKey = familyName .. "_effective"
+		self.cache.familyTraits[cacheKey] = nil
+		print("RMB_DATA_MANAGER: Invalidated trait cache for " .. familyName)
+	else
+		-- Clear all trait caches
+		for k, v in pairs(self.cache.familyTraits) do
+			if k:find("_effective$") then
+				self.cache.familyTraits[k] = nil
+			end
+		end
+
+		print("RMB_DATA_MANAGER: Invalidated all effective trait caches")
+	end
 end
 
 function MountDataManager:ShouldShowTraits(groupKey, groupType)

@@ -37,6 +37,7 @@ local dbDefaults = {
 		filterSettings = nil,
 		defaultGroupWeight = 3,
 		groupWeights = {},
+		traitOverrides = {},
 		groupEnabledStates = {},
 		familyOverrides = {},
 		fmItemsPerPage = 14,
@@ -568,31 +569,28 @@ function addon:RebuildMountGrouping()
 	print("RMB_DYNAMIC: Rebuilding groups with settings - MinorArmor:", treatMinorArmorAsDistinct,
 		"MajorArmor:", treatMajorArmorAsDistinct, "ModelVariants:", treatModelVariantsAsDistinct,
 		"UniqueEffects:", treatUniqueEffectsAsDistinct)
-	-- ENHANCED: Consider both collected AND uncollected mounts for trait analysis
+	-- UPDATED: Use effective traits instead of original traits
 	local familiesWithDistinguishingTraits = {}
-	-- Check collected mounts
+	-- Get all unique families
+	local allFamilies = {}
 	for mountID, mountInfo in pairs(self.processedData.allCollectedMountFamilyInfo) do
-		local familyName = mountInfo.familyName
-		local traits = mountInfo.traits or {}
-		if (treatMinorArmorAsDistinct and traits.hasMinorArmor) or
-				(treatMajorArmorAsDistinct and traits.hasMajorArmor) or
-				(treatModelVariantsAsDistinct and traits.hasModelVariant) or
-				(treatUniqueEffectsAsDistinct and traits.isUniqueEffect) then
-			familiesWithDistinguishingTraits[familyName] = true
+		allFamilies[mountInfo.familyName] = true
+	end
+
+	if self.processedData.allUncollectedMountFamilyInfo then
+		for mountID, mountInfo in pairs(self.processedData.allUncollectedMountFamilyInfo) do
+			allFamilies[mountInfo.familyName] = true
 		end
 	end
 
-	-- ENHANCED: Also check uncollected mounts for traits
-	if self.processedData.allUncollectedMountFamilyInfo then
-		for mountID, mountInfo in pairs(self.processedData.allUncollectedMountFamilyInfo) do
-			local familyName = mountInfo.familyName
-			local traits = mountInfo.traits or {}
-			if (treatMinorArmorAsDistinct and traits.hasMinorArmor) or
-					(treatMajorArmorAsDistinct and traits.hasMajorArmor) or
-					(treatModelVariantsAsDistinct and traits.hasModelVariant) or
-					(treatUniqueEffectsAsDistinct and traits.isUniqueEffect) then
-				familiesWithDistinguishingTraits[familyName] = true
-			end
+	-- Check each family using effective traits
+	for familyName, _ in pairs(allFamilies) do
+		local effectiveTraits = self:GetEffectiveTraits(familyName)
+		if (treatMinorArmorAsDistinct and effectiveTraits.hasMinorArmor) or
+				(treatMajorArmorAsDistinct and effectiveTraits.hasMajorArmor) or
+				(treatModelVariantsAsDistinct and effectiveTraits.hasModelVariant) or
+				(treatUniqueEffectsAsDistinct and effectiveTraits.isUniqueEffect) then
+			familiesWithDistinguishingTraits[familyName] = true
 		end
 	end
 
@@ -1719,6 +1717,214 @@ function addon:GetDisplayableGroups()
 		totalGroups ..
 		" displayable groups (" .. collectedGroups .. " with collected, " .. uncollectedOnlyGroups .. " uncollected-only)")
 	return displayableGroups
+end
+
+-- ============================================================================
+-- TRAIT OVERRIDE SYSTEM
+-- ============================================================================
+-- Get effective traits for a family (original + user overrides)
+function addon:GetEffectiveTraits(familyName)
+	if not familyName then return {} end
+
+	-- Start with original traits
+	local originalTraits = {}
+	local mountIDs = self.processedData.familyToMountIDsMap and
+			self.processedData.familyToMountIDsMap[familyName]
+	if not mountIDs or #mountIDs == 0 then
+		mountIDs = self.processedData.familyToUncollectedMountIDsMap and
+				self.processedData.familyToUncollectedMountIDsMap[familyName]
+	end
+
+	if mountIDs and #mountIDs > 0 then
+		local mountID = mountIDs[1]
+		local mountInfo = self.processedData.allCollectedMountFamilyInfo and
+				self.processedData.allCollectedMountFamilyInfo[mountID]
+		if not mountInfo then
+			mountInfo = self.processedData.allUncollectedMountFamilyInfo and
+					self.processedData.allUncollectedMountFamilyInfo[mountID]
+		end
+
+		if mountInfo and mountInfo.traits then
+			originalTraits = mountInfo.traits
+		end
+	end
+
+	-- Apply user overrides
+	local effectiveTraits = {}
+	for k, v in pairs(originalTraits) do
+		effectiveTraits[k] = v
+	end
+
+	if self.db and self.db.profile and self.db.profile.traitOverrides then
+		local overrides = self.db.profile.traitOverrides[familyName]
+		if overrides then
+			for k, v in pairs(overrides) do
+				effectiveTraits[k] = v
+			end
+		end
+	end
+
+	return effectiveTraits
+end
+
+-- Set a trait for a family
+function addon:SetFamilyTrait(familyName, traitName, value)
+	if not (familyName and traitName) then return end
+
+	if not (self.db and self.db.profile) then return end
+
+	-- Initialize traitOverrides if needed
+	if not self.db.profile.traitOverrides then
+		self.db.profile.traitOverrides = {}
+	end
+
+	-- Initialize family overrides if needed
+	if not self.db.profile.traitOverrides[familyName] then
+		self.db.profile.traitOverrides[familyName] = {}
+	end
+
+	-- Get original trait value
+	local originalTraits = self:GetOriginalTraits(familyName)
+	local originalValue = originalTraits[traitName] or false
+	-- If setting back to original value, remove override
+	if value == originalValue then
+		self.db.profile.traitOverrides[familyName][traitName] = nil
+		-- Clean up empty override table
+		local hasOverrides = false
+		for _ in pairs(self.db.profile.traitOverrides[familyName]) do
+			hasOverrides = true
+			break
+		end
+
+		if not hasOverrides then
+			self.db.profile.traitOverrides[familyName] = nil
+		end
+	else
+		-- Store the override
+		self.db.profile.traitOverrides[familyName][traitName] = value
+	end
+
+	print("RMB_TRAITS: Set " .. familyName .. "." .. traitName .. " = " .. tostring(value))
+	-- Notify modules of trait changes
+	self:NotifyModulesTraitChanged(familyName, traitName, value)
+	-- Trigger regrouping since traits affect grouping
+	self:RebuildMountGrouping()
+end
+
+-- Get original (unmodified) traits for a family
+function addon:GetOriginalTraits(familyName)
+	if not familyName then return {} end
+
+	local originalTraits = {}
+	local mountIDs = self.processedData.familyToMountIDsMap and
+			self.processedData.familyToMountIDsMap[familyName]
+	if not mountIDs or #mountIDs == 0 then
+		mountIDs = self.processedData.familyToUncollectedMountIDsMap and
+				self.processedData.familyToUncollectedMountIDsMap[familyName]
+	end
+
+	if mountIDs and #mountIDs > 0 then
+		local mountID = mountIDs[1]
+		local mountInfo = self.processedData.allCollectedMountFamilyInfo and
+				self.processedData.allCollectedMountFamilyInfo[mountID]
+		if not mountInfo then
+			mountInfo = self.processedData.allUncollectedMountFamilyInfo and
+					self.processedData.allUncollectedMountFamilyInfo[mountID]
+		end
+
+		if mountInfo and mountInfo.traits then
+			originalTraits = mountInfo.traits
+		end
+	end
+
+	return originalTraits
+end
+
+-- Check if a family has trait overrides
+function addon:HasTraitOverrides(familyName)
+	if not (self.db and self.db.profile and self.db.profile.traitOverrides) then
+		return false
+	end
+
+	local overrides = self.db.profile.traitOverrides[familyName]
+	if not overrides then return false end
+
+	for _ in pairs(overrides) do
+		return true
+	end
+
+	return false
+end
+
+-- Reset traits for a family to original values
+function addon:ResetFamilyTraits(familyName)
+	if not (self.db and self.db.profile and self.db.profile.traitOverrides) then
+		return
+	end
+
+	self.db.profile.traitOverrides[familyName] = nil
+	print("RMB_TRAITS: Reset traits for " .. familyName .. " to original values")
+	-- Notify modules
+	self:NotifyModulesTraitChanged(familyName, "all", nil)
+	-- Trigger regrouping
+	self:RebuildMountGrouping()
+end
+
+-- New notification system for trait changes
+function addon:NotifyModulesTraitChanged(familyName, traitName, value)
+	print("RMB_TRAITS: Notifying modules of trait change for " .. familyName)
+	-- Notify MountDataManager to invalidate cache
+	if self.MountDataManager and self.MountDataManager.InvalidateTraitCache then
+		self.MountDataManager:InvalidateTraitCache(familyName)
+	end
+
+	-- Notify MountSummon to rebuild pools since grouping might change
+	if self.MountSummon and self.MountSummon.RefreshMountPools then
+		-- Use a brief delay to avoid rebuilding pools multiple times during bulk trait changes
+		if self.traitChangeTimer then
+			self.traitChangeTimer:Cancel()
+		end
+
+		self.traitChangeTimer = C_Timer.NewTimer(0.5, function()
+			self.MountSummon:RefreshMountPools()
+			print("RMB_TRAITS: Refreshed mount pools after trait changes")
+		end)
+	end
+
+	-- Other modules can be notified here as needed
+	-- Example:
+	-- if self.FilterSystem and self.FilterSystem.OnTraitChanged then
+	--     self.FilterSystem:OnTraitChanged(familyName, traitName, value)
+	-- end
+end
+
+-- Utility function to get trait override statistics (for debugging/admin)
+function addon:GetTraitOverrideStats()
+	if not (self.db and self.db.profile and self.db.profile.traitOverrides) then
+		return {
+			totalFamiliesWithOverrides = 0,
+			totalOverrides = 0,
+			familiesWithOverrides = {},
+		}
+	end
+
+	local stats = {
+		totalFamiliesWithOverrides = 0,
+		totalOverrides = 0,
+		familiesWithOverrides = {},
+	}
+	for familyName, overrides in pairs(self.db.profile.traitOverrides) do
+		if overrides and next(overrides) then
+			stats.totalFamiliesWithOverrides = stats.totalFamiliesWithOverrides + 1
+			stats.familiesWithOverrides[familyName] = {}
+			for traitName, value in pairs(overrides) do
+				stats.totalOverrides = stats.totalOverrides + 1
+				stats.familiesWithOverrides[familyName][traitName] = value
+			end
+		end
+	end
+
+	return stats
 end
 
 -- ============================================================================
