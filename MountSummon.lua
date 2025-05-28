@@ -263,14 +263,28 @@ function MountSummon:GetTotalGroupsInPool(poolName)
 end
 
 -- Calculate unavailability duration for a group
-function MountSummon:CalculateUnavailabilityDuration(poolName)
+function MountSummon:CalculateUnavailabilityDuration(poolName, groupKey, groupType)
 	local totalGroups = self:GetTotalGroupsInPool(poolName)
-	local duration = math.floor(totalGroups * 0.7) - 4
-	-- Apply constraints: minimum 0, maximum 30
-	duration = math.max(0, math.min(30, duration))
-	print("RMB_DETERMINISTIC: Pool " .. poolName .. " has " .. totalGroups ..
-		" groups, calculated duration: " .. duration)
-	return duration
+	local baseDuration = math.floor(totalGroups * 0.7) - 4
+	baseDuration = math.max(2, math.min(20, baseDuration)) -- Cap at 20, min 2
+	-- Don't apply to small pools (same logic as before)
+	if baseDuration <= 0 then
+		print("RMB_DETERMINISTIC: Pool " .. poolName .. " has " .. totalGroups ..
+			" groups, too small for deterministic summoning")
+		return 0
+	end
+
+	-- Get the group's weight to adjust ban duration
+	local groupWeight = addon:GetGroupWeight(groupKey)
+	-- Linear scaling: reduce ban by 20% per weight level above 1
+	local reduction = (groupWeight - 1) * 0.2
+	local adjustedDuration = math.floor(baseDuration * (1 - reduction))
+	-- Always at least 1 summon ban
+	adjustedDuration = math.max(1, adjustedDuration)
+	print("RMB_DETERMINISTIC: Pool " .. poolName .. " (" .. totalGroups .. " groups) - " ..
+		"Base: " .. baseDuration .. ", Weight " .. groupWeight .. " group '" .. groupKey ..
+		"' banned for " .. adjustedDuration .. " summons")
+	return adjustedDuration
 end
 
 -- Filter pool to remove unavailable groups
@@ -323,7 +337,7 @@ function MountSummon:MarkGroupUnavailable(poolName, groupKey, groupType)
 		return
 	end
 
-	local duration = self:CalculateUnavailabilityDuration(poolName)
+	local duration = self:CalculateUnavailabilityDuration(poolName, groupKey, groupType) -- Added parameters
 	if duration <= 0 then
 		print("RMB_DETERMINISTIC: Duration is 0, not marking group unavailable")
 		return

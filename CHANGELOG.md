@@ -1,3 +1,6 @@
+# 0.7.20
+Reworked logic for deterministic summoning mode in order to prevent the same mounts from being selected to often while still preserving the weights' importance.
+
 # 0.7.19
 Traits can now be edited.
 
