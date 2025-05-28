@@ -380,7 +380,14 @@ function addon:BuildFamilyManagementArgs()
 	end
 
 	local totalPages = math.max(1, math.ceil(totalGroups / itemsPerPage))
-	local currentPage = math.max(1, math.min(self.fmCurrentPage or 1, totalPages))
+	local currentPage = self.uiState and self.uiState.currentPage or self.fmCurrentPage or 1
+	currentPage = math.max(1, math.min(currentPage, totalPages))
+	-- Update current page in memory state
+	if self.uiState then
+		self.uiState.currentPage = currentPage
+	end
+
+	self.fmCurrentPage = currentPage -- Keep legacy for compatibility
 	if usingSearchResults then
 		currentPage = 1
 		self.fmCurrentPage = 1
@@ -867,35 +874,36 @@ end
 -- EXPANSION STATE MANAGEMENT
 -- ============================================================================
 function addon:ToggleExpansionState(groupKey)
-	if not (self.db and self.db.profile and self.db.profile.expansionStates) then
-		print("RMB_UI: ExpStates DB ERR")
+	if not self.uiState then
+		print("RMB_UI: UI state not initialized")
 		return
 	end
 
-	self.db.profile.expansionStates[groupKey] = not self.db.profile.expansionStates[groupKey]
+	-- Store expansion state in memory only (not saved to database)
+	self.uiState.expansionStates[groupKey] = not self.uiState.expansionStates[groupKey]
 	print("RMB_UI: Toggled expansion for '" .. tostring(groupKey) .. "' to " ..
-		tostring(self.db.profile.expansionStates[groupKey]))
+		tostring(self.uiState.expansionStates[groupKey]))
 	self:TriggerFamilyManagementUIRefresh()
 end
 
 function addon:IsGroupExpanded(groupKey)
-	if not (self.db and self.db.profile and self.db.profile.expansionStates) then
+	if not self.uiState then
 		return false
 	end
 
-	return self.db.profile.expansionStates[groupKey] == true
+	return self.uiState.expansionStates[groupKey] == true
 end
 
 function addon:CollapseAllExpanded()
 	print("RMB_UI: Collapsing all expanded groups")
-	if not (self.db and self.db.profile and self.db.profile.expansionStates) then
+	if not self.uiState then
 		return false
 	end
 
 	local changed = false
-	for groupKey, state in pairs(self.db.profile.expansionStates) do
+	for groupKey, state in pairs(self.uiState.expansionStates) do
 		if state == true then
-			self.db.profile.expansionStates[groupKey] = false
+			self.uiState.expansionStates[groupKey] = false
 			changed = true
 		end
 	end
@@ -938,7 +946,12 @@ function addon:FMG_GoToPage(pageNumber)
 	if targetPage and targetPage >= 1 and targetPage <= totalPages then
 		-- Collapse any expanded groups when changing pages
 		self:CollapseAllExpanded()
-		self.fmCurrentPage = targetPage
+		-- Store current page in memory only
+		if self.uiState then
+			self.uiState.currentPage = targetPage
+		end
+
+		self.fmCurrentPage = targetPage -- Keep legacy for compatibility
 		self:PopulateFamilyManagementUI()
 		print("RMB_NAV: Jumped to page " .. targetPage)
 	else
@@ -953,29 +966,42 @@ function addon:FMG_NextPage()
 	if not allGroups then return end
 
 	local totalPages = math.max(1, math.ceil(#allGroups / self:FMG_GetItemsPerPage()))
-	if self.fmCurrentPage < totalPages then
+	local currentPage = self.uiState and self.uiState.currentPage or self.fmCurrentPage or 1
+	if currentPage < totalPages then
 		self:CollapseAllExpanded()
-		self.fmCurrentPage = self.fmCurrentPage + 1
+		local newPage = currentPage + 1
+		if self.uiState then
+			self.uiState.currentPage = newPage
+		end
+
+		self.fmCurrentPage = newPage -- Keep legacy for compatibility
 		self:PopulateFamilyManagementUI()
-		print("RMB_NAV: Next page -> " .. self.fmCurrentPage)
+		print("RMB_NAV: Next page -> " .. newPage)
 	end
 end
 
 function addon:FMG_PrevPage()
 	if not self.RMB_DataReadyForUI then return end
 
-	if self.fmCurrentPage > 1 then
+	local currentPage = self.uiState and self.uiState.currentPage or self.fmCurrentPage or 1
+	if currentPage > 1 then
 		self:CollapseAllExpanded()
-		self.fmCurrentPage = self.fmCurrentPage - 1
+		local newPage = currentPage - 1
+		if self.uiState then
+			self.uiState.currentPage = newPage
+		end
+
+		self.fmCurrentPage = newPage -- Keep legacy for compatibility
 		self:PopulateFamilyManagementUI()
-		print("RMB_NAV: Previous page -> " .. self.fmCurrentPage)
+		print("RMB_NAV: Previous page -> " .. newPage)
 	end
 end
 
 function addon:FMG_GoToFirstPage()
 	if not self.RMB_DataReadyForUI then return end
 
-	if self.fmCurrentPage ~= 1 then
+	local currentPage = self.uiState and self.uiState.currentPage or self.fmCurrentPage or 1
+	if currentPage ~= 1 then
 		self:CollapseAllExpanded()
 		self:FMG_GoToPage(1)
 	end
@@ -988,7 +1014,8 @@ function addon:FMG_GoToLastPage()
 	if not allGroups then return end
 
 	local totalPages = math.max(1, math.ceil(#allGroups / self:FMG_GetItemsPerPage()))
-	if self.fmCurrentPage ~= totalPages then
+	local currentPage = self.uiState and self.uiState.currentPage or self.fmCurrentPage or 1
+	if currentPage ~= totalPages then
 		self:CollapseAllExpanded()
 		self:FMG_GoToPage(totalPages)
 	end

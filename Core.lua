@@ -34,9 +34,7 @@ local dbDefaults = {
 		-- Mount list options
 		showUncollectedMounts = true,
 		showAllUncollectedGroups = false,
-		filtersExpanded = false,
 		filterSettings = nil,
-		expansionStates = {},
 		defaultGroupWeight = 3,
 		groupWeights = {},
 		groupEnabledStates = {},
@@ -99,6 +97,22 @@ BINDING_NAME_CLICK_RMBSmartButton_LeftButton = "Smart Mount/Travel Form"
 RMB = RandomMountBuddy
 function RMB:SRM(useContext)
 	return self:SummonRandomMount(useContext)
+end
+
+function addon:InitializeUIState()
+	print("RMB_UI_STATE: Initializing fresh UI state...")
+	-- Initialize memory-only UI state (resets on every reload)
+	self.uiState = {
+		-- Filter panel expansion state (should not persist)
+		filtersExpanded = false,
+
+		-- Group expansion states (should not persist)
+		expansionStates = {},
+
+		-- Current page (could persist but better UX to reset)
+		currentPage = 1,
+	}
+	print("RMB_UI_STATE: Fresh UI state initialized")
 end
 
 -- ============================================================================
@@ -297,6 +311,7 @@ end
 -- ============================================================================
 function addon:OnInitialize()
 	print("RMB_DEBUG: OnInitialize CALLED.")
+	self:InitializeUIState()
 	-- Load preload data
 	if RandomMountBuddy_PreloadData then
 		self.MountToModelPath = RandomMountBuddy_PreloadData.MountToModelPath or {}
@@ -343,6 +358,7 @@ function addon:OnInitialize()
 	if LibAceDB then
 		self.db = LibAceDB:New("RandomMountBuddy_SavedVars", dbDefaults, true)
 		print("RMB_DEBUG: AceDB:New done.")
+		self:CleanupLegacyUIState()
 		if self.db and self.db.profile then
 			print("RMB_DEBUG: Initial 'overrideBlizzardButton': " .. tostring(self.db.profile.overrideBlizzardButton))
 			if self.db.profile.fmItemsPerPage then
@@ -828,22 +844,21 @@ end
 -- ============================================================================
 -- SETTINGS MANAGEMENT
 -- ============================================================================
-function addon:GetSetting(key)
-	if not (self.db and self.db.profile) then
-		return dbDefaults.profile[key]
-	end
-
-	local v = self.db.profile[key]
-	if v == nil and dbDefaults.profile[key] ~= nil then
-		return dbDefaults.profile[key]
-	end
-
-	return v
-end
-
 function addon:SetSetting(key, value)
 	if not (self.db and self.db.profile) then return end
 
+	-- Handle UI state that should be memory-only
+	if key == "filtersExpanded" then
+		-- Store in memory instead of database
+		if self.uiState then
+			self.uiState.filtersExpanded = value
+		end
+
+		print("RMB_SETTING: UI State - filtersExpanded:", value)
+		return
+	end
+
+	-- Handle normal persistent settings
 	self.db.profile[key] = value
 	print("RMB_SETTING: K:'" .. key .. "',V:'" .. tostring(value) .. "'")
 	-- Notify all modules of setting changes
@@ -859,6 +874,25 @@ function addon:SetSetting(key, value)
 			self:PopulateFamilyManagementUI()
 		end
 	end
+end
+
+function addon:GetSetting(key)
+	-- Handle UI state keys
+	if key == "filtersExpanded" then
+		return self.uiState and self.uiState.filtersExpanded or false
+	end
+
+	-- Handle normal persistent settings
+	if not (self.db and self.db.profile) then
+		return dbDefaults.profile[key]
+	end
+
+	local v = self.db.profile[key]
+	if v == nil and dbDefaults.profile[key] ~= nil then
+		return dbDefaults.profile[key]
+	end
+
+	return v
 end
 
 function addon:NotifyModulesSettingChanged(key, value)
@@ -1772,6 +1806,25 @@ function addon:NotifyModulesDataReady()
 	if self.MountSummon and self.MountSummon.OnMountCollectionChanged then
 		self.MountSummon:OnMountCollectionChanged()
 	end
+end
+
+function addon:CleanupLegacyUIState()
+	if not (self.db and self.db.profile) then
+		return
+	end
+
+	-- Remove legacy UI state from saved variables
+	if self.db.profile.filtersExpanded ~= nil then
+		print("RMB_CLEANUP: Removing legacy filtersExpanded from saved variables")
+		self.db.profile.filtersExpanded = nil
+	end
+
+	if self.db.profile.expansionStates ~= nil then
+		print("RMB_CLEANUP: Removing legacy expansionStates from saved variables")
+		self.db.profile.expansionStates = nil
+	end
+
+	print("RMB_CLEANUP: Legacy UI state cleanup completed")
 end
 
 -- ============================================================================

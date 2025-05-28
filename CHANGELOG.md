@@ -1,3 +1,6 @@
+# 0.7.17
+Adjusted the expanded menus save state to behave as expected (reset between sessions).
+
 # 0.7.16
 Made the bulk weight controls only apply to the filtered mounts, for a more cohersive user experience.
 
