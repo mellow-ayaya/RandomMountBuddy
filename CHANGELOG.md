@@ -1,3 +1,6 @@
+# 0.7.18
+Moved uncollected mounts toggles to the filter menu.
+
 # 0.7.17
 Adjusted the expanded menus save state to behave as expected (reset between sessions).
 

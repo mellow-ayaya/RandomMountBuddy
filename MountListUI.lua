@@ -585,6 +585,50 @@ function addon:BuildFilterPanelArgs()
 		end
 	end
 
+	-- Display Options Section
+	filterArgs.display_header = {
+		order = order,
+		type = "header",
+		name = "Display Options",
+	}
+	order = order + 1
+	filterArgs.showUncollectedMounts = {
+		order = order,
+		type = "toggle",
+		name = "Show Uncollected Mounts",
+		desc =
+		"If checked, uncollected mounts will be shown in the interface. When disabled, also hides single-mount families that contain only an uncollected mount.",
+		get = function() return self:GetSetting("showUncollectedMounts") end,
+		set = function(info, value)
+			self:SetSetting("showUncollectedMounts", value)
+			-- Trigger immediate UI refresh to show/hide uncollected items
+			if self.PopulateFamilyManagementUI then
+				self:PopulateFamilyManagementUI()
+			end
+		end,
+		width = "full",
+	}
+	order = order + 1
+	filterArgs.showAllUncollectedGroups = {
+		order = order,
+		type = "toggle",
+		name = "Show Families with Only Uncollected Mounts",
+		desc =
+		"If checked, families and supergroups that contain only uncollected mounts will be shown in the interface. Only available when 'Show Uncollected Mounts' is enabled.",
+		get = function() return self:GetSetting("showAllUncollectedGroups") end,
+		set = function(info, value)
+			self:SetSetting("showAllUncollectedGroups", value)
+			-- Trigger immediate UI refresh to show/hide uncollected groups
+			if self.PopulateFamilyManagementUI then
+				self:PopulateFamilyManagementUI()
+			end
+		end,
+		disabled = function()
+			return not self:GetSetting("showUncollectedMounts")
+		end,
+		width = "full",
+	}
+	order = order + 1
 	return filterArgs
 end
 

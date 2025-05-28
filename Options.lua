@@ -117,33 +117,6 @@ local rootOptionsTable = {
 			end,
 		},
 
-		showUncollectedMounts = {
-			order = 6,
-			type = "toggle",
-			name = "Show Uncollected Mounts",
-			desc =
-			"If checked, uncollected mounts will be shown in the interface. When disabled, also hides single-mount families that contain only an uncollected mount.",
-			get = function() return addon:GetSetting("showUncollectedMounts") end,
-			set = function(i, v)
-				addon:SetSetting("showUncollectedMounts", v)
-			end,
-		},
-
-		showAllUncollectedGroups = {
-			order = 6.5,
-			type = "toggle",
-			name = "Show Families with Only Uncollected Mounts",
-			desc =
-			"If checked, families and supergroups that contain only uncollected mounts will be shown in the interface. Only available when 'Show Uncollected Mounts' is enabled.",
-			get = function() return addon:GetSetting("showAllUncollectedGroups") end,
-			set = function(i, v)
-				addon:SetSetting("showAllUncollectedGroups", v)
-			end,
-			disabled = function()
-				return not addon:GetSetting("showUncollectedMounts")
-			end,
-		},
-
 		useTravelFormWhileMoving = {
 			order = 7,
 			type = "toggle",
