@@ -444,7 +444,7 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 	local allSGs = self:GetAllSuperGroups()
 	for _, sgInfo in ipairs(allSGs) do
 		local keyBase = "sg_" .. sgInfo.name:gsub("[^%w]", "_")
-		-- Supergroup name display
+		-- Supergroup name display with original name info
 		args[keyBase .. "_name"] = {
 			order = order,
 			type = "description",
@@ -453,11 +453,20 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 						sgInfo.isDeleted and "|cffff0000[Deleted]|r" or
 						sgInfo.isRenamed and "|cffffff00[Renamed]|r" or
 						"|cffa335ee[G]|r"
-				return indicator .. " " .. sgInfo.displayName
+				local displayText = indicator .. " " .. sgInfo.displayName
+				-- Show original name if it's been renamed
+				if sgInfo.isRenamed and not sgInfo.isCustom then
+					local originalName = self:GetOriginalSuperGroupName(sgInfo.name)
+					if originalName ~= sgInfo.displayName then
+						displayText = displayText .. " |cff888888(was: " .. originalName .. ")|r"
+					end
+				end
+
+				return displayText
 			end,
-			width = 1.2,
+			width = sgInfo.isRenamed and not sgInfo.isCustom and 1.8 or 1.2, -- Wider if showing original name
 		}
-		-- Rename and Delete buttons (same as before, but with proper refresh calls)
+		-- Rename input and buttons
 		if not sgInfo.isDeleted then
 			args[keyBase .. "_rename"] = {
 				order = order + 0.1,
@@ -474,8 +483,26 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 						end
 					end
 				end,
-				width = 0.8,
+				width = 0.6,
 			}
+			-- Restore original name button (only for renamed original supergroups)
+			if sgInfo.isRenamed and not sgInfo.isCustom then
+				args[keyBase .. "_restore_name"] = {
+					order = order + 0.15,
+					type = "execute",
+					name = "Restore Name",
+					desc = "Restore original supergroup name",
+					func = function()
+						local success, message = self:RestoreOriginalName(sgInfo.name)
+						print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
+						if success then
+							self:PopulateSuperGroupManagementUI()
+						end
+					end,
+					width = 0.6,
+				}
+			end
+
 			args[keyBase .. "_delete"] = {
 				order = order + 0.3,
 				type = "execute",
@@ -487,11 +514,12 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 				width = 0.4,
 			}
 		else
+			-- Restore deleted supergroup button
 			args[keyBase .. "_restore"] = {
 				order = order + 0.3,
 				type = "execute",
 				name = "Restore",
-				desc = "Restore this deleted supergroup",
+				desc = "Restore this deleted supergroup to original state",
 				func = function()
 					local success, message = self:RestoreSuperGroup(sgInfo.name)
 					print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
@@ -819,25 +847,86 @@ function SuperGroupManager:RenameSuperGroup(sgName, newDisplayName)
 		return false, "Display name cannot be empty"
 	end
 
+	-- Get the original name for comparison
+	local originalName = self:GetOriginalSuperGroupName(sgName)
+	local trimmedNewName = newDisplayName:trim()
 	-- Initialize database structures if needed
 	if not addon.db.profile.superGroupDefinitions then
 		addon.db.profile.superGroupDefinitions = {}
 	end
 
-	-- Update or create definition
-	if not addon.db.profile.superGroupDefinitions[sgName] then
-		addon.db.profile.superGroupDefinitions[sgName] = {}
+	-- Check if we're renaming back to the original name
+	if trimmedNewName == originalName then
+		-- Renaming back to original - remove any custom definition
+		if addon.db.profile.superGroupDefinitions[sgName] then
+			-- If it's a custom supergroup, keep the definition but clear rename flag
+			if addon.db.profile.superGroupDefinitions[sgName].isCustom then
+				addon.db.profile.superGroupDefinitions[sgName].displayName = originalName
+				addon.db.profile.superGroupDefinitions[sgName].isRenamed = false
+			else
+				-- For original supergroups, remove the definition entirely
+				addon.db.profile.superGroupDefinitions[sgName] = nil
+			end
+		end
+
+		print("RMB_SUPERGROUP: Restored original name for supergroup: " .. sgName)
+	else
+		-- Renaming to a different name - update or create definition
+		if not addon.db.profile.superGroupDefinitions[sgName] then
+			addon.db.profile.superGroupDefinitions[sgName] = {}
+		end
+
+		addon.db.profile.superGroupDefinitions[sgName].displayName = trimmedNewName
+		addon.db.profile.superGroupDefinitions[sgName].isRenamed = true
+		print("RMB_SUPERGROUP: Renamed supergroup: " .. sgName .. " to " .. trimmedNewName)
 	end
 
-	addon.db.profile.superGroupDefinitions[sgName].displayName = newDisplayName
-	addon.db.profile.superGroupDefinitions[sgName].isRenamed = true
-	print("RMB_SUPERGROUP: Renamed supergroup: " .. sgName .. " to " .. newDisplayName)
 	-- Trigger UI refresh
 	if addon.MountDataManager and addon.MountDataManager.InvalidateCache then
 		addon.MountDataManager:InvalidateCache("supergroup_renamed")
 	end
 
 	return true, "Supergroup renamed successfully"
+end
+
+-- Add new helper function to get original supergroup name
+function SuperGroupManager:GetOriginalSuperGroupName(sgName)
+	-- For original supergroups, the original name is the sgName itself
+	if addon.processedData and addon.processedData.superGroupMap and
+			addon.processedData.superGroupMap[sgName] then
+		return sgName
+	end
+
+	-- For custom supergroups, there is no "original" name, return the current name
+	return sgName
+end
+
+-- Add function to restore original name
+function SuperGroupManager:RestoreOriginalName(sgName)
+	if not sgName then
+		return false, "Invalid supergroup name"
+	end
+
+	-- Get the original name
+	local originalName = self:GetOriginalSuperGroupName(sgName)
+	-- Check if this is actually a renamed original supergroup
+	if not (addon.processedData and addon.processedData.superGroupMap and
+				addon.processedData.superGroupMap[sgName]) then
+		return false, "Cannot restore name - this is not an original supergroup"
+	end
+
+	-- Remove any custom definition (this restores the original name)
+	if addon.db and addon.db.profile and addon.db.profile.superGroupDefinitions then
+		addon.db.profile.superGroupDefinitions[sgName] = nil
+	end
+
+	print("RMB_SUPERGROUP: Restored original name for: " .. sgName)
+	-- Trigger UI refresh
+	if addon.MountDataManager and addon.MountDataManager.InvalidateCache then
+		addon.MountDataManager:InvalidateCache("supergroup_name_restored")
+	end
+
+	return true, "Original name restored"
 end
 
 -- Delete supergroup
@@ -902,10 +991,19 @@ function SuperGroupManager:RestoreSuperGroup(sgName)
 
 	-- Remove from deleted list
 	addon.db.profile.deletedSuperGroups[sgName] = nil
+	-- Clean up any rename flags - restoration should return to original state
+	if addon.db.profile.superGroupDefinitions and
+			addon.db.profile.superGroupDefinitions[sgName] and
+			not addon.db.profile.superGroupDefinitions[sgName].isCustom then
+		-- For original supergroups, remove the definition entirely to restore original name
+		addon.db.profile.superGroupDefinitions[sgName] = nil
+		print("RMB_SUPERGROUP: Cleaned up rename data during restoration of: " .. sgName)
+	end
+
 	print("RMB_SUPERGROUP: Restored supergroup: " .. sgName)
 	-- Trigger rebuild
 	addon:RebuildMountGrouping()
-	return true, "Supergroup restored successfully"
+	return true, "Supergroup restored to original state"
 end
 
 -- Merge supergroups

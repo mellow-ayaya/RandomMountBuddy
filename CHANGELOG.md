@@ -1,3 +1,6 @@
+# 0.7.22
+Added option to restore original Supergroup name.
+
 # 0.7.21
 Initial implementation of Supergroup and Family management menus.
 Implemented import/export.

@@ -2100,7 +2100,25 @@ function addon:IsSuperGroupRenamed(superGroupName)
 	end
 
 	local customDef = self.db.profile.superGroupDefinitions[superGroupName]
-	return customDef and customDef.isRenamed == true
+	if not customDef then
+		return false
+	end
+
+	-- Only consider it renamed if:
+	-- 1. The isRenamed flag is true, AND
+	-- 2. The display name is actually different from the original name
+	if customDef.isRenamed then
+		-- For original supergroups, the original name is the superGroupName itself
+		if self.processedData and self.processedData.superGroupMap and
+				self.processedData.superGroupMap[superGroupName] then
+			return customDef.displayName ~= superGroupName
+		end
+
+		-- For custom supergroups, isRenamed should always be false anyway
+		return customDef.isCustom ~= true
+	end
+
+	return false
 end
 
 -- Check if supergroup is deleted
