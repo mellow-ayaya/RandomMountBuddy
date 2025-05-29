@@ -1,3 +1,7 @@
+# 0.7.21
+Initial implementation of Supergroup and Family management menus.
+Implemented import/export.
+
 # 0.7.20
 Reworked logic for deterministic summoning mode in order to prevent the same mounts from being selected to often while still preserving the weights' importance.
 

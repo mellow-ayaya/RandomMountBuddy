@@ -319,6 +319,29 @@ function MountDataManager:GetGroupDisplayName(groupInfo)
 		displayName = groupInfo.displayName or groupInfo.key
 	end
 
+	-- Apply custom supergroup display names
+	if groupInfo.type == "superGroup" and addon.db and addon.db.profile and
+			addon.db.profile.superGroupDefinitions then
+		local customDef = addon.db.profile.superGroupDefinitions[groupInfo.key]
+		if customDef and customDef.displayName then
+			-- Replace the base name with custom display name, but keep formatting
+			local baseName = groupInfo.displayName
+			local customName = customDef.displayName
+			-- Update displayName by replacing the original name with custom name
+			if groupInfo.type == "superGroup" then
+				if collectedCount > 0 and uncollectedCount > 0 then
+					displayName = superGroupIndicator .. " " .. customName .. " (" .. collectedCount ..
+							" + |cff9d9d9d" .. uncollectedCount .. "|r)"
+				elseif collectedCount > 0 then
+					displayName = superGroupIndicator .. " " .. customName .. " (" .. collectedCount .. ")"
+				else
+					displayName = "|cff9d9d9d" ..
+							superGroupIndicator .. " " .. customName .. " (" .. uncollectedCount .. ")|r"
+				end
+			end
+		end
+	end
+
 	self.cache.displayNames[cacheKey] = displayName
 	return displayName
 end

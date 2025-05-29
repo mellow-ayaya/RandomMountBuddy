@@ -852,4 +852,405 @@ else
 	print("RMB_OPTIONS_ERROR: FAILED Group Weights AddToBliz.")
 end
 
+--[[-----------------------------------------------------------------------------
+    5. Supergroup Management Pages
+-------------------------------------------------------------------------------]]
+
+-- Page 1: Supergroup Management
+local superGroupMgmt_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_SuperGroupMgmt"
+local superGroupMgmt_DisplayName = "Supergroup Management"
+-- Create initial args table (same pattern as Family & Groups)
+local initialSuperGroupMgmtArgs = {
+	header_mgmt = {
+		order = 1,
+		type = "header",
+		name = "Create, Rename, Delete & Merge Supergroups",
+	},
+
+	desc_mgmt = {
+		order = 2,
+		type = "description",
+		name =
+		"Manage your supergroup structure. Create custom supergroups, rename existing ones, or merge similar groups together.",
+		fontSize = "medium",
+	},
+
+	loading_placeholder = {
+		order = 3,
+		type = "description",
+		name = "Loading supergroup data...",
+	},
+}
+-- Set reference on addon object (same pattern as fmArgsRef)
+addon.sgMgmtArgsRef = initialSuperGroupMgmtArgs
+local superGroupMgmtOptionsTable = {
+	name = superGroupMgmt_DisplayName,
+	handler = addon,
+	type = "group",
+	order = 5,
+	args = initialSuperGroupMgmtArgs, -- Direct reference
+}
+LibAceConfig:RegisterOptionsTable(superGroupMgmt_InternalName, superGroupMgmtOptionsTable)
+local mgmtPanel, mgmtCatID = LibAceConfigDialog:AddToBlizOptions(
+	superGroupMgmt_InternalName,
+	superGroupMgmt_DisplayName,
+	actualParentCategoryKey
+)
+if mgmtPanel then
+	addon.optionsPanel_SuperGroupMgmt = {
+		frame = mgmtPanel,
+		id = mgmtCatID or mgmtPanel.name,
+	}
+	print("RMB_OPTIONS: Registered '" .. superGroupMgmt_DisplayName .. "' page.")
+else
+	print("RMB_OPTIONS_ERROR: FAILED Supergroup Management AddToBliz.")
+end
+
+-- Page 2: Family Assignment
+local familyAssign_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_FamilyAssign"
+local familyAssign_DisplayName = "Family Assignment"
+-- Create initial args table
+local initialFamilyAssignArgs = {
+	header_assign = {
+		order = 1,
+		type = "header",
+		name = "Assign Families to Supergroups",
+	},
+
+	desc_assign = {
+		order = 2,
+		type = "description",
+		name =
+		"Move families between supergroups or make them standalone. Use search and bulk operations to manage large collections efficiently.",
+		fontSize = "medium",
+	},
+
+	loading_placeholder = {
+		order = 3,
+		type = "description",
+		name = "Loading family assignment data...",
+	},
+}
+-- Set reference on addon object
+addon.sgFamilyArgsRef = initialFamilyAssignArgs
+local familyAssignOptionsTable = {
+	name = familyAssign_DisplayName,
+	handler = addon,
+	type = "group",
+	order = 6,
+	args = initialFamilyAssignArgs, -- Direct reference
+}
+LibAceConfig:RegisterOptionsTable(familyAssign_InternalName, familyAssignOptionsTable)
+local assignPanel, assignCatID = LibAceConfigDialog:AddToBlizOptions(
+	familyAssign_InternalName,
+	familyAssign_DisplayName,
+	actualParentCategoryKey
+)
+if assignPanel then
+	addon.optionsPanel_FamilyAssign = {
+		frame = assignPanel,
+		id = assignCatID or assignPanel.name,
+	}
+	print("RMB_OPTIONS: Registered '" .. familyAssign_DisplayName .. "' page.")
+else
+	print("RMB_OPTIONS_ERROR: FAILED Family Assignment AddToBliz.")
+end
+
+-- Page 3: Import/Export
+local importExport_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_ImportExport"
+local importExport_DisplayName = "Import/Export"
+local importExportOptionsTable = {
+	name = importExport_DisplayName,
+	handler = addon,
+	type = "group",
+	order = 7,
+	args = {
+		header_ie = {
+			order = 1,
+			type = "header",
+			name = "Import/Export & Reset Configuration",
+		},
+
+		desc_ie = {
+			order = 2,
+			type = "description",
+			name = "Share your supergroup configurations with others or reset to default settings.",
+			fontSize = "medium",
+		},
+
+		-- Export Section
+		export_header = {
+			order = 10,
+			type = "header",
+			name = "Export Configuration",
+		},
+
+		export_preview = {
+			order = 11,
+			type = "description",
+			name = function()
+				if not addon.SuperGroupManager then
+					return "SuperGroup Manager not initialized"
+				end
+
+				local stats = {
+					overrides = 0,
+					definitions = 0,
+					deletions = 0,
+				}
+				if addon.db and addon.db.profile then
+					if addon.db.profile.superGroupOverrides then
+						stats.overrides = addon:CountTableEntries(addon.db.profile.superGroupOverrides)
+					end
+
+					if addon.db.profile.superGroupDefinitions then
+						stats.definitions = addon:CountTableEntries(addon.db.profile.superGroupDefinitions)
+					end
+
+					if addon.db.profile.deletedSuperGroups then
+						for _, isDeleted in pairs(addon.db.profile.deletedSuperGroups) do
+							if isDeleted then
+								stats.deletions = stats.deletions + 1
+							end
+						end
+					end
+				end
+
+				return string.format(
+					"Configuration Preview:\n• Family Assignments: %d\n• Custom/Renamed Supergroups: %d\n• Deleted Supergroups: %d",
+					stats.overrides, stats.definitions, stats.deletions)
+			end,
+			width = "full",
+		},
+
+		export_button = {
+			order = 12,
+			type = "execute",
+			name = "Export to Clipboard",
+			desc = "Copy configuration to clipboard",
+			func = function()
+				if addon.SuperGroupManager then
+					local config = addon.SuperGroupManager:ExportConfiguration()
+					-- TODO: Actually copy to clipboard (requires additional library)
+					print("RMB: Configuration exported (clipboard functionality requires additional implementation)")
+					print("Config length: " .. #config .. " characters")
+				end
+			end,
+			width = 1.0,
+		},
+
+		-- Import Section
+		import_header = {
+			order = 20,
+			type = "header",
+			name = "Import Configuration",
+		},
+
+		import_input = {
+			order = 21,
+			type = "input",
+			name = "Configuration String",
+			desc = "Paste exported configuration here",
+			multiline = true,
+			width = "full",
+			get = function() return addon.SuperGroupManager and addon.SuperGroupManager.pendingImportString or "" end,
+			set = function(info, value)
+				if addon.SuperGroupManager then
+					addon.SuperGroupManager.pendingImportString = value
+				end
+			end,
+		},
+
+		import_mode = {
+			order = 22,
+			type = "select",
+			name = "Import Mode",
+			desc = "How to handle existing configuration",
+			values = {
+				["replace"] = "Replace All - Clear existing configuration first",
+				["merge"] = "Merge - Keep existing, add new",
+			},
+			get = function() return addon.SuperGroupManager and addon.SuperGroupManager.pendingImportMode or "replace" end,
+			set = function(info, value)
+				if addon.SuperGroupManager then
+					addon.SuperGroupManager.pendingImportMode = value
+				end
+			end,
+			width = 1.5,
+		},
+
+		import_button = {
+			order = 23,
+			type = "execute",
+			name = "Import Configuration",
+			desc = "Apply the imported configuration",
+			func = function()
+				if addon.SuperGroupManager then
+					local configString = addon.SuperGroupManager.pendingImportString or ""
+					local importMode = addon.SuperGroupManager.pendingImportMode or "replace"
+					local success, message = addon.SuperGroupManager:ImportConfiguration(configString, importMode)
+					if success then
+						addon.SuperGroupManager.pendingImportString = ""
+						print("RMB: " .. message)
+					else
+						print("RMB Error: " .. message)
+					end
+				end
+			end,
+			width = 1.0,
+		},
+
+		-- Reset Section
+		reset_header = {
+			order = 30,
+			type = "header",
+			name = "Reset to Defaults",
+		},
+
+		reset_warning = {
+			order = 31,
+			type = "description",
+			name = "|cffff9900Warning: Reset operations cannot be undone. Consider exporting your configuration first.|r",
+			width = "full",
+		},
+
+		reset_all = {
+			order = 32,
+			type = "execute",
+			name = "Reset Everything",
+			desc = "Clear all supergroup customizations and return to default configuration",
+			func = function()
+				StaticPopup_Show("RMB_RESET_ALL_CONFIRM")
+			end,
+			width = 1.0,
+		},
+
+		reset_assignments = {
+			order = 33,
+			type = "execute",
+			name = "Reset Family Assignments Only",
+			desc = "Clear family assignments but keep custom supergroups",
+			func = function()
+				StaticPopup_Show("RMB_RESET_ASSIGNMENTS_CONFIRM")
+			end,
+			width = 1.5,
+		},
+
+		reset_custom = {
+			order = 34,
+			type = "execute",
+			name = "Reset Custom Supergroups Only",
+			desc = "Remove custom supergroups but keep family assignments",
+			func = function()
+				StaticPopup_Show("RMB_RESET_CUSTOM_CONFIRM")
+			end,
+			width = 1.5,
+		},
+	},
+}
+LibAceConfig:RegisterOptionsTable(importExport_InternalName, importExportOptionsTable)
+local iePanel, ieCatID = LibAceConfigDialog:AddToBlizOptions(
+	importExport_InternalName,
+	importExport_DisplayName,
+	actualParentCategoryKey
+)
+if iePanel then
+	addon.optionsPanel_ImportExport = {
+		frame = iePanel,
+		id = ieCatID or iePanel.name,
+	}
+	print("RMB_OPTIONS: Registered '" .. importExport_DisplayName .. "' page.")
+else
+	print("RMB_OPTIONS_ERROR: FAILED Import/Export AddToBliz.")
+end
+
+-- Static Popup Dialogs for SuperGroup Management
+StaticPopupDialogs["RMB_DELETE_SUPERGROUP_CONFIRM"] = {
+	text = "Delete supergroup '%s'?\n\nAll families in this supergroup will become standalone.",
+	button1 = "Delete",
+	button2 = "Cancel",
+	OnAccept = function(self, sgName)
+		if addon.SuperGroupManager then
+			local success, message = addon.SuperGroupManager:DeleteSuperGroup(sgName)
+			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
+			if success then
+				addon.SuperGroupManager:PopulateSuperGroupManagementUI()
+			end
+		end
+	end,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
+StaticPopupDialogs["RMB_MERGE_SUPERGROUPS_CONFIRM"] = {
+	text =
+	"Merge '%s' into '%s'?\n\nAll families from the first supergroup will be moved to the second, and the first supergroup will be deleted.",
+	button1 = "Merge",
+	button2 = "Cancel",
+	OnAccept = function(self, data)
+		if addon.SuperGroupManager and data then
+			local success, message = addon.SuperGroupManager:MergeSuperGroups(data.source, data.target)
+			if success then
+				addon.SuperGroupManager.pendingMergeSource = ""
+				addon.SuperGroupManager.pendingMergeTarget = ""
+				print("RMB: " .. message)
+			else
+				print("RMB Error: " .. message)
+			end
+		end
+	end,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
+StaticPopupDialogs["RMB_RESET_ALL_CONFIRM"] = {
+	text =
+	"Reset all supergroup customizations?\n\nThis will:\n• Clear all family assignments\n• Remove all custom supergroups\n• Restore all deleted supergroups\n• Remove all renames\n\nThis cannot be undone!",
+	button1 = "Reset All",
+	button2 = "Cancel",
+	OnAccept = function()
+		if addon.SuperGroupManager then
+			local success, message = addon.SuperGroupManager:ResetToDefaults("all")
+			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
+		end
+	end,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
+StaticPopupDialogs["RMB_RESET_ASSIGNMENTS_CONFIRM"] = {
+	text =
+	"Reset all family assignments?\n\nThis will clear all family supergroup assignments but keep custom supergroups and renames.\n\nThis cannot be undone!",
+	button1 = "Reset Assignments",
+	button2 = "Cancel",
+	OnAccept = function()
+		if addon.SuperGroupManager then
+			local success, message = addon.SuperGroupManager:ResetToDefaults("assignments")
+			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
+		end
+	end,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
+StaticPopupDialogs["RMB_RESET_CUSTOM_CONFIRM"] = {
+	text =
+	"Reset custom supergroups?\n\nThis will remove all custom supergroups but keep family assignments and original supergroup renames.\n\nThis cannot be undone!",
+	button1 = "Reset Custom",
+	button2 = "Cancel",
+	OnAccept = function()
+		if addon.SuperGroupManager then
+			local success, message = addon.SuperGroupManager:ResetToDefaults("custom")
+			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
+		end
+	end,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
 print("RMB_OPTIONS: Options.lua END - All sub-categories registration completed.")

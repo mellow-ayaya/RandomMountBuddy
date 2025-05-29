@@ -50,6 +50,10 @@ local dbDefaults = {
 		favoriteSync_syncSuperGroupWeights = true,
 		favoriteSync_favoriteWeightMode = "set",
 		favoriteSync_lastSyncTime = 0,
+		-- Supergroup customization (ADD THESE LINES)
+		superGroupOverrides = {}, -- { ["FamilyName"] = "SuperGroupName" or false or nil }
+		superGroupDefinitions = {}, -- { ["SGName"] = { displayName="...", isCustom=true/false, isRenamed=true/false } }
+		deletedSuperGroups = {},  -- { ["SGName"] = true }
 	},
 }
 print("RMB_DEBUG: Core.lua START (Enhanced Uncollected). Addon Name: " ..
@@ -299,6 +303,8 @@ function addon:InitializeProcessedData()
 	print("RMB_DEBUG_DATA: Set RMB_DataReadyForUI to true.")
 	-- Rebuild mount grouping for trait-based filtering
 	self:RebuildMountGrouping()
+	-- Handle supergroup data migration for addon updates
+	self:MigrateSuperGroupData()
 	-- Notify all modules that data is ready
 	self:NotifyModulesDataReady()
 	-- Initialize UI last
@@ -450,9 +456,14 @@ function addon:InitializeAllMountModules()
 		self:InitializeMountSummon()
 	end
 
-	-- ADD THIS LINE: Initialize FavoriteSync system
 	if self.InitializeFavoriteSync then
 		self:InitializeFavoriteSync()
+	end
+
+	-- Initialize SuperGroupManager AFTER core systems are ready
+	if self.InitializeSuperGroupManager then
+		self:InitializeSuperGroupManager()
+		print("RMB_DEBUG: SuperGroupManager initialized in proper order")
 	end
 
 	-- UI components come last as they depend on everything else
@@ -660,6 +671,102 @@ function addon:RebuildMountGrouping()
 				allFamiliesProcessed[familyName] = true
 			end
 		end
+	end
+
+	-- ============================================================================
+	-- APPLY SUPERGROUP OVERRIDES (after trait-based regrouping)
+	-- ============================================================================
+	print("RMB_DYNAMIC: Applying supergroup overrides...")
+	local overrideCount = 0
+	-- Apply individual family overrides
+	if self.db and self.db.profile and self.db.profile.superGroupOverrides then
+		for familyName, overrideSG in pairs(self.db.profile.superGroupOverrides) do
+			if overrideSG == false then
+				-- Force family to be standalone
+				newStandaloneFamilies[familyName] = true
+				-- Remove from any supergroup
+				for sgName, families in pairs(newSuperGroupMap) do
+					for i = #families, 1, -1 do
+						if families[i] == familyName then
+							table.remove(families, i)
+							print("RMB_DYNAMIC: Moved " .. familyName .. " from " .. sgName .. " to standalone (override)")
+							overrideCount = overrideCount + 1
+						end
+					end
+				end
+			elseif type(overrideSG) == "string" and overrideSG ~= "" then
+				-- Move family to specific supergroup
+				-- Remove from current location first
+				newStandaloneFamilies[familyName] = nil
+				for sgName, families in pairs(newSuperGroupMap) do
+					for i = #families, 1, -1 do
+						if families[i] == familyName then
+							table.remove(families, i)
+						end
+					end
+				end
+
+				-- Add to target supergroup
+				if not newSuperGroupMap[overrideSG] then
+					newSuperGroupMap[overrideSG] = {}
+				end
+
+				-- Check if family already in target supergroup
+				local alreadyExists = false
+				for _, existingFamily in ipairs(newSuperGroupMap[overrideSG]) do
+					if existingFamily == familyName then
+						alreadyExists = true
+						break
+					end
+				end
+
+				if not alreadyExists then
+					table.insert(newSuperGroupMap[overrideSG], familyName)
+					print("RMB_DYNAMIC: Moved " .. familyName .. " to " .. overrideSG .. " (override)")
+					overrideCount = overrideCount + 1
+				end
+			end
+		end
+	end
+
+	-- Handle deleted supergroups
+	if self.db and self.db.profile and self.db.profile.deletedSuperGroups then
+		for sgName, isDeleted in pairs(self.db.profile.deletedSuperGroups) do
+			if isDeleted and newSuperGroupMap[sgName] then
+				-- Move all families from deleted supergroup to standalone
+				local familiesInDeletedSG = newSuperGroupMap[sgName]
+				for _, familyName in ipairs(familiesInDeletedSG) do
+					-- Only move to standalone if not already overridden
+					if not (self.db.profile.superGroupOverrides and
+								self.db.profile.superGroupOverrides[familyName]) then
+						newStandaloneFamilies[familyName] = true
+						print("RMB_DYNAMIC: Moved " .. familyName .. " to standalone (deleted supergroup: " .. sgName .. ")")
+						overrideCount = overrideCount + 1
+					end
+				end
+
+				-- Remove the deleted supergroup
+				newSuperGroupMap[sgName] = nil
+				print("RMB_DYNAMIC: Removed deleted supergroup: " .. sgName)
+			end
+		end
+	end
+
+	-- Clean up empty supergroups created by overrides
+	local emptySuperGroups = {}
+	for sgName, families in pairs(newSuperGroupMap) do
+		if #families == 0 then
+			table.insert(emptySuperGroups, sgName)
+		end
+	end
+
+	for _, sgName in ipairs(emptySuperGroups) do
+		newSuperGroupMap[sgName] = nil
+		print("RMB_DYNAMIC: Removed empty supergroup: " .. sgName)
+	end
+
+	if overrideCount > 0 then
+		print("RMB_DYNAMIC: Applied " .. overrideCount .. " supergroup overrides")
 	end
 
 	-- Replace the original grouping with the new one
@@ -917,6 +1024,12 @@ function addon:NotifyModulesSettingChanged(key, value)
 	-- ADD THESE LINES: Notify FavoriteSync
 	if self.FavoriteSync and self.FavoriteSync.OnSettingChanged then
 		self.FavoriteSync:OnSettingChanged(key, value)
+	end
+
+	-- Handle supergroup override changes
+	if key == "superGroupOverrides" or key == "superGroupDefinitions" or key == "deletedSuperGroups" then
+		print("RMB_SETTING: Supergroup configuration changed, triggering rebuild")
+		self:RebuildMountGrouping()
 	end
 
 	-- FIXED: Add secure handler notifications
@@ -1928,6 +2041,139 @@ function addon:GetTraitOverrideStats()
 end
 
 -- ============================================================================
+-- SUPERGROUP OVERRIDE HELPER FUNCTIONS
+-- ============================================================================
+-- Get effective supergroup for a family (considers overrides)
+function addon:GetEffectiveSuperGroup(familyName)
+	if not familyName then return nil end
+
+	-- Check for user override first
+	if self.db and self.db.profile and self.db.profile.superGroupOverrides then
+		local override = self.db.profile.superGroupOverrides[familyName]
+		if override == false then
+			return nil -- Explicitly standalone
+		elseif type(override) == "string" and override ~= "" then
+			-- Check if target supergroup is deleted
+			if self.db.profile.deletedSuperGroups and
+					self.db.profile.deletedSuperGroups[override] then
+				return nil -- Target supergroup is deleted, treat as standalone
+			end
+
+			return override
+		end
+	end
+
+	-- Fall back to dynamic grouping
+	return self:GetDynamicSuperGroup(familyName)
+end
+
+-- Get display name for supergroup (considers custom names)
+function addon:GetSuperGroupDisplayName(superGroupName)
+	if not superGroupName then return nil end
+
+	-- Check for custom display name
+	if self.db and self.db.profile and self.db.profile.superGroupDefinitions then
+		local customDef = self.db.profile.superGroupDefinitions[superGroupName]
+		if customDef and customDef.displayName then
+			return customDef.displayName
+		end
+	end
+
+	-- Return original name
+	return superGroupName
+end
+
+-- Check if supergroup is custom (user-created)
+function addon:IsSuperGroupCustom(superGroupName)
+	if not superGroupName or not self.db or not self.db.profile then
+		return false
+	end
+
+	local customDef = self.db.profile.superGroupDefinitions[superGroupName]
+	return customDef and customDef.isCustom == true
+end
+
+-- Check if supergroup has been renamed
+function addon:IsSuperGroupRenamed(superGroupName)
+	if not superGroupName or not self.db or not self.db.profile then
+		return false
+	end
+
+	local customDef = self.db.profile.superGroupDefinitions[superGroupName]
+	return customDef and customDef.isRenamed == true
+end
+
+-- Check if supergroup is deleted
+function addon:IsSuperGroupDeleted(superGroupName)
+	if not superGroupName or not self.db or not self.db.profile then
+		return false
+	end
+
+	return self.db.profile.deletedSuperGroups[superGroupName] == true
+end
+
+-- ============================================================================
+-- SUPERGROUP MIGRATION HANDLING
+-- ============================================================================
+-- Handle supergroup data migration when addon updates
+function addon:MigrateSuperGroupData()
+	if not (self.db and self.db.profile) then
+		return
+	end
+
+	print("RMB_MIGRATION: Checking supergroup data migration...")
+	-- Clean up invalid overrides (families that no longer exist)
+	if self.db.profile.superGroupOverrides then
+		local invalidOverrides = {}
+		for familyName, _ in pairs(self.db.profile.superGroupOverrides) do
+			-- Check if family still exists in processed data
+			local familyExists = false
+			if self.processedData and self.processedData.allCollectedMountFamilyInfo then
+				for _, mountInfo in pairs(self.processedData.allCollectedMountFamilyInfo) do
+					if mountInfo.familyName == familyName then
+						familyExists = true
+						break
+					end
+				end
+			end
+
+			if not familyExists and self.processedData and self.processedData.allUncollectedMountFamilyInfo then
+				for _, mountInfo in pairs(self.processedData.allUncollectedMountFamilyInfo) do
+					if mountInfo.familyName == familyName then
+						familyExists = true
+						break
+					end
+				end
+			end
+
+			if not familyExists then
+				table.insert(invalidOverrides, familyName)
+			end
+		end
+
+		-- Remove invalid overrides
+		for _, familyName in ipairs(invalidOverrides) do
+			self.db.profile.superGroupOverrides[familyName] = nil
+			print("RMB_MIGRATION: Removed invalid override for non-existent family: " .. familyName)
+		end
+	end
+
+	-- Mark new supergroups as known (so we can detect future new ones)
+	if not self.db.profile.knownSuperGroups then
+		self.db.profile.knownSuperGroups = {}
+	end
+
+	-- Update known supergroups list with current supergroups
+	if self.processedData and self.processedData.superGroupMap then
+		for sgName, _ in pairs(self.processedData.superGroupMap) do
+			self.db.profile.knownSuperGroups[sgName] = true
+		end
+	end
+
+	print("RMB_MIGRATION: Supergroup data migration completed")
+end
+
+-- ============================================================================
 -- CLEAN PUBLIC INTERFACE
 -- ============================================================================
 -- Main summoning interface
@@ -1998,10 +2244,20 @@ function addon:NotifyModulesDataReady()
 		print("RMB_DEBUG: Notified MountPreview")
 	end
 
-	-- ADD THESE LINES: Notify FavoriteSync
 	if self.FavoriteSync and self.FavoriteSync.OnDataReady then
 		self.FavoriteSync:OnDataReady()
 		print("RMB_DEBUG: Notified FavoriteSync")
+	end
+
+	-- Refresh SuperGroupManager UI when data is ready
+	if self.SuperGroupManager then
+		print("RMB_DEBUG: Refreshing SuperGroup Manager UI with fresh data...")
+		-- Use a small delay to ensure all other modules are ready
+		C_Timer.After(0.1, function()
+			self.SuperGroupManager:PopulateSuperGroupManagementUI()
+			self.SuperGroupManager:PopulateFamilyAssignmentUI()
+			print("RMB_DEBUG: SuperGroup Manager UI refreshed")
+		end)
 	end
 
 	-- Also notify about mount collection changes
