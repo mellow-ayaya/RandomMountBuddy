@@ -391,24 +391,47 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 		name = "Create New Supergroup",
 	}
 	order = order + 1
+	args.create_desc = {
+		order = order,
+		type = "description",
+		name = "Enter a name for your new supergroup. You can use letters, numbers, spaces, hyphens, and underscores.",
+		fontSize = "medium",
+	}
+	order = order + 1
 	args.create_name = {
 		order = order,
 		type = "input",
 		name = "Supergroup Name",
-		desc = "Internal name for the supergroup (no spaces, used for identification)",
+		desc = "Name for your custom supergroup (e.g., 'My Favorite Dragons')",
 		get = function() return self.pendingCreateName or "" end,
 		set = function(info, value) self.pendingCreateName = value end,
-		width = 1.0,
+		width = 1.5,
 	}
 	order = order + 1
-	args.create_display = {
+	-- Show sanitized preview
+	args.create_preview = {
 		order = order,
-		type = "input",
-		name = "Display Name",
-		desc = "Friendly name shown in the interface",
-		get = function() return self.pendingCreateDisplay or "" end,
-		set = function(info, value) self.pendingCreateDisplay = value end,
-		width = 1.0,
+		type = "description",
+		name = function()
+			local inputName = self.pendingCreateName or ""
+			if inputName:trim() == "" then
+				return ""
+			end
+
+			local sanitized = self:SanitizeSuperGroupName(inputName)
+			if sanitized == "" then
+				return "|cffff0000Invalid characters. Use letters, numbers, spaces, hyphens, or underscores.|r"
+			end
+
+			-- Check for conflicts
+			local hasConflict, conflictMessage = self:DoesNameConflict(inputName)
+			if hasConflict then
+				return "|cffff0000" .. conflictMessage .. "|r"
+			end
+
+			return "|cff00ff00✓ Available|r" .. (sanitized ~= inputName:trim() and (" (internal: " .. sanitized .. ")") or "")
+		end,
+		width = 1.5,
 	}
 	order = order + 1
 	args.create_button = {
@@ -418,17 +441,21 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 		desc = "Create the new supergroup",
 		func = function()
 			local name = self.pendingCreateName or ""
-			local display = self.pendingCreateDisplay or ""
-			local success, message = self:CreateSuperGroup(name, display)
+			local success, message = self:CreateSuperGroup(name)
 			if success then
 				self.pendingCreateName = ""
-				self.pendingCreateDisplay = ""
 				print("RMB: " .. message)
-				-- Refresh UI
 				self:PopulateSuperGroupManagementUI()
 			else
 				print("RMB Error: " .. message)
 			end
+		end,
+		disabled = function()
+			local name = self.pendingCreateName or ""
+			if name:trim() == "" then return true end
+
+			local hasConflict, _ = self:DoesNameConflict(name)
+			return hasConflict or self:SanitizeSuperGroupName(name) == ""
 		end,
 		width = 0.8,
 	}
@@ -441,6 +468,7 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 	}
 	order = order + 1
 	-- Add supergroup entries
+	-- Add supergroup entries with better conflict checking on renames
 	local allSGs = self:GetAllSuperGroups()
 	for _, sgInfo in ipairs(allSGs) do
 		local keyBase = "sg_" .. sgInfo.name:gsub("[^%w]", "_")
@@ -464,9 +492,9 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 
 				return displayText
 			end,
-			width = sgInfo.isRenamed and not sgInfo.isCustom and 1.8 or 1.2, -- Wider if showing original name
+			width = sgInfo.isRenamed and not sgInfo.isCustom and 1.8 or 1.2,
 		}
-		-- Rename input and buttons
+		-- Rename input with validation
 		if not sgInfo.isDeleted then
 			args[keyBase .. "_rename"] = {
 				order = order + 0.1,
@@ -484,6 +512,17 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 					end
 				end,
 				width = 0.6,
+			}
+			-- Show validation for rename input
+			args[keyBase .. "_rename_validation"] = {
+				order = order + 0.12,
+				type = "description",
+				name = function()
+					-- This would need to track per-supergroup input state for real-time validation
+					-- For now, validation happens on submit
+					return ""
+				end,
+				width = 0.1,
 			}
 			-- Restore original name button (only for renamed original supergroups)
 			if sgInfo.isRenamed and not sgInfo.isCustom then
@@ -858,19 +897,84 @@ function SuperGroupManager:GetAllSuperGroups()
 	return allSuperGroups
 end
 
--- Create new supergroup
-function SuperGroupManager:CreateSuperGroup(name, displayName)
-	if not name or name:trim() == "" then
+-- Sanitize user input for internal supergroup key
+function SuperGroupManager:SanitizeSuperGroupName(userInput)
+	if not userInput then return "" end
+
+	local sanitized = userInput:trim()
+	-- Replace spaces with underscores, remove special characters except hyphens and underscores
+	sanitized = sanitized:gsub("[^%w%s%-_]", "") -- Keep alphanumeric, spaces, hyphens, underscores
+	sanitized = sanitized:gsub("%s+", "_")      -- Replace spaces with underscores
+	sanitized = sanitized:gsub("_+", "_")       -- Collapse multiple underscores
+	sanitized = sanitized:gsub("^_+", "")       -- Remove leading underscores
+	sanitized = sanitized:gsub("_+$", "")       -- Remove trailing underscores
+	return sanitized
+end
+
+-- Check if a name conflicts with existing supergroups (internal names OR display names)
+function SuperGroupManager:DoesNameConflict(nameToCheck, excludeSuperGroup)
+	if not nameToCheck or nameToCheck:trim() == "" then
+		return true, "Name cannot be empty"
+	end
+
+	local trimmedName = nameToCheck:trim()
+	local sanitizedName = self:SanitizeSuperGroupName(trimmedName)
+	-- Check against original supergroup internal names
+	if addon.processedData and addon.processedData.superGroupMap then
+		for sgName, _ in pairs(addon.processedData.superGroupMap) do
+			if sgName ~= excludeSuperGroup then
+				-- Check both exact match and sanitized match
+				if sgName:lower() == trimmedName:lower() or
+						sgName:lower() == sanitizedName:lower() then
+					return true, "Name conflicts with existing supergroup: " .. sgName
+				end
+			end
+		end
+	end
+
+	-- Check against original supergroup display names (in case they were renamed)
+	if addon.db and addon.db.profile and addon.db.profile.superGroupDefinitions then
+		for sgName, definition in pairs(addon.db.profile.superGroupDefinitions) do
+			if sgName ~= excludeSuperGroup and definition.displayName then
+				if definition.displayName:lower() == trimmedName:lower() then
+					return true, "Name conflicts with existing supergroup display name: " .. definition.displayName
+				end
+			end
+		end
+	end
+
+	-- Check against custom supergroup internal names
+	if addon.db and addon.db.profile and addon.db.profile.superGroupDefinitions then
+		for sgName, definition in pairs(addon.db.profile.superGroupDefinitions) do
+			if sgName ~= excludeSuperGroup and definition.isCustom then
+				-- Check internal name
+				if sgName:lower() == sanitizedName:lower() then
+					return true, "Name conflicts with existing custom supergroup: " .. (definition.displayName or sgName)
+				end
+			end
+		end
+	end
+
+	return false, nil -- No conflict
+end
+
+-- Updated CreateSuperGroup with simplified input
+function SuperGroupManager:CreateSuperGroup(userInputName)
+	if not userInputName or userInputName:trim() == "" then
 		return false, "Supergroup name cannot be empty"
 	end
 
-	if not displayName or displayName:trim() == "" then
-		displayName = name
+	local displayName = userInputName:trim()
+	local internalName = self:SanitizeSuperGroupName(displayName)
+	-- Validate the sanitized name
+	if internalName == "" then
+		return false, "Name contains only invalid characters. Use letters, numbers, spaces, hyphens, or underscores."
 	end
 
-	-- Check for name conflicts
-	if self:SuperGroupExists(name) then
-		return false, "A supergroup with this name already exists"
+	-- Check for conflicts
+	local hasConflict, conflictMessage = self:DoesNameConflict(displayName)
+	if hasConflict then
+		return false, conflictMessage
 	end
 
 	-- Initialize database structures if needed
@@ -879,15 +983,15 @@ function SuperGroupManager:CreateSuperGroup(name, displayName)
 	end
 
 	-- Create the supergroup
-	addon.db.profile.superGroupDefinitions[name] = {
-		displayName = displayName,
+	addon.db.profile.superGroupDefinitions[internalName] = {
+		displayName = displayName, -- Store exactly what user typed
 		isCustom = true,
-		isRenamed = false,
+		isRenamed = false,       -- Not renamed since it starts with user's preferred name
 	}
-	print("RMB_SUPERGROUP: Created custom supergroup: " .. name .. " (" .. displayName .. ")")
+	print("RMB_SUPERGROUP: Created custom supergroup: '" .. displayName .. "' (internal: " .. internalName .. ")")
 	-- Trigger rebuild
 	addon:RebuildMountGrouping()
-	return true, "Supergroup created successfully"
+	return true, "Supergroup '" .. displayName .. "' created successfully"
 end
 
 -- Rename supergroup
@@ -896,9 +1000,15 @@ function SuperGroupManager:RenameSuperGroup(sgName, newDisplayName)
 		return false, "Display name cannot be empty"
 	end
 
+	local trimmedNewName = newDisplayName:trim()
+	-- Check for conflicts (excluding the current supergroup being renamed)
+	local hasConflict, conflictMessage = self:DoesNameConflict(trimmedNewName, sgName)
+	if hasConflict then
+		return false, conflictMessage
+	end
+
 	-- Get the original name for comparison
 	local originalName = self:GetOriginalSuperGroupName(sgName)
-	local trimmedNewName = newDisplayName:trim()
 	-- Initialize database structures if needed
 	if not addon.db.profile.superGroupDefinitions then
 		addon.db.profile.superGroupDefinitions = {}
@@ -906,14 +1016,14 @@ function SuperGroupManager:RenameSuperGroup(sgName, newDisplayName)
 
 	-- Check if we're renaming back to the original name
 	if trimmedNewName == originalName then
-		-- Renaming back to original - remove any custom definition
+		-- Renaming back to original - remove any custom definition for original supergroups
 		if addon.db.profile.superGroupDefinitions[sgName] then
-			-- If it's a custom supergroup, keep the definition but clear rename flag
 			if addon.db.profile.superGroupDefinitions[sgName].isCustom then
-				addon.db.profile.superGroupDefinitions[sgName].displayName = originalName
+				-- For custom supergroups, update the display name
+				addon.db.profile.superGroupDefinitions[sgName].displayName = trimmedNewName
 				addon.db.profile.superGroupDefinitions[sgName].isRenamed = false
 			else
-				-- For original supergroups, remove the definition entirely
+				-- For original supergroups, remove the definition entirely to show original name
 				addon.db.profile.superGroupDefinitions[sgName] = nil
 			end
 		end
@@ -927,7 +1037,7 @@ function SuperGroupManager:RenameSuperGroup(sgName, newDisplayName)
 
 		addon.db.profile.superGroupDefinitions[sgName].displayName = trimmedNewName
 		addon.db.profile.superGroupDefinitions[sgName].isRenamed = true
-		print("RMB_SUPERGROUP: Renamed supergroup: " .. sgName .. " to " .. trimmedNewName)
+		print("RMB_SUPERGROUP: Renamed supergroup: " .. sgName .. " to '" .. trimmedNewName .. "'")
 	end
 
 	-- Trigger UI refresh
@@ -1065,6 +1175,9 @@ function SuperGroupManager:MergeSuperGroups(sourceSG, targetSG)
 		return false, "One or both supergroups do not exist"
 	end
 
+	-- Get display names for better user feedback
+	local sourceDisplayName = addon:GetSuperGroupDisplayName(sourceSG)
+	local targetDisplayName = addon:GetSuperGroupDisplayName(targetSG)
 	-- Initialize database structures if needed
 	if not addon.db.profile.superGroupOverrides then
 		addon.db.profile.superGroupOverrides = {}
@@ -1099,8 +1212,10 @@ function SuperGroupManager:MergeSuperGroups(sourceSG, targetSG)
 	-- Delete the source supergroup
 	local deleteSuccess, deleteMessage = self:DeleteSuperGroup(sourceSG)
 	if deleteSuccess then
-		print("RMB_SUPERGROUP: Merged " .. sourceSG .. " into " .. targetSG .. " (" .. movedFamilies .. " families moved)")
-		return true, "Merged " .. movedFamilies .. " families from " .. sourceSG .. " to " .. targetSG
+		print("RMB_SUPERGROUP: Merged '" ..
+			sourceDisplayName .. "' into '" .. targetDisplayName .. "' (" .. movedFamilies .. " families moved)")
+		return true,
+				"Merged " .. movedFamilies .. " families from '" .. sourceDisplayName .. "' to '" .. targetDisplayName .. "'"
 	else
 		return false, "Merge failed: " .. deleteMessage
 	end
@@ -1264,15 +1379,34 @@ function SuperGroupManager:GetAvailableSuperGroups()
 	local availableSGs = {
 		["<Standalone>"] = "Standalone (No Supergroup)",
 	}
-	-- Add all existing supergroups
+	-- Add all existing supergroups with their display names
 	local allSGs = self:GetAllSuperGroups()
 	for _, sgInfo in ipairs(allSGs) do
 		if not sgInfo.isDeleted then
+			-- Use display name in the dropdown, but keep internal name as key
 			availableSGs[sgInfo.name] = sgInfo.displayName
 		end
 	end
 
 	return availableSGs
+end
+
+function SuperGroupManager:ValidateNameInput(inputName, excludeSuperGroup)
+	if not inputName or inputName:trim() == "" then
+		return false, "Name cannot be empty", ""
+	end
+
+	local sanitized = self:SanitizeSuperGroupName(inputName)
+	if sanitized == "" then
+		return false, "Invalid characters. Use letters, numbers, spaces, hyphens, or underscores.", ""
+	end
+
+	local hasConflict, conflictMessage = self:DoesNameConflict(inputName, excludeSuperGroup)
+	if hasConflict then
+		return false, conflictMessage, sanitized
+	end
+
+	return true, "Available", sanitized
 end
 
 -- ============================================================================

@@ -1,3 +1,6 @@
+# 0.7.24
+Removed internal name from supergroup renaming process.
+
 # 0.7.23
 Families separated via traits now show which family they originally belonged to in the Family assignment menu.
 
