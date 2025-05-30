@@ -1,3 +1,6 @@
+# 0.7.23
+Families separated via traits now show which family they originally belonged to in the Family assignment menu.
+
 # 0.7.22
 Added option to restore original Supergroup name.
 

@@ -616,6 +616,23 @@ function SuperGroupManager:BuildFamilyAssignmentArgs()
 		order = order + 1
 	end
 
+	-- Legend/Help section
+	args.legend_header = {
+		order = order,
+		type = "header",
+		name = "Status Indicators",
+	}
+	order = order + 1
+	args.legend_desc = {
+		order = order,
+		type = "description",
+		name = "|cffffd700*|r = User Override Active (you've manually changed this assignment)\n" ..
+				"|cffff9900⚡|r = Separated by Trait Settings (would normally be in supergroup, but your distinctness settings separate it)\n" ..
+				"|cff888888Note: Families separated by trait settings show their conceptual supergroup. Assigning them will override the separation.|r",
+		fontSize = "medium",
+		width = "full",
+	}
+	order = order + 1
 	-- Family entries
 	args.family_header = {
 		order = order,
@@ -627,7 +644,7 @@ function SuperGroupManager:BuildFamilyAssignmentArgs()
 		local familyInfo = filteredFamilies[i]
 		if familyInfo then
 			local keyBase = "family_" .. familyInfo.familyName:gsub("[^%w]", "_")
-			-- Family name and info
+			-- Family name and info with enhanced status indicators
 			args[keyBase .. "_name"] = {
 				order = order,
 				type = "description",
@@ -639,19 +656,51 @@ function SuperGroupManager:BuildFamilyAssignmentArgs()
 					end
 
 					countText = countText .. ")"
-					local overrideIndicator = familyInfo.isOverridden and " |cffffd700*|r" or ""
-					return indicator .. " " .. familyInfo.familyName .. " " .. countText .. overrideIndicator
+					-- Status indicators
+					local statusIndicators = {}
+					if familyInfo.hasUserOverride then
+						table.insert(statusIndicators, "|cffffd700*|r") -- User override
+					end
+
+					if familyInfo.isSeparatedByStrictness then
+						table.insert(statusIndicators, "|cffff9900⚡|r") -- Separated by strictness
+					end
+
+					local statusText = #statusIndicators > 0 and (" " .. table.concat(statusIndicators, "")) or ""
+					return indicator .. " " .. familyInfo.familyName .. " " .. countText .. statusText
 				end,
 				width = 1.5,
 			}
-			-- Supergroup assignment dropdown
+			-- Enhanced supergroup assignment dropdown
 			args[keyBase .. "_assign"] = {
 				order = order + 0.1,
 				type = "select",
 				name = "",
-				desc = "Assign to supergroup (* indicates override from original)",
+				desc = function()
+					local baseDesc = "Assign to supergroup\n"
+					local statusLines = {}
+					if familyInfo.hasUserOverride then
+						table.insert(statusLines, "|cffffd700* User Override Active|r")
+					end
+
+					if familyInfo.isSeparatedByStrictness then
+						table.insert(statusLines,
+							"|cffff9900⚡ " .. (familyInfo.separationReason or "Separated by trait settings") .. "|r")
+						table.insert(statusLines,
+							"|cff888888Currently showing conceptual supergroup. Assignment will override separation.|r")
+					end
+
+					if familyInfo.originalSuperGroup and familyInfo.originalSuperGroup ~= familyInfo.displaySuperGroup then
+						table.insert(statusLines, "|cff888888Originally: " .. familyInfo.originalSuperGroup .. "|r")
+					end
+
+					return baseDesc .. (#statusLines > 0 and ("\n" .. table.concat(statusLines, "\n")) or "")
+				end,
 				values = function() return self:GetAvailableSuperGroups() end,
-				get = function() return familyInfo.currentSuperGroup or "<Standalone>" end,
+				get = function()
+					-- Show the display supergroup, or standalone if none
+					return familyInfo.displaySuperGroup or "<Standalone>"
+				end,
 				set = function(info, value)
 					local success, message = self:AssignFamilyToSuperGroup(familyInfo.familyName, value)
 					if success then
@@ -663,7 +712,7 @@ function SuperGroupManager:BuildFamilyAssignmentArgs()
 				end,
 				width = 1.0,
 			}
-			-- Preview button
+			-- Preview button (unchanged)
 			args[keyBase .. "_preview"] = {
 				order = order + 0.2,
 				type = "execute",
@@ -1116,8 +1165,15 @@ function SuperGroupManager:GetAllFamilyAssignments()
 	print("RMB_SUPERGROUP: Total unique families to process: " .. addon:CountTableEntries(allFamilies))
 	-- Build assignment data for each family
 	for familyName, _ in pairs(allFamilies) do
-		local currentSG = addon:GetEffectiveSuperGroup(familyName)
-		local originalSG = addon:GetDynamicSuperGroup(familyName) -- Before overrides
+		local originalSG = addon:GetOriginalSuperGroup(familyName) -- Before any changes
+		local dynamicSG = addon:GetDynamicSuperGroup(familyName)   -- After trait processing
+		local effectiveSG = addon:GetEffectiveSuperGroup(familyName) -- After user overrides
+		-- Determine what supergroup to display
+		local displaySuperGroup = effectiveSG or originalSG        -- Show original if no effective assignment
+		-- Determine separation and override status
+		local isSeparatedByStrictness = addon:IsFamilySeparatedByStrictness(familyName)
+		local hasUserOverride = (effectiveSG ~= dynamicSG)
+		local separationReason = addon:GetFamilySeparationReason(familyName)
 		-- Count mounts in this family
 		local collectedCount = (addon.processedData.familyToMountIDsMap and
 			addon.processedData.familyToMountIDsMap[familyName] and
@@ -1133,9 +1189,16 @@ function SuperGroupManager:GetAllFamilyAssignments()
 		if addon:ShouldShowFamily(familyName) then
 			table.insert(familyAssignments, {
 				familyName = familyName,
-				currentSuperGroup = currentSG,
-				originalSuperGroup = originalSG,
-				isOverridden = (currentSG ~= originalSG),
+				-- Supergroup relationships
+				originalSuperGroup = originalSG,   -- What it was originally
+				dynamicSuperGroup = dynamicSG,     -- After trait processing
+				effectiveSuperGroup = effectiveSG, -- After user overrides
+				displaySuperGroup = displaySuperGroup, -- What to show in UI
+				-- Status flags
+				isSeparatedByStrictness = isSeparatedByStrictness,
+				hasUserOverride = hasUserOverride,
+				separationReason = separationReason,
+				-- Mount counts
 				collectedCount = collectedCount,
 				uncollectedCount = uncollectedCount,
 				totalCount = collectedCount + uncollectedCount,
@@ -1162,30 +1225,33 @@ function SuperGroupManager:AssignFamilyToSuperGroup(familyName, targetSG)
 		addon.db.profile.superGroupOverrides = {}
 	end
 
-	-- Get original assignment to determine if this is an override
-	local originalSG = addon:GetDynamicSuperGroup(familyName)
+	-- Get the family's relationships
+	local originalSG = addon:GetOriginalSuperGroup(familyName)
+	local dynamicSG = addon:GetDynamicSuperGroup(familyName) -- After trait processing
+	print("RMB_SUPERGROUP: Assigning " .. familyName .. " - Original: " .. tostring(originalSG) ..
+		", Dynamic: " .. tostring(dynamicSG) .. ", Target: " .. tostring(targetSG))
 	if targetSG == nil or targetSG == "" or targetSG == "<Standalone>" then
 		-- Assign to standalone
-		if originalSG == nil then
-			-- Already standalone originally, remove any override
+		if dynamicSG == nil then
+			-- Already standalone after trait processing, remove any override
 			addon.db.profile.superGroupOverrides[familyName] = nil
+			print("RMB_SUPERGROUP: Cleared override for " .. familyName .. " (already standalone)")
 		else
-			-- Force to standalone
+			-- Force to standalone (override the dynamic grouping)
 			addon.db.profile.superGroupOverrides[familyName] = false
+			print("RMB_SUPERGROUP: Forced " .. familyName .. " to standalone")
 		end
-
-		print("RMB_SUPERGROUP: Assigned " .. familyName .. " to standalone")
 	else
 		-- Assign to specific supergroup
-		if targetSG == originalSG then
-			-- Same as original, remove any override
+		if targetSG == dynamicSG then
+			-- Same as dynamic result, remove any override
 			addon.db.profile.superGroupOverrides[familyName] = nil
+			print("RMB_SUPERGROUP: Cleared override for " .. familyName .. " (matches dynamic grouping)")
 		else
 			-- Override to new supergroup
 			addon.db.profile.superGroupOverrides[familyName] = targetSG
+			print("RMB_SUPERGROUP: Overrode " .. familyName .. " to " .. targetSG)
 		end
-
-		print("RMB_SUPERGROUP: Assigned " .. familyName .. " to " .. targetSG)
 	end
 
 	-- Trigger rebuild

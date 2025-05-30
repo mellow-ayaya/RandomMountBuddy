@@ -2130,6 +2130,66 @@ function addon:IsSuperGroupDeleted(superGroupName)
 	return self.db.profile.deletedSuperGroups[superGroupName] == true
 end
 
+-- Get the original supergroup (before any trait-based or user modifications)
+function addon:GetOriginalSuperGroup(familyName)
+	if not familyName then return nil end
+
+	-- Look in the original supergroup map (before any dynamic changes)
+	if self.processedData and self.processedData.superGroupMap then
+		for sgName, families in pairs(self.processedData.superGroupMap) do
+			for _, familyInSG in ipairs(families) do
+				if familyInSG == familyName then
+					return sgName
+				end
+			end
+		end
+	end
+
+	return nil -- Family was originally standalone
+end
+
+-- Check if family is separated due to trait strictness settings
+function addon:IsFamilySeparatedByStrictness(familyName)
+	if not familyName then return false end
+
+	local originalSG = self:GetOriginalSuperGroup(familyName)
+	local dynamicSG = self:GetDynamicSuperGroup(familyName)
+	-- If original had a supergroup but dynamic doesn't, it was separated by strictness
+	return originalSG ~= nil and dynamicSG == nil
+end
+
+-- Get separation reason for display
+function addon:GetFamilySeparationReason(familyName)
+	if not self:IsFamilySeparatedByStrictness(familyName) then
+		return nil
+	end
+
+	-- Check which trait settings caused the separation
+	local effectiveTraits = self:GetEffectiveTraits(familyName)
+	local reasons = {}
+	if self:GetSetting("treatMinorArmorAsDistinct") and effectiveTraits.hasMinorArmor then
+		table.insert(reasons, "Minor Armor")
+	end
+
+	if self:GetSetting("treatMajorArmorAsDistinct") and effectiveTraits.hasMajorArmor then
+		table.insert(reasons, "Major Armor")
+	end
+
+	if self:GetSetting("treatModelVariantsAsDistinct") and effectiveTraits.hasModelVariant then
+		table.insert(reasons, "Model Variant")
+	end
+
+	if self:GetSetting("treatUniqueEffectsAsDistinct") and effectiveTraits.isUniqueEffect then
+		table.insert(reasons, "Unique Effect")
+	end
+
+	if #reasons > 0 then
+		return "Separated due to: " .. table.concat(reasons, ", ")
+	end
+
+	return "Separated due to trait distinctness settings"
+end
+
 -- ============================================================================
 -- SUPERGROUP MIGRATION HANDLING
 -- ============================================================================
