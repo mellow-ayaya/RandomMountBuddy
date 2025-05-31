@@ -1,3 +1,10 @@
+# 0.8.0
+Finished supergroup and family management implementation:
+Fixed delete confirmation popup not refreshing the supergroup list.
+Fixed deleting a supergroup not refreshing the families it contained.
+Made custom groups always first.
+Copied pagination style from mount list.
+
 # 0.7.24
 Removed internal name from supergroup renaming process.
 

@@ -1164,7 +1164,7 @@ else
 	print("RMB_OPTIONS_ERROR: FAILED Import/Export AddToBliz.")
 end
 
--- Static Popup Dialogs for SuperGroup Management
+-- Static Popup Dialogs for SuperGroup Management (FIXED)
 StaticPopupDialogs["RMB_DELETE_SUPERGROUP_CONFIRM"] = {
 	text = "Delete supergroup '%s'?\n\nAll families in this supergroup will become standalone.",
 	button1 = "Delete",
@@ -1173,9 +1173,7 @@ StaticPopupDialogs["RMB_DELETE_SUPERGROUP_CONFIRM"] = {
 		if addon.SuperGroupManager then
 			local success, message = addon.SuperGroupManager:DeleteSuperGroup(sgName)
 			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
-			if success then
-				addon.SuperGroupManager:PopulateSuperGroupManagementUI()
-			end
+			-- NO UI REFRESH HERE - the polling system will handle it
 		end
 	end,
 	timeout = 0,
@@ -1195,6 +1193,8 @@ StaticPopupDialogs["RMB_MERGE_SUPERGROUPS_CONFIRM"] = {
 				addon.SuperGroupManager.pendingMergeSource = ""
 				addon.SuperGroupManager.pendingMergeTarget = ""
 				print("RMB: " .. message)
+				-- FIXED: Use enhanced refresh method that updates ALL UIs
+				addon.SuperGroupManager:RefreshAllUIs()
 			else
 				print("RMB Error: " .. message)
 			end
@@ -1214,6 +1214,10 @@ StaticPopupDialogs["RMB_RESET_ALL_CONFIRM"] = {
 		if addon.SuperGroupManager then
 			local success, message = addon.SuperGroupManager:ResetToDefaults("all")
 			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
+			if success then
+				-- FIXED: Use enhanced refresh method that updates ALL UIs
+				addon.SuperGroupManager:RefreshAllUIs()
+			end
 		end
 	end,
 	timeout = 0,
@@ -1230,6 +1234,10 @@ StaticPopupDialogs["RMB_RESET_ASSIGNMENTS_CONFIRM"] = {
 		if addon.SuperGroupManager then
 			local success, message = addon.SuperGroupManager:ResetToDefaults("assignments")
 			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
+			if success then
+				-- FIXED: Use enhanced refresh method that updates ALL UIs
+				addon.SuperGroupManager:RefreshAllUIs()
+			end
 		end
 	end,
 	timeout = 0,
@@ -1246,6 +1254,10 @@ StaticPopupDialogs["RMB_RESET_CUSTOM_CONFIRM"] = {
 		if addon.SuperGroupManager then
 			local success, message = addon.SuperGroupManager:ResetToDefaults("custom")
 			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
+			if success then
+				-- FIXED: Use enhanced refresh method that updates ALL UIs
+				addon.SuperGroupManager:RefreshAllUIs()
+			end
 		end
 	end,
 	timeout = 0,

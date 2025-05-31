@@ -17,13 +17,46 @@ function SuperGroupManager:Initialize()
 		selectedFamilies = {},
 		pendingSummon = { source = nil, target = nil },
 	}
+	-- ADDED: Refresh flag system for popup callbacks
+	self.needsRefresh = false
+	self.refreshTimer = nil
 	-- Initialize dynamic content references
 	self.existingListArgsRef = {}
 	self.familyListArgsRef = {}
+	-- Start refresh polling
+	self:StartRefreshPolling()
 	-- Populate initial content (will be empty until data is ready)
 	self:PopulateExistingSuperGroupsList()
 	self:PopulateFamilyAssignmentList()
 	print("RMB_SUPERGROUP: SuperGroup Manager initialized")
+end
+
+-- Add this new function to SuperGroupManager.lua:
+function SuperGroupManager:StartRefreshPolling()
+	-- Check for refresh needs every 0.5 seconds
+	if not self.refreshTimer then
+		self.refreshTimer = C_Timer.NewTicker(0.5, function()
+			if self.needsRefresh then
+				self.needsRefresh = false
+				print("RMB_SUPERGROUP: Polling detected refresh needed")
+				-- Refresh all UIs
+				self:PopulateSuperGroupManagementUI()
+				self:PopulateFamilyAssignmentUI()
+				-- Also refresh main UI
+				if addon.PopulateFamilyManagementUI then
+					addon:PopulateFamilyManagementUI()
+				end
+
+				print("RMB_SUPERGROUP: Refresh completed via polling")
+			end
+		end)
+	end
+end
+
+-- Add this new function to SuperGroupManager.lua:
+function SuperGroupManager:RequestRefresh()
+	print("RMB_SUPERGROUP: Refresh requested, will process on next poll")
+	self.needsRefresh = true
 end
 
 -- References for dynamic UI content (same pattern as Family & Groups)
@@ -542,16 +575,96 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 				}
 			end
 
-			args[keyBase .. "_delete"] = {
-				order = order + 0.3,
-				type = "execute",
-				name = "Delete",
-				desc = "Delete this supergroup (families will become standalone)",
-				func = function()
-					StaticPopup_Show("RMB_DELETE_SUPERGROUP_CONFIRM", sgInfo.displayName, nil, sgInfo.name)
-				end,
-				width = 0.4,
-			}
+			-- Check if this supergroup is in confirmation mode
+			local inConfirmMode = self.deleteConfirmation and self.deleteConfirmation[sgInfo.name]
+			if not inConfirmMode then
+				-- Normal state - show delete button
+				args[keyBase .. "_delete"] = {
+					order = order + 0.3,
+					type = "execute",
+					name = "Delete",
+					desc = "Delete this supergroup (families will become standalone)",
+					func = function()
+						-- Enter confirmation mode
+						if not self.deleteConfirmation then
+							self.deleteConfirmation = {}
+						end
+
+						self.deleteConfirmation[sgInfo.name] = true
+						print("RMB: Confirm deletion of '" .. sgInfo.displayName .. "'")
+						-- Refresh UI to show confirmation buttons
+						self:PopulateSuperGroupManagementUI()
+						-- Auto-cancel after 10 seconds
+						C_Timer.After(10, function()
+							if self.deleteConfirmation and self.deleteConfirmation[sgInfo.name] then
+								self.deleteConfirmation[sgInfo.name] = nil
+								self:PopulateSuperGroupManagementUI()
+								print("RMB: Delete confirmation timed out for '" .. sgInfo.displayName .. "'")
+							end
+						end)
+					end,
+					width = 0.4,
+				}
+			else
+				-- Confirmation mode - show delete button (disabled) and confirm/cancel buttons
+				args[keyBase .. "_delete_disabled"] = {
+					order = order + 0.3,
+					type = "execute",
+					name = "|cff666666Delete|r",
+					desc = "Confirming deletion...",
+					func = function() end, -- Do nothing
+					disabled = true,
+					width = 0.4,
+				}
+				-- Visual separator
+				args[keyBase .. "_separator"] = {
+					order = order + 0.31,
+					type = "description",
+					name = " |cffff9900→|r ",
+					width = 0.1,
+				}
+				-- Confirm button
+				args[keyBase .. "_confirm"] = {
+					order = order + 0.32,
+					type = "execute",
+					name = "|cffff0000Confirm|r",
+					desc = "Confirm deletion of '" .. sgInfo.displayName .. "'",
+					func = function()
+						-- Actually delete the supergroup
+						local success, message = self:DeleteSuperGroup(sgInfo.name)
+						if success then
+							print("RMB: " .. message)
+							self.deleteConfirmation[sgInfo.name] = nil
+							-- Refresh all UIs
+							self:PopulateSuperGroupManagementUI()
+							self:PopulateFamilyAssignmentUI()
+							if addon.PopulateFamilyManagementUI then
+								addon:PopulateFamilyManagementUI()
+							end
+						else
+							print("RMB Error: " .. message)
+							-- Clear confirmation mode on error
+							self.deleteConfirmation[sgInfo.name] = nil
+							self:PopulateSuperGroupManagementUI()
+						end
+					end,
+					width = 0.25,
+				}
+				-- Cancel button
+				args[keyBase .. "_cancel"] = {
+					order = order + 0.33,
+					type = "execute",
+					name = "Cancel",
+					desc = "Cancel deletion",
+					func = function()
+						-- Exit confirmation mode
+						self.deleteConfirmation[sgInfo.name] = nil
+						self:PopulateSuperGroupManagementUI()
+						print("RMB: Delete cancelled for '" .. sgInfo.displayName .. "'")
+					end,
+					width = 0.25,
+				}
+			end
 		else
 			-- Restore deleted supergroup button
 			args[keyBase .. "_restore"] = {
@@ -737,16 +850,37 @@ function SuperGroupManager:BuildFamilyAssignmentArgs()
 				end,
 				values = function() return self:GetAvailableSuperGroups() end,
 				get = function()
-					-- Show the display supergroup, or standalone if none
-					return familyInfo.displaySuperGroup or "<Standalone>"
+					-- Convert actual supergroup to prefixed key for display
+					local actualSG = familyInfo.displaySuperGroup or "<Standalone>"
+					-- Find the matching prefixed key
+					local availableSGs = self:GetAvailableSuperGroups()
+					for prefixedKey, displayName in pairs(availableSGs) do
+						-- Extract the actual supergroup name from the prefixed key
+						local extractedSG = prefixedKey:match("^%d+_%d*_?(.+)$") or prefixedKey:match("^%d+_(.+)$")
+						if extractedSG == actualSG then
+							return prefixedKey
+						end
+					end
+
+					-- Fallback
+					return "0_<Standalone>"
 				end,
-				set = function(info, value)
-					local success, message = self:AssignFamilyToSuperGroup(familyInfo.familyName, value)
-					if success then
-						print("RMB: " .. message)
-						self:PopulateFamilyAssignmentUI()
-					else
-						print("RMB Error: " .. message)
+				set = function(info, prefixedValue)
+					-- Extract actual supergroup name from prefixed key
+					local actualSG = prefixedValue:match("^%d+_%d*_?(.+)$") or prefixedValue:match("^%d+_(.+)$")
+					if actualSG then
+						local success, message = self:AssignFamilyToSuperGroup(familyInfo.familyName, actualSG)
+						if success then
+							print("RMB: " .. message)
+							-- Refresh all UIs
+							self:PopulateSuperGroupManagementUI()
+							self:PopulateFamilyAssignmentUI()
+							if addon.PopulateFamilyManagementUI then
+								addon:PopulateFamilyManagementUI()
+							end
+						else
+							print("RMB Error: " .. message)
+						end
 					end
 				end,
 				width = 1.0,
@@ -891,7 +1025,15 @@ function SuperGroupManager:GetAllSuperGroups()
 
 	-- Sort alphabetically
 	table.sort(allSuperGroups, function(a, b)
-		return a.displayName < b.displayName
+		-- Custom groups always come first
+		if a.isCustom and not b.isCustom then
+			return true
+		elseif not a.isCustom and b.isCustom then
+			return false
+		else
+			-- Within same category, sort alphabetically by display name
+			return a.displayName < b.displayName
+		end
 	end)
 	print("RMB_SUPERGROUP: GetAllSuperGroups returning " .. #allSuperGroups .. " supergroups")
 	return allSuperGroups
@@ -1131,6 +1273,8 @@ function SuperGroupManager:DeleteSuperGroup(sgName)
 
 	-- Trigger rebuild
 	addon:RebuildMountGrouping()
+	-- FIXED: Just request refresh, don't do it directly
+	self:RequestRefresh()
 	return true, "Supergroup deleted successfully"
 end
 
@@ -1323,7 +1467,28 @@ function SuperGroupManager:GetAllFamilyAssignments()
 
 	-- Sort alphabetically
 	table.sort(familyAssignments, function(a, b)
-		return a.familyName < b.familyName
+		-- Get supergroup info for both families
+		local aSGIsCustom = false
+		local bSGIsCustom = false
+		if a.displaySuperGroup and addon.db and addon.db.profile and addon.db.profile.superGroupDefinitions then
+			local aSGDef = addon.db.profile.superGroupDefinitions[a.displaySuperGroup]
+			aSGIsCustom = aSGDef and aSGDef.isCustom or false
+		end
+
+		if b.displaySuperGroup and addon.db and addon.db.profile and addon.db.profile.superGroupDefinitions then
+			local bSGDef = addon.db.profile.superGroupDefinitions[b.displaySuperGroup]
+			bSGIsCustom = bSGDef and bSGDef.isCustom or false
+		end
+
+		-- Custom supergroup families come first
+		if aSGIsCustom and not bSGIsCustom then
+			return true
+		elseif not aSGIsCustom and bSGIsCustom then
+			return false
+		else
+			-- Within same category, sort alphabetically by family name
+			return a.familyName < b.familyName
+		end
 	end)
 	print("RMB_SUPERGROUP: GetAllFamilyAssignments returning " .. #familyAssignments .. " family assignments")
 	return familyAssignments
@@ -1376,15 +1541,35 @@ end
 
 -- Get available supergroups for assignment dropdown
 function SuperGroupManager:GetAvailableSuperGroups()
-	local availableSGs = {
-		["<Standalone>"] = "Standalone (No Supergroup)",
-	}
-	-- Add all existing supergroups with their display names
+	local availableSGs = {}
+	-- FIXED: Use prefixed keys to force Ace sorting order
+	-- Start with standalone
+	availableSGs["0_<Standalone>"] = "Standalone (No Supergroup)"
+	-- Add custom supergroups first (prefix with 1_)
 	local allSGs = self:GetAllSuperGroups()
+	local customCounter = 1
+	local originalCounter = 1
 	for _, sgInfo in ipairs(allSGs) do
 		if not sgInfo.isDeleted then
-			-- Use display name in the dropdown, but keep internal name as key
-			availableSGs[sgInfo.name] = sgInfo.displayName
+			if sgInfo.isCustom then
+				-- Custom groups get 1_ prefix
+				local key = string.format("1_%03d_%s", customCounter, sgInfo.name)
+				local displayText = "|cff00ff00[Custom]|r " .. sgInfo.displayName
+				availableSGs[key] = displayText
+				customCounter = customCounter + 1
+			end
+		end
+	end
+
+	-- Then add original supergroups (prefix with 2_)
+	for _, sgInfo in ipairs(allSGs) do
+		if not sgInfo.isDeleted then
+			if not sgInfo.isCustom then
+				-- Original groups get 2_ prefix
+				local key = string.format("2_%03d_%s", originalCounter, sgInfo.name)
+				availableSGs[key] = sgInfo.displayName
+				originalCounter = originalCounter + 1
+			end
 		end
 	end
 

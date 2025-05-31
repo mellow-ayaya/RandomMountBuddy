@@ -1811,24 +1811,31 @@ function addon:GetDisplayableGroups()
 		end
 	end
 
-	-- Sort groups alphabetically
+	-- FIXED: Sort groups with custom supergroups first, then alphabetically
 	table.sort(displayableGroups, function(a, b)
-		return (a.displayName or a.key) < (b.displayName or b.key)
-	end)
-	local totalGroups = #displayableGroups
-	local collectedGroups = 0
-	local uncollectedOnlyGroups = 0
-	for _, group in ipairs(displayableGroups) do
-		if group.mountCount > 0 then
-			collectedGroups = collectedGroups + 1
-		elseif group.uncollectedCount > 0 then
-			uncollectedOnlyGroups = uncollectedOnlyGroups + 1
+		-- Get custom status for both groups
+		local aIsCustom = false
+		local bIsCustom = false
+		if a.type == "superGroup" and self.db and self.db.profile and self.db.profile.superGroupDefinitions then
+			local aDef = self.db.profile.superGroupDefinitions[a.key]
+			aIsCustom = aDef and aDef.isCustom or false
 		end
-	end
 
-	print("RMB_DISPLAYABLE: Built " ..
-		totalGroups ..
-		" displayable groups (" .. collectedGroups .. " with collected, " .. uncollectedOnlyGroups .. " uncollected-only)")
+		if b.type == "superGroup" and self.db and self.db.profile and self.db.profile.superGroupDefinitions then
+			local bDef = self.db.profile.superGroupDefinitions[b.key]
+			bIsCustom = bDef and bDef.isCustom or false
+		end
+
+		-- Custom supergroups come first
+		if aIsCustom and not bIsCustom then
+			return true
+		elseif not aIsCustom and bIsCustom then
+			return false
+		else
+			-- Within same category (both custom or both non-custom), sort alphabetically
+			return (a.displayName or a.key) < (b.displayName or b.key)
+		end
+	end)
 	return displayableGroups
 end
 
