@@ -1,7 +1,7 @@
 ## Interface: 110105, 110107
 ## Title: Random Mount Buddy
 ## Author: mellow_ayaya
-## Version: # 0.8.2
+## Version: # 0.8.3
 ## Notes: Enhances random mount summoning with intelligent grouping and caching.
 ## SavedVariables: RandomMountBuddy_SavedVars
 

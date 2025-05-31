@@ -1,3 +1,7 @@
+# 0.8.3
+Fixed summon logic on pressing the keybind: dismount if mounted, mount if dismounted (as opposed to dismount+mount in one press regardless).
+Another attempt to fix the rare bug described in 0.8.1.
+
 # 0.8.2
 Fixed not being able to mount in Worldsoul visions in the Undermine.
 

@@ -1,6 +1,6 @@
--- SecureHandlers.lua - Refactored Version with Zone Ability Support
+-- SecureHandlers.lua - Robust Version with Fixed PostClick Implementation
 local addonName, addonTable = ...
-print("RMB_DEBUG: SecureHandlers.lua START.")
+print("RMB_DEBUG: SecureHandlers.lua START (Robust Version).")
 -- Create SecureHandlers class to avoid global pollution
 local SecureHandlers = {}
 RandomMountBuddy.SecureHandlers = SecureHandlers
@@ -15,18 +15,23 @@ local G99_ZONES = {
 	[2406] = 1215279, -- Nerub-ar Palace - Raid zone
 	-- Add more location IDs here as needed
 }
--- Cache system for zone abilities
+-- Cache system for zone abilities with validation
 local zoneAbilityCache = {
 	currentLocationID = -1, -- Use -1 as sentinel instead of nil
 	cachedSpellID = nil,
 	hasZoneAbility = false,
 	lastUpdateTime = 0,
+	lastValidationTime = 0,
+}
+-- Cooldown tracking to prevent spam
+local actionCooldowns = {
+	postClick = 0,
+	zoneAbility = 0,
+	mountAttempt = 0,
 }
 -- Common macro templates to reduce duplication
 local MACRO_TEMPLATES = {
 	prefix = [[
-/dismount [mounted]
-/stopmacro [mounted]
 /run RMB:SRM(true)
 /run UIErrorsFrame:Hide() C_Timer.After(0, function() UIErrorsFrame:Clear() UIErrorsFrame:Show() end)]],
 
@@ -81,6 +86,18 @@ local function getCachedSpellInfo(spellID, defaultName)
 	return spellCache[spellID]
 end
 
+-- Function to check cooldowns and prevent spam
+local function isActionOnCooldown(actionType, cooldownDuration)
+	local currentTime = GetTime()
+	cooldownDuration = cooldownDuration or 2.0
+	if currentTime - (actionCooldowns[actionType] or 0) < cooldownDuration then
+		return true
+	end
+
+	actionCooldowns[actionType] = currentTime
+	return false
+end
+
 -- Function to build macro text efficiently
 local function buildMacro(parts)
 	local result = table.concat(parts, "\n")
@@ -97,7 +114,36 @@ local function getCurrentLocationID()
 	return mapInfo -- Can be nil during teleportation
 end
 
--- Function to find G-99 ability by location ID
+-- Enhanced function to validate zone abilities
+local function validateZoneAbility(spellID)
+	if not spellID then return false end
+
+	-- Check if spell exists and has correct name
+	local spellInfo = C_Spell.GetSpellInfo(spellID)
+	if not (spellInfo and spellInfo.name) then
+		return false
+	end
+
+	-- Validate name contains G-99 or Breakneck
+	if not (spellInfo.name:find("G%-99") or spellInfo.name:find("Breakneck")) then
+		return false
+	end
+
+	-- Check if spell is known by player
+	if not IsPlayerSpell(spellID) then
+		return false
+	end
+
+	-- Check if spell is on cooldown
+	local cooldownInfo = C_Spell.GetSpellCooldown(spellID)
+	if cooldownInfo and cooldownInfo.startTime > 0 and cooldownInfo.duration > 0 then
+		return false -- On cooldown
+	end
+
+	return true
+end
+
+-- Function to find G-99 ability by location ID with validation
 local function findG99AbilityForLocation()
 	local locationID = getCurrentLocationID()
 	if not locationID then
@@ -105,19 +151,14 @@ local function findG99AbilityForLocation()
 	end
 
 	local spellID = G99_ZONES[locationID]
-	if spellID then
-		-- Verify the spell actually exists and has the right name
-		local spellInfo = C_Spell.GetSpellInfo(spellID)
-		if spellInfo and spellInfo.name and
-				(spellInfo.name:find("G%-99") or spellInfo.name:find("Breakneck")) then
-			return spellID
-		end
+	if spellID and validateZoneAbility(spellID) then
+		return spellID
 	end
 
 	return nil
 end
 
--- Function to update zone ability cache
+-- Function to update zone ability cache with proper validation
 local function updateZoneAbilityCache(forceRefresh)
 	if InCombatLockdown() then
 		return
@@ -127,37 +168,42 @@ local function updateZoneAbilityCache(forceRefresh)
 	local currentTime = GetTime()
 	-- If location is nil (during teleportation), clear the cache completely
 	if not currentLocationID then
-		zoneAbilityCache.currentLocationID = -1 -- Use sentinel value instead of nil
+		zoneAbilityCache.currentLocationID = -1
 		zoneAbilityCache.cachedSpellID = nil
 		zoneAbilityCache.hasZoneAbility = false
 		zoneAbilityCache.lastUpdateTime = currentTime
+		zoneAbilityCache.lastValidationTime = currentTime
 		return
 	end
 
 	-- Only refresh if location changed, forced refresh, or cache is old
 	if not forceRefresh and
 			zoneAbilityCache.currentLocationID == currentLocationID and
-			zoneAbilityCache.currentLocationID ~= -1 and -- Add this check
+			zoneAbilityCache.currentLocationID ~= -1 and
 			(currentTime - zoneAbilityCache.lastUpdateTime) < 30 then
+		-- Still validate the cached spell periodically
+		if (currentTime - zoneAbilityCache.lastValidationTime) > 5 and zoneAbilityCache.cachedSpellID then
+			if not validateZoneAbility(zoneAbilityCache.cachedSpellID) then
+				zoneAbilityCache.cachedSpellID = nil
+				zoneAbilityCache.hasZoneAbility = false
+				print("RMB_SECURE: Invalidated cached zone ability due to validation failure")
+			end
+
+			zoneAbilityCache.lastValidationTime = currentTime
+		end
+
 		return
 	end
 
 	local zoneAbilitySpellID = findG99AbilityForLocation()
-	-- Update cache with valid location ID (never nil)
-	zoneAbilityCache.currentLocationID = currentLocationID -- Now guaranteed to be a number
+	-- Update cache with valid location ID
+	zoneAbilityCache.currentLocationID = currentLocationID
 	zoneAbilityCache.cachedSpellID = zoneAbilitySpellID
 	zoneAbilityCache.hasZoneAbility = (zoneAbilitySpellID ~= nil)
 	zoneAbilityCache.lastUpdateTime = currentTime
-	-- Additional validation: if we think we have a zone ability, double-check it
-	if zoneAbilityCache.hasZoneAbility and zoneAbilitySpellID then -- Check zoneAbilitySpellID is not nil
-		local spellInfo = C_Spell.GetSpellInfo(zoneAbilitySpellID)  -- Now guaranteed non-nil
-		if not (spellInfo and spellInfo.name and
-					(spellInfo.name:find("G%-99") or spellInfo.name:find("Breakneck"))) then
-			-- Spell is invalid, clear the cache
-			zoneAbilityCache.cachedSpellID = nil
-			zoneAbilityCache.hasZoneAbility = false
-			print("RMB_SECURE: Cleared invalid zone ability cache")
-		end
+	zoneAbilityCache.lastValidationTime = currentTime
+	if zoneAbilityCache.hasZoneAbility then
+		print("RMB_SECURE: Zone ability available - Spell ID:", zoneAbilitySpellID)
 	end
 end
 
@@ -168,7 +214,7 @@ end
 
 -- Prevent infinite recursion
 addonTable.isUpdatingMacros = false
--- Optimized macro builders
+-- Optimized macro builders (unchanged from original)
 local function buildDruidMacro(travelFormName, catFormName, useSmartFormSwitching, keepTravelFormActive)
 	local parts = { MACRO_TEMPLATES.prefix }
 	if useSmartFormSwitching then
@@ -202,33 +248,71 @@ local function buildFallingMacro(spellName, keepActive, targetLogic)
 	return buildMacro(parts)
 end
 
--- Function to build zone ability aware mount macro
+-- Enhanced mount macro with robust zone ability handling
 local function buildMountMacro()
-	-- Update zone ability cache first
 	updateZoneAbilityCache(false)
-	if zoneAbilityCache.hasZoneAbility and zoneAbilityCache.cachedSpellID then
-		-- For mount button, we can't use PostClick, so create a helper button
-		if not addonTable.zoneHelperButton then
-			addonTable.zoneHelperButton = CreateFrame("Button", "RMBZoneHelper", UIParent, "SecureActionButtonTemplate")
-			addonTable.zoneHelperButton:SetSize(1, 1)
-			addonTable.zoneHelperButton:RegisterForClicks("AnyUp", "AnyDown")
+	-- If no zone ability available, use standard mount macro
+	if not zoneAbilityCache.hasZoneAbility or not zoneAbilityCache.cachedSpellID then
+		return "/run RMB:SRM(true)"
+	end
+
+	-- Create zone ability macro that tries the zone spell first
+	return string.format(
+		"/cast %d\n/run if not IsMounted() then C_Timer.After(0.3, function() if not InCombatLockdown() and not IsMounted() then RMB:SRM(true) end end) end",
+		zoneAbilityCache.cachedSpellID)
+end
+
+-- Robust PostClick implementation with proper safeguards
+local function createPostClickHandler()
+	return function(self, button, down)
+		-- Prevent spam clicking
+		if isActionOnCooldown("postClick", 1.5) then
+			return
 		end
 
-		-- Set up the helper button
-		addonTable.zoneHelperButton:SetAttribute("type", "spell")
-		addonTable.zoneHelperButton:SetAttribute("spell", zoneAbilityCache.cachedSpellID)
-		addonTable.zoneHelperButton:SetScript("PostClick", function()
-			C_Timer.After(0.1, function()
-				if not IsMounted() then
-					RandomMountBuddy:SRM(true)
+		local success, err = pcall(function()
+			-- Check for mount success with polling and timeout
+			local attempts = 0
+			local maxAttempts = 15 -- 1.5 seconds max
+			local function checkMountStatus()
+				attempts = attempts + 1
+				-- Stop checking if mounted, in combat, or timed out
+				if IsMounted() or InCombatLockdown() or attempts > maxAttempts then
+					return
 				end
-			end)
+
+				-- After reasonable delay, try fallback
+				if attempts == 8 then -- After 0.8 seconds
+					if not InCombatLockdown() and not isActionOnCooldown("mountAttempt", 1.0) then
+						if RandomMountBuddy and RandomMountBuddy.SRM then
+							print("RMB_SECURE: Zone ability failed, using fallback mount")
+							RandomMountBuddy:SRM(true)
+						end
+					end
+
+					return
+				end
+
+				-- Continue polling
+				C_Timer.After(0.1, checkMountStatus)
+			end
+
+			-- Start checking after brief delay
+			C_Timer.After(0.1, checkMountStatus)
 		end)
-		-- Return macro that clicks the helper button
-		return "/click RMBZoneHelper"
-	else
-		-- No zone ability, just mount
-		return "/run RMB:SRM(true)"
+		if not success then
+			print("RMB_SECURE: PostClick error:", err)
+		end
+	end
+end
+
+-- Cleanup helper button when no longer needed
+local function cleanupZoneHelperButton()
+	if addonTable.zoneHelperButton then
+		addonTable.zoneHelperButton:Hide()
+		addonTable.zoneHelperButton:SetScript("PostClick", nil)
+		addonTable.zoneHelperButton:SetAttribute("spell", nil)
+		print("RMB_SECURE: Cleaned up zone helper button")
 	end
 end
 
@@ -318,7 +402,6 @@ function addonTable:updateButtonMacros(travelFormName, catFormName, ghostWolfNam
 		local macro = buildFallingMacro(zenFlightName, settings.keepZenFlightActive)
 		self.zenFlightButton:SetAttribute("type", "macro")
 		self.zenFlightButton:SetAttribute("macrotext", macro)
-		print("RMB_SECURE: Set Zen Flight button macro with spell name: " .. zenFlightName)
 	end
 
 	-- Update mage Slow Fall button
@@ -326,7 +409,6 @@ function addonTable:updateButtonMacros(travelFormName, catFormName, ghostWolfNam
 		local macro = buildFallingMacro(slowFallName, false, slowFallTarget)
 		self.slowFallButton:SetAttribute("type", "macro")
 		self.slowFallButton:SetAttribute("macrotext", macro)
-		print("RMB_SECURE: Set Slow Fall button macro with spell name: " .. slowFallName)
 	end
 
 	-- Update priest Levitate button
@@ -334,10 +416,9 @@ function addonTable:updateButtonMacros(travelFormName, catFormName, ghostWolfNam
 		local macro = buildFallingMacro(levitateName, false, levitateTarget)
 		self.levitateButton:SetAttribute("type", "macro")
 		self.levitateButton:SetAttribute("macrotext", macro)
-		print("RMB_SECURE: Set Levitate button macro with spell name: " .. levitateName)
 	end
 
-	-- Update mount button with zone ability awareness
+	-- Update mount button with enhanced zone ability handling
 	if self.mountButton then
 		local macro = buildMountMacro()
 		self.mountButton:SetAttribute("type", "macro")
@@ -349,33 +430,31 @@ function addonTable:updateButtonMacros(travelFormName, catFormName, ghostWolfNam
 		slowFallName, levitateName, settings, slowFallTarget, levitateTarget)
 end
 
--- Helper function to update smart button with zone ability support
+-- Enhanced smart button update with robust zone ability support
 function addonTable:updateSmartButton(travelFormName, catFormName, ghostWolfName, zenFlightName,
 		slowFallName, levitateName, settings, slowFallTarget, levitateTarget)
 	if not self.smartButton or not self.updateFrame then return end
 
-	-- Check for zone abilities first
+	-- Update zone ability cache
 	updateZoneAbilityCache(false)
+	-- Handle zone abilities with robust implementation
 	if zoneAbilityCache.hasZoneAbility and zoneAbilityCache.cachedSpellID then
-		-- Set button to cast zone ability directly
-		self.smartButton:SetAttribute("type", "spell")
-		self.smartButton:SetAttribute("spell", zoneAbilityCache.cachedSpellID)
-		-- Set up PostClick fallback - this runs AFTER the spell attempt
-		self.smartButton:SetScript("PostClick", function(self, button, down)
-			-- Small delay to let the spell attempt complete
-			C_Timer.After(0.1, function()
-				-- If we're not mounted, fall back to regular mount summoning
-				if not IsMounted() then
-					if RandomMountBuddy and RandomMountBuddy.SRM then
-						RandomMountBuddy:SRM(true)
-					end
-				end
-			end)
-		end)
-		return
+		-- Validate the zone ability one more time
+		if validateZoneAbility(zoneAbilityCache.cachedSpellID) then
+			-- Set button to cast zone ability directly
+			self.smartButton:SetAttribute("type", "spell")
+			self.smartButton:SetAttribute("spell", zoneAbilityCache.cachedSpellID)
+			-- Set up robust PostClick fallback
+			self.smartButton:SetScript("PostClick", createPostClickHandler())
+			return
+		else
+			-- Zone ability no longer valid, clear cache
+			zoneAbilityCache.hasZoneAbility = false
+			zoneAbilityCache.cachedSpellID = nil
+		end
 	end
 
-	-- Clear any PostClick script if no zone ability
+	-- Clear PostClick script if no zone ability
 	self.smartButton:SetScript("PostClick", nil)
 	local _, playerClass = UnitClass("player")
 	local isMoving = self.updateFrame.lastMoving
@@ -401,7 +480,7 @@ function addonTable:updateSmartButton(travelFormName, catFormName, ghostWolfName
 	self.smartButton:SetAttribute("macrotext", macro)
 end
 
--- Helper function to build combat macros
+-- Helper function to build combat macros (unchanged from original)
 function addonTable:buildCombatMacros(travelFormName, catFormName, ghostWolfName, zenFlightName,
 		slowFallName, levitateName, settings, slowFallTarget, levitateTarget)
 	-- Build class-specific combat macros
@@ -463,7 +542,7 @@ function addonTable:SetupSecureHandlers()
 	end)
 end
 
--- Helper function to create all secure buttons
+-- Helper function to create all secure buttons (unchanged from original)
 function addonTable:createSecureButtons()
 	local buttons = {}
 	local buttonConfigs = {
@@ -481,7 +560,6 @@ function addonTable:createSecureButtons()
 		button:RegisterForClicks("AnyUp", "AnyDown")
 		if config.name == "mountButton" then
 			button:SetAttribute("type", "macro")
-			-- Use clean interface instead of hardcoded macro
 			local mountMacro = RandomMountBuddy:GetSmartButtonAction()
 			button:SetAttribute("macrotext", mountMacro)
 		end
@@ -492,7 +570,7 @@ function addonTable:createSecureButtons()
 	return buttons
 end
 
--- Optimized visible button creation with zone ability support
+-- Enhanced visible button creation with improved zone ability support
 function addonTable:createVisibleButton()
 	local visibleButton = CreateFrame("Button", "RMBVisibleButton", UIParent)
 	visibleButton:SetSize(1, 1)
@@ -503,55 +581,77 @@ function addonTable:createVisibleButton()
 	-- Optimized drag handlers
 	visibleButton:SetScript("OnDragStart", visibleButton.StartMoving)
 	visibleButton:SetScript("OnDragStop", visibleButton.StopMovingOrSizing)
-	-- Updated click handler with clean module interface
+	-- Enhanced click handler with proper error handling
 	local _, playerClass = UnitClass("player")
 	visibleButton:SetScript("OnClick", function()
-		-- Check for zone abilities first
-		updateZoneAbilityCache(false)
-		if zoneAbilityCache.hasZoneAbility and not InCombatLockdown() then
-			-- Create temporary secure button for zone ability
-			local zoneButton = CreateFrame("Button", "RMBTempZoneButton", UIParent, "SecureActionButtonTemplate")
-			zoneButton:SetAttribute("type", "spell")
-			zoneButton:SetAttribute("spell", zoneAbilityCache.cachedSpellID)
-			zoneButton:Click()
-			zoneButton:Hide()
-			print("RMB_SECURE: Used zone ability " .. zoneAbilityCache.cachedSpellID)
+		-- Prevent spam clicking
+		if isActionOnCooldown("visibleButton", 0.5) then
 			return
 		end
 
-		local isMoving = IsPlayerMoving()
-		local isFalling = addonTable:IsPlayerFalling()
-		local isIndoors = IsIndoors()
-		local inCombat = InCombatLockdown()
-		-- Use lookup table for button selection
-		local buttonActions = {
-			DRUID = function()
-				return (isMoving and getCachedSetting("useTravelFormWhileMoving")) or
-						(isIndoors and getCachedSetting("useSmartFormSwitching"))
-						and not inCombat and addonTable.travelButton
-			end,
-			SHAMAN = function()
-				return ((isMoving or isIndoors) and getCachedSetting("useGhostWolfWhileMoving"))
-						and not inCombat and addonTable.ghostWolfButton
-			end,
-			MONK = function()
-				return ((isMoving or isFalling) and getCachedSetting("useZenFlightWhileMoving"))
-						and not inCombat and addonTable.zenFlightButton
-			end,
-			MAGE = function()
-				return (isFalling and getCachedSetting("useSlowFallWhileFalling"))
-						and addonTable.slowFallButton
-			end,
-			PRIEST = function()
-				return (isFalling and getCachedSetting("useLevitateWhileFalling"))
-						and addonTable.levitateButton
-			end,
-		}
-		local actionFunc = buttonActions[playerClass]
-		local targetButton = actionFunc and actionFunc() or addonTable.mountButton
-		if targetButton then
-			targetButton:Click()
-			print("RMB_SECURE: Clicked " .. (targetButton == addonTable.mountButton and "mount" or "form") .. " button")
+		local success, err = pcall(function()
+			-- Check for zone abilities first
+			updateZoneAbilityCache(false)
+			if zoneAbilityCache.hasZoneAbility and not InCombatLockdown() and
+					validateZoneAbility(zoneAbilityCache.cachedSpellID) then
+				-- Create temporary secure button for zone ability
+				local zoneButton = CreateFrame("Button", "RMBTempZoneButton", UIParent, "SecureActionButtonTemplate")
+				zoneButton:SetAttribute("type", "spell")
+				zoneButton:SetAttribute("spell", zoneAbilityCache.cachedSpellID)
+				zoneButton:Click()
+				-- Clean up and set up fallback
+				C_Timer.After(0.1, function()
+					zoneButton:Hide()
+					-- Check if mount succeeded, fallback if not
+					C_Timer.After(0.3, function()
+						if not IsMounted() and not InCombatLockdown() then
+							if RandomMountBuddy and RandomMountBuddy.SRM then
+								RandomMountBuddy:SRM(true)
+							end
+						end
+					end)
+				end)
+				print("RMB_SECURE: Used zone ability " .. zoneAbilityCache.cachedSpellID)
+				return
+			end
+
+			local isMoving = IsPlayerMoving()
+			local isFalling = addonTable:IsPlayerFalling()
+			local isIndoors = IsIndoors()
+			local inCombat = InCombatLockdown()
+			-- Use lookup table for button selection
+			local buttonActions = {
+				DRUID = function()
+					return (isMoving and getCachedSetting("useTravelFormWhileMoving")) or
+							(isIndoors and getCachedSetting("useSmartFormSwitching"))
+							and not inCombat and addonTable.travelButton
+				end,
+				SHAMAN = function()
+					return ((isMoving or isIndoors) and getCachedSetting("useGhostWolfWhileMoving"))
+							and not inCombat and addonTable.ghostWolfButton
+				end,
+				MONK = function()
+					return ((isMoving or isFalling) and getCachedSetting("useZenFlightWhileMoving"))
+							and not inCombat and addonTable.zenFlightButton
+				end,
+				MAGE = function()
+					return (isFalling and getCachedSetting("useSlowFallWhileFalling"))
+							and addonTable.slowFallButton
+				end,
+				PRIEST = function()
+					return (isFalling and getCachedSetting("useLevitateWhileFalling"))
+							and addonTable.levitateButton
+				end,
+			}
+			local actionFunc = buttonActions[playerClass]
+			local targetButton = actionFunc and actionFunc() or addonTable.mountButton
+			if targetButton then
+				targetButton:Click()
+				print("RMB_SECURE: Clicked " .. (targetButton == addonTable.mountButton and "mount" or "form") .. " button")
+			end
+		end)
+		if not success then
+			print("RMB_SECURE: Visible button click error:", err)
 		end
 	end)
 	-- Tooltip handlers
@@ -566,7 +666,7 @@ function addonTable:createVisibleButton()
 	RandomMountBuddy.visibleButton = visibleButton
 end
 
--- Optimized smart button creation with zone ability support
+-- Enhanced smart button creation with robust zone ability support
 function addonTable:createSmartButton()
 	local smartButton = CreateFrame("Button", "RMBSmartButton", UIParent, "SecureActionButtonTemplate")
 	smartButton:SetSize(1, 1)
@@ -621,13 +721,15 @@ function addonTable:createSmartButton()
 			)
 		end
 	end)
-	-- Combat event handling
+	-- Enhanced combat event handling
 	updateFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 	updateFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 	updateFrame:SetScript("OnEvent", function(self, event)
 		if InCombatLockdown() then return end
 
 		if event == "PLAYER_REGEN_DISABLED" then
+			-- Clear any PostClick handlers during combat
+			smartButton:SetScript("PostClick", nil)
 			smartButton:SetAttribute("type", "macro")
 			smartButton:SetAttribute("macrotext", addonTable.combatMacro or "/run RMB:SRM(true)")
 		elseif event == "PLAYER_REGEN_ENABLED" then
@@ -646,15 +748,22 @@ function addonTable:createSmartButton()
 	RandomMountBuddy.updateFrame = updateFrame
 end
 
--- Setup zone ability event handling
+-- Enhanced zone ability event handling with cleanup
 function addonTable:setupZoneAbilityHandling()
 	local zoneUpdateFrame = CreateFrame("Frame")
 	zoneUpdateFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 	zoneUpdateFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 	zoneUpdateFrame:SetScript("OnEvent", function(self, event)
 		if event == "ZONE_CHANGED_NEW_AREA" then
-			-- Update immediately on zone change to prevent G-99 sticking
+			-- Clean up old zone abilities immediately
+			cleanupZoneHelperButton()
+			-- Update cache and macros
 			updateZoneAbilityCache(true)
+			-- Clean up if no zone ability available
+			if not zoneAbilityCache.hasZoneAbility then
+				cleanupZoneHelperButton()
+			end
+
 			addonTable:UpdateShapeshiftMacros()
 		elseif event == "PLAYER_ENTERING_WORLD" then
 			C_Timer.After(3, function()
@@ -665,7 +774,7 @@ function addonTable:setupZoneAbilityHandling()
 	end)
 end
 
--- FIXED: Use notification system instead of direct hook
+-- Enhanced setting change handler
 function SecureHandlers:OnSettingChanged(key, value)
 	-- Only update for relevant settings
 	local relevantSettings = {
@@ -725,4 +834,4 @@ end
 
 -- Initialize
 addonTable:SetupSecureHandlers()
-print("RMB_DEBUG: SecureHandlers.lua END.")
+print("RMB_DEBUG: SecureHandlers.lua END (Robust Version).")
