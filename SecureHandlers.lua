@@ -206,17 +206,29 @@ end
 local function buildMountMacro()
 	-- Update zone ability cache first
 	updateZoneAbilityCache(false)
-	if zoneAbilityCache.hasZoneAbility then
-		-- Don't use macro for zone abilities - they need direct spell casting
-		return "/run RMB:SRM(true)" -- Fallback to RMB if zone ability button fails
-	else
-		-- Use the clean interface from Core.lua
-		local action = RandomMountBuddy:GetSmartButtonAction()
-		if action then
-			return action
-		else
-			return "/run RMB:SRM(true)" -- Fallback
+	if zoneAbilityCache.hasZoneAbility and zoneAbilityCache.cachedSpellID then
+		-- For mount button, we can't use PostClick, so create a helper button
+		if not addonTable.zoneHelperButton then
+			addonTable.zoneHelperButton = CreateFrame("Button", "RMBZoneHelper", UIParent, "SecureActionButtonTemplate")
+			addonTable.zoneHelperButton:SetSize(1, 1)
+			addonTable.zoneHelperButton:RegisterForClicks("AnyUp", "AnyDown")
 		end
+
+		-- Set up the helper button
+		addonTable.zoneHelperButton:SetAttribute("type", "spell")
+		addonTable.zoneHelperButton:SetAttribute("spell", zoneAbilityCache.cachedSpellID)
+		addonTable.zoneHelperButton:SetScript("PostClick", function()
+			C_Timer.After(0.1, function()
+				if not IsMounted() then
+					RandomMountBuddy:SRM(true)
+				end
+			end)
+		end)
+		-- Return macro that clicks the helper button
+		return "/click RMBZoneHelper"
+	else
+		-- No zone ability, just mount
+		return "/run RMB:SRM(true)"
 	end
 end
 
@@ -344,12 +356,27 @@ function addonTable:updateSmartButton(travelFormName, catFormName, ghostWolfName
 
 	-- Check for zone abilities first
 	updateZoneAbilityCache(false)
-	if zoneAbilityCache.hasZoneAbility then
+	if zoneAbilityCache.hasZoneAbility and zoneAbilityCache.cachedSpellID then
+		-- Set button to cast zone ability directly
 		self.smartButton:SetAttribute("type", "spell")
 		self.smartButton:SetAttribute("spell", zoneAbilityCache.cachedSpellID)
+		-- Set up PostClick fallback - this runs AFTER the spell attempt
+		self.smartButton:SetScript("PostClick", function(self, button, down)
+			-- Small delay to let the spell attempt complete
+			C_Timer.After(0.1, function()
+				-- If we're not mounted, fall back to regular mount summoning
+				if not IsMounted() then
+					if RandomMountBuddy and RandomMountBuddy.SRM then
+						RandomMountBuddy:SRM(true)
+					end
+				end
+			end)
+		end)
 		return
 	end
 
+	-- Clear any PostClick script if no zone ability
+	self.smartButton:SetScript("PostClick", nil)
 	local _, playerClass = UnitClass("player")
 	local isMoving = self.updateFrame.lastMoving
 	local isFalling = self.updateFrame.lastFalling

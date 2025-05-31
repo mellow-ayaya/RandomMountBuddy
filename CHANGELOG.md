@@ -1,3 +1,6 @@
+# 0.8.2
+Fixed not being able to mount in Worldsoul visions in the Undermine.
+
 # 0.8.1
 Attempt to fix rare bug where the addon can't find any mounts in the pool after teleporting.
 
