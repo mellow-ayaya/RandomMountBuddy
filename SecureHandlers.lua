@@ -17,7 +17,7 @@ local G99_ZONES = {
 }
 -- Cache system for zone abilities
 local zoneAbilityCache = {
-	currentLocationID = nil,
+	currentLocationID = -1, -- Use -1 as sentinel instead of nil
 	cachedSpellID = nil,
 	hasZoneAbility = false,
 	lastUpdateTime = 0,
@@ -94,14 +94,14 @@ end
 -- Function to get current location ID for zone ability detection
 local function getCurrentLocationID()
 	local mapInfo = C_Map.GetBestMapForUnit("player")
-	return mapInfo
+	return mapInfo -- Can be nil during teleportation
 end
 
 -- Function to find G-99 ability by location ID
 local function findG99AbilityForLocation()
 	local locationID = getCurrentLocationID()
 	if not locationID then
-		return nil
+		return nil -- Early return if no valid location
 	end
 
 	local spellID = G99_ZONES[locationID]
@@ -125,19 +125,40 @@ local function updateZoneAbilityCache(forceRefresh)
 
 	local currentLocationID = getCurrentLocationID()
 	local currentTime = GetTime()
+	-- If location is nil (during teleportation), clear the cache completely
+	if not currentLocationID then
+		zoneAbilityCache.currentLocationID = -1 -- Use sentinel value instead of nil
+		zoneAbilityCache.cachedSpellID = nil
+		zoneAbilityCache.hasZoneAbility = false
+		zoneAbilityCache.lastUpdateTime = currentTime
+		return
+	end
+
 	-- Only refresh if location changed, forced refresh, or cache is old
 	if not forceRefresh and
 			zoneAbilityCache.currentLocationID == currentLocationID and
+			zoneAbilityCache.currentLocationID ~= -1 and -- Add this check
 			(currentTime - zoneAbilityCache.lastUpdateTime) < 30 then
 		return
 	end
 
 	local zoneAbilitySpellID = findG99AbilityForLocation()
-	-- Update cache
-	zoneAbilityCache.currentLocationID = currentLocationID
+	-- Update cache with valid location ID (never nil)
+	zoneAbilityCache.currentLocationID = currentLocationID -- Now guaranteed to be a number
 	zoneAbilityCache.cachedSpellID = zoneAbilitySpellID
 	zoneAbilityCache.hasZoneAbility = (zoneAbilitySpellID ~= nil)
 	zoneAbilityCache.lastUpdateTime = currentTime
+	-- Additional validation: if we think we have a zone ability, double-check it
+	if zoneAbilityCache.hasZoneAbility and zoneAbilitySpellID then -- Check zoneAbilitySpellID is not nil
+		local spellInfo = C_Spell.GetSpellInfo(zoneAbilitySpellID)  -- Now guaranteed non-nil
+		if not (spellInfo and spellInfo.name and
+					(spellInfo.name:find("G%-99") or spellInfo.name:find("Breakneck"))) then
+			-- Spell is invalid, clear the cache
+			zoneAbilityCache.cachedSpellID = nil
+			zoneAbilityCache.hasZoneAbility = false
+			print("RMB_SECURE: Cleared invalid zone ability cache")
+		end
+	end
 end
 
 -- Function to detect if the player is falling

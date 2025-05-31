@@ -1,3 +1,6 @@
+# 0.8.1
+Attempt to fix rare bug where the addon can't find any mounts in the pool after teleporting.
+
 # 0.8.0
 Finished supergroup and family management implementation:
 Fixed delete confirmation popup not refreshing the supergroup list.
