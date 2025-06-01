@@ -238,6 +238,18 @@ function MountDataManager:ShouldShowTraits(groupKey, groupType)
 	end
 
 	local shouldShow = false
+	-- FIX: Check if this is a separated family first
+	if addon.db and addon.db.profile and addon.db.profile.separatedMounts then
+		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
+			if separationData.familyName == groupKey then
+				shouldShow = true
+				print("RMB_TRAITS: Showing traits for separated family: " .. groupKey)
+				self.cache.groupTypes[cacheKey] = shouldShow
+				return shouldShow
+			end
+		end
+	end
+
 	-- Check if this family originally belonged to a supergroup
 	local mountIDs = addon.processedData.familyToMountIDsMap and
 			addon.processedData.familyToMountIDsMap[groupKey]
@@ -255,8 +267,11 @@ function MountDataManager:ShouldShowTraits(groupKey, groupType)
 					addon.processedData.allUncollectedMountFamilyInfo[mountID]
 		end
 
-		if mountInfo and mountInfo.superGroup then
-			shouldShow = true
+		if mountInfo then
+			-- Check if it has original superGroup OR if it's a separated family
+			if mountInfo.superGroup then
+				shouldShow = true
+			end
 		end
 	end
 

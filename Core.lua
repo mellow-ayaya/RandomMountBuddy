@@ -50,10 +50,12 @@ local dbDefaults = {
 		favoriteSync_syncSuperGroupWeights = true,
 		favoriteSync_favoriteWeightMode = "set",
 		favoriteSync_lastSyncTime = 0,
-		-- Supergroup customization (ADD THESE LINES)
+		-- Supergroup customization
 		superGroupOverrides = {}, -- { ["FamilyName"] = "SuperGroupName" or false or nil }
 		superGroupDefinitions = {}, -- { ["SGName"] = { displayName="...", isCustom=true/false, isRenamed=true/false } }
 		deletedSuperGroups = {},  -- { ["SGName"] = true }
+		-- Mount customization
+		separatedMounts = {},     -- { [mountID] = { familyName="Separated_Mount_123", customTraits={}, originalFamily="Dragons" } }
 	},
 }
 print("RMB_DEBUG: Core.lua START (Enhanced Uncollected). Addon Name: " ..
@@ -301,6 +303,7 @@ function addon:InitializeProcessedData()
 	print("RMB_DEBUG_DATA: Init COMPLETE.")
 	self.RMB_DataReadyForUI = true
 	print("RMB_DEBUG_DATA: Set RMB_DataReadyForUI to true.")
+	self:ProcessSeparatedMounts()
 	-- Rebuild mount grouping for trait-based filtering
 	self:RebuildMountGrouping()
 	-- Handle supergroup data migration for addon updates
@@ -311,6 +314,167 @@ function addon:InitializeProcessedData()
 	if self.PopulateFamilyManagementUI then
 		self:PopulateFamilyManagementUI()
 	end
+end
+
+function addon:ProcessSeparatedMounts()
+	if not (self.db and self.db.profile and self.db.profile.separatedMounts) then
+		return
+	end
+
+	local separationCount = self:CountTableEntries(self.db.profile.separatedMounts)
+	if separationCount == 0 then
+		return
+	end
+
+	print("RMB_SEPARATION: Processing " .. separationCount .. " separated mounts")
+	-- First pass: Remove all separated mounts from their original families
+	for mountID, separationData in pairs(self.db.profile.separatedMounts) do
+		local mountIDNum = tonumber(mountID)
+		if mountIDNum then
+			local originalFamilyName = separationData.originalFamily
+			-- Remove from original family (collected)
+			if originalFamilyName and self.processedData.familyToMountIDsMap[originalFamilyName] then
+				for i = #self.processedData.familyToMountIDsMap[originalFamilyName], 1, -1 do
+					if self.processedData.familyToMountIDsMap[originalFamilyName][i] == mountIDNum then
+						table.remove(self.processedData.familyToMountIDsMap[originalFamilyName], i)
+						print("RMB_SEPARATION: Removed collected mount " ..
+							mountIDNum .. " from original family " .. originalFamilyName)
+						break -- Important: break after removing to avoid processing the same mount multiple times
+					end
+				end
+
+				-- Clean up empty family
+				if #self.processedData.familyToMountIDsMap[originalFamilyName] == 0 then
+					self.processedData.familyToMountIDsMap[originalFamilyName] = nil
+					print("RMB_SEPARATION: Cleaned up empty collected family: " .. originalFamilyName)
+				end
+			end
+
+			-- Remove from original family (uncollected)
+			if originalFamilyName and self.processedData.familyToUncollectedMountIDsMap[originalFamilyName] then
+				for i = #self.processedData.familyToUncollectedMountIDsMap[originalFamilyName], 1, -1 do
+					if self.processedData.familyToUncollectedMountIDsMap[originalFamilyName][i] == mountIDNum then
+						table.remove(self.processedData.familyToUncollectedMountIDsMap[originalFamilyName], i)
+						print("RMB_SEPARATION: Removed uncollected mount " ..
+							mountIDNum .. " from original family " .. originalFamilyName)
+						break
+					end
+				end
+
+				-- Clean up empty family
+				if #self.processedData.familyToUncollectedMountIDsMap[originalFamilyName] == 0 then
+					self.processedData.familyToUncollectedMountIDsMap[originalFamilyName] = nil
+					print("RMB_SEPARATION: Cleaned up empty uncollected family: " .. originalFamilyName)
+				end
+			end
+
+			-- Remove from supergroup mappings
+			if self.processedData.superGroupToMountIDsMap then
+				for sgName, mountIds in pairs(self.processedData.superGroupToMountIDsMap) do
+					for i = #mountIds, 1, -1 do
+						if mountIds[i] == mountIDNum then
+							table.remove(mountIds, i)
+							break
+						end
+					end
+				end
+			end
+
+			if self.processedData.superGroupToUncollectedMountIDsMap then
+				for sgName, mountIds in pairs(self.processedData.superGroupToUncollectedMountIDsMap) do
+					for i = #mountIds, 1, -1 do
+						if mountIds[i] == mountIDNum then
+							table.remove(mountIds, i)
+							break
+						end
+					end
+				end
+			end
+		end
+	end
+
+	-- Second pass: Create new families for separated mounts
+	for mountID, separationData in pairs(self.db.profile.separatedMounts) do
+		local mountIDNum = tonumber(mountID)
+		if mountIDNum then
+			local newFamilyName = separationData.familyName
+			-- Determine if mount is collected or uncollected
+			local isCollected = self.processedData.allCollectedMountFamilyInfo[mountIDNum] ~= nil
+			if isCollected then
+				-- Create new collected family (ensure it doesn't already exist)
+				if not self.processedData.familyToMountIDsMap[newFamilyName] then
+					self.processedData.familyToMountIDsMap[newFamilyName] = {}
+				end
+
+				-- Only add if not already present (avoid duplicates)
+				local alreadyExists = false
+				for _, existingMountID in ipairs(self.processedData.familyToMountIDsMap[newFamilyName]) do
+					if existingMountID == mountIDNum then
+						alreadyExists = true
+						break
+					end
+				end
+
+				if not alreadyExists then
+					table.insert(self.processedData.familyToMountIDsMap[newFamilyName], mountIDNum)
+					print("RMB_SEPARATION: Added collected mount " .. mountIDNum .. " to new family " .. newFamilyName)
+				end
+
+				-- Update mount info
+				if self.processedData.allCollectedMountFamilyInfo[mountIDNum] then
+					self.processedData.allCollectedMountFamilyInfo[mountIDNum].familyName = newFamilyName
+					self.processedData.allCollectedMountFamilyInfo[mountIDNum].superGroup = nil -- Start as standalone
+					-- Apply preserved original traits if no custom traits are set
+					if separationData.originalTraits and not (separationData.customTraits and next(separationData.customTraits)) then
+						self.processedData.allCollectedMountFamilyInfo[mountIDNum].traits = separationData.originalTraits
+						print("RMB_SEPARATION: Applied original traits to separated collected mount " .. mountIDNum)
+					elseif separationData.customTraits and next(separationData.customTraits) then
+						self.processedData.allCollectedMountFamilyInfo[mountIDNum].traits = separationData.customTraits
+						print("RMB_SEPARATION: Applied custom traits to separated collected mount " .. mountIDNum)
+					end
+				end
+			else
+				-- Create new uncollected family
+				if not self.processedData.familyToUncollectedMountIDsMap[newFamilyName] then
+					self.processedData.familyToUncollectedMountIDsMap[newFamilyName] = {}
+				end
+
+				-- Only add if not already present
+				local alreadyExists = false
+				for _, existingMountID in ipairs(self.processedData.familyToUncollectedMountIDsMap[newFamilyName]) do
+					if existingMountID == mountIDNum then
+						alreadyExists = true
+						break
+					end
+				end
+
+				if not alreadyExists then
+					table.insert(self.processedData.familyToUncollectedMountIDsMap[newFamilyName], mountIDNum)
+					print("RMB_SEPARATION: Added uncollected mount " .. mountIDNum .. " to new family " .. newFamilyName)
+				end
+
+				-- Update mount info
+				if self.processedData.allUncollectedMountFamilyInfo[mountIDNum] then
+					self.processedData.allUncollectedMountFamilyInfo[mountIDNum].familyName = newFamilyName
+					self.processedData.allUncollectedMountFamilyInfo[mountIDNum].superGroup = nil
+					-- Apply preserved original traits if no custom traits are set
+					if separationData.originalTraits and not (separationData.customTraits and next(separationData.customTraits)) then
+						self.processedData.allUncollectedMountFamilyInfo[mountIDNum].traits = separationData.originalTraits
+						print("RMB_SEPARATION: Applied original traits to separated uncollected mount " .. mountIDNum)
+					elseif separationData.customTraits and next(separationData.customTraits) then
+						self.processedData.allUncollectedMountFamilyInfo[mountIDNum].traits = separationData.customTraits
+						print("RMB_SEPARATION: Applied custom traits to separated uncollected mount " .. mountIDNum)
+					end
+				end
+			end
+
+			-- Add to standalone families
+			self.processedData.standaloneFamilyNames[newFamilyName] = true
+			print("RMB_SEPARATION: Added " .. newFamilyName .. " to standalone families")
+		end
+	end
+
+	print("RMB_SEPARATION: Separation processing completed")
 end
 
 -- ============================================================================
@@ -456,6 +620,10 @@ function addon:InitializeAllMountModules()
 		self:InitializeMountSummon()
 	end
 
+	if self.InitializeMountSeparationManager then
+		self:InitializeMountSeparationManager()
+	end
+
 	if self.InitializeFavoriteSync then
 		self:InitializeFavoriteSync()
 	end
@@ -464,6 +632,11 @@ function addon:InitializeAllMountModules()
 	if self.InitializeSuperGroupManager then
 		self:InitializeSuperGroupManager()
 		print("RMB_DEBUG: SuperGroupManager initialized in proper order")
+	end
+
+	if self.InitializeMountSeparationManager then
+		self:InitializeMountSeparationManager()
+		print("RMB_DEBUG: MountSeparationManager initialized in proper order")
 	end
 
 	-- UI components come last as they depend on everything else
@@ -572,6 +745,17 @@ function addon:RebuildMountGrouping()
 	-- Create temporary tables for the new organization
 	local newSuperGroupMap = {}
 	local newStandaloneFamilies = {}
+	-- FIX: First, preserve all separated families as standalone
+	if self.db and self.db.profile and self.db.profile.separatedMounts then
+		for mountID, separationData in pairs(self.db.profile.separatedMounts) do
+			local newFamilyName = separationData.familyName
+			if newFamilyName then
+				newStandaloneFamilies[newFamilyName] = true
+				print("RMB_DYNAMIC: Preserving separated family: " .. newFamilyName)
+			end
+		end
+	end
+
 	-- Get trait settings
 	local treatMinorArmorAsDistinct = self:GetSetting("treatMinorArmorAsDistinct")
 	local treatMajorArmorAsDistinct = self:GetSetting("treatMajorArmorAsDistinct")
@@ -594,6 +778,13 @@ function addon:RebuildMountGrouping()
 		end
 	end
 
+	-- FIX: Include separated families
+	if self.db and self.db.profile and self.db.profile.separatedMounts then
+		for mountID, separationData in pairs(self.db.profile.separatedMounts) do
+			allFamilies[separationData.familyName] = true
+		end
+	end
+
 	-- Check each family using effective traits
 	for familyName, _ in pairs(allFamilies) do
 		local effectiveTraits = self:GetEffectiveTraits(familyName)
@@ -602,6 +793,51 @@ function addon:RebuildMountGrouping()
 				(treatModelVariantsAsDistinct and effectiveTraits.hasModelVariant) or
 				(treatUniqueEffectsAsDistinct and effectiveTraits.isUniqueEffect) then
 			familiesWithDistinguishingTraits[familyName] = true
+			-- FIX: Add debug for separated families
+			if self.db and self.db.profile and self.db.profile.separatedMounts then
+				for mountID, separationData in pairs(self.db.profile.separatedMounts) do
+					if separationData.familyName == familyName then
+						print("RMB_DYNAMIC: Separated family '" ..
+							familyName .. "' has distinguishing traits, will remain standalone")
+						break
+					end
+				end
+			end
+		end
+	end
+
+	if self.processedData.allUncollectedMountFamilyInfo then
+		for mountID, mountInfo in pairs(self.processedData.allUncollectedMountFamilyInfo) do
+			allFamilies[mountInfo.familyName] = true
+		end
+	end
+
+	-- FIX: Also include families from standaloneFamilyNames (including separated families)
+	if self.processedData.standaloneFamilyNames then
+		for familyName, _ in pairs(self.processedData.standaloneFamilyNames) do
+			allFamilies[familyName] = true
+		end
+	end
+
+	-- Check each family using effective traits
+	for familyName, _ in pairs(allFamilies) do
+		local effectiveTraits = self:GetEffectiveTraits(familyName)
+		if (treatMinorArmorAsDistinct and effectiveTraits.hasMinorArmor) or
+				(treatMajorArmorAsDistinct and effectiveTraits.hasMajorArmor) or
+				(treatModelVariantsAsDistinct and effectiveTraits.hasModelVariant) or
+				(treatUniqueEffectsAsDistinct and effectiveTraits.isUniqueEffect) then
+			familiesWithDistinguishingTraits[familyName] = true
+		end
+
+		-- FIX: Separated families should always be standalone regardless of traits
+		if self.db and self.db.profile and self.db.profile.separatedMounts then
+			for mountID, separationData in pairs(self.db.profile.separatedMounts) do
+				if separationData.familyName == familyName then
+					-- Force separated families to be standalone
+					newStandaloneFamilies[familyName] = true
+					break
+				end
+			end
 		end
 	end
 
@@ -1089,12 +1325,24 @@ function addon:GetMountFamilyFromMountKey(mountKey)
 	-- Find which family this mount belongs to
 	if self.processedData.allCollectedMountFamilyInfo and
 			self.processedData.allCollectedMountFamilyInfo[mountID] then
-		return self.processedData.allCollectedMountFamilyInfo[mountID].familyName
+		local familyName = self.processedData.allCollectedMountFamilyInfo[mountID].familyName
+		-- Debug output for separated mounts
+		if self.db and self.db.profile and self.db.profile.separatedMounts and self.db.profile.separatedMounts[mountID] then
+			print("RMB_SYNC_DEBUG: Found separated mount " .. mountID .. " in family '" .. familyName .. "'")
+		end
+
+		return familyName
 	end
 
 	if self.processedData.allUncollectedMountFamilyInfo and
 			self.processedData.allUncollectedMountFamilyInfo[mountID] then
-		return self.processedData.allUncollectedMountFamilyInfo[mountID].familyName
+		local familyName = self.processedData.allUncollectedMountFamilyInfo[mountID].familyName
+		-- Debug output for separated mounts
+		if self.db and self.db.profile and self.db.profile.separatedMounts and self.db.profile.separatedMounts[mountID] then
+			print("RMB_SYNC_DEBUG: Found separated uncollected mount " .. mountID .. " in family '" .. familyName .. "'")
+		end
+
+		return familyName
 	end
 
 	return nil
@@ -1143,8 +1391,17 @@ function addon:SyncWeightForSingleMountFamily(groupKey, weight)
 			if currentMountWeight ~= weight then
 				self.db.profile.groupWeights[mountKey] = weight
 				print("RMB_SYNC: Family '" .. groupKey .. "' synced weight " .. weight .. " to mount '" .. mountKey .. "'")
+				-- FIX: Add debug for separated mounts
+				if self.db and self.db.profile and self.db.profile.separatedMounts and self.db.profile.separatedMounts[mountID] then
+					print("RMB_SYNC: ^^^ This was a separated mount sync")
+				end
+
 				refreshNeeded = true
 			end
+		else
+			-- Debug why sync didn't happen
+			print("RMB_SYNC_DEBUG: Family '" ..
+				groupKey .. "' - isSingleMount: " .. tostring(isSingleMount) .. ", mountID: " .. tostring(mountID))
 		end
 	else
 		-- Case 2: Mount weight changed, sync to family (if it's a single-mount family)
@@ -1160,10 +1417,23 @@ function addon:SyncWeightForSingleMountFamily(groupKey, weight)
 					if currentFamilyWeight ~= weight then
 						self.db.profile.groupWeights[familyName] = weight
 						print("RMB_SYNC: Mount '" .. groupKey .. "' synced weight " .. weight .. " to family '" .. familyName .. "'")
+						-- FIX: Add debug for separated mounts
+						if self.db and self.db.profile and self.db.profile.separatedMounts and self.db.profile.separatedMounts[currentMountID] then
+							print("RMB_SYNC: ^^^ This was a separated mount family sync")
+						end
+
 						refreshNeeded = true
 					end
 				end
+			else
+				-- Debug why sync didn't happen
+				print("RMB_SYNC_DEBUG: Mount '" ..
+					groupKey ..
+					"' family '" ..
+					familyName .. "' - isSingleMount: " .. tostring(isSingleMount) .. ", mountID: " .. tostring(mountID))
 			end
+		else
+			print("RMB_SYNC_DEBUG: Could not find family for mount '" .. groupKey .. "'")
 		end
 	end
 
@@ -1936,6 +2206,21 @@ function addon:GetOriginalTraits(familyName)
 	if not familyName then return {} end
 
 	local originalTraits = {}
+	-- FIX: Check if this is a separated family first
+	if self.db and self.db.profile and self.db.profile.separatedMounts then
+		for mountID, separationData in pairs(self.db.profile.separatedMounts) do
+			if separationData.familyName == familyName then
+				-- Return the preserved original traits
+				if separationData.originalTraits then
+					return separationData.originalTraits
+				end
+
+				break
+			end
+		end
+	end
+
+	-- Fall back to getting traits from mount data
 	local mountIDs = self.processedData.familyToMountIDsMap and
 			self.processedData.familyToMountIDsMap[familyName]
 	if not mountIDs or #mountIDs == 0 then
@@ -2343,6 +2628,12 @@ function addon:NotifyModulesDataReady()
 			self.SuperGroupManager:PopulateFamilyAssignmentUI()
 			print("RMB_DEBUG: SuperGroup Manager UI refreshed")
 		end)
+	end
+
+	-- Refresh MountSeparationManager UI when data is ready
+	if self.MountSeparationManager and self.MountSeparationManager.OnDataReady then
+		self.MountSeparationManager:OnDataReady()
+		print("RMB_DEBUG: Notified MountSeparationManager")
 	end
 
 	-- Also notify about mount collection changes

@@ -1,3 +1,6 @@
+# 0.8.4
+Added option to separate mount from family.
+
 # 0.8.3
 Fixed summon logic on pressing the keybind: dismount if mounted, mount if dismounted (as opposed to dismount+mount in one press regardless).
 Another attempt to fix the rare bug described in 0.8.1.

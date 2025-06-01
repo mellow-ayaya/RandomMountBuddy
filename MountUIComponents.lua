@@ -1091,7 +1091,7 @@ function MountUIComponents:CreateSmartPaginationControls(currentPage, totalPages
 	local paginationArgs = {}
 	local buttonOrder = 1
 	local pageButtonWidth = 0.15
-	local maxButtons = 25
+	local maxButtons = 23
 	-- Add centering spacer if we have fewer than maxButtons pages
 	if totalPages < maxButtons then
 		local missingPages = maxButtons - totalPages
@@ -1147,7 +1147,7 @@ end
 
 -- Calculate which page numbers to show in navigation
 function MountUIComponents:CalculatePageRange(currentPage, totalPages)
-	local maxButtons = 25 -- Maximum page buttons to show
+	local maxButtons = 23 -- Maximum page buttons to show
 	local range = {}
 	if totalPages <= maxButtons then
 		-- Show all pages if total is small

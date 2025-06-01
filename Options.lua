@@ -1265,4 +1265,49 @@ StaticPopupDialogs["RMB_RESET_CUSTOM_CONFIRM"] = {
 	hideOnEscape = true,
 	preferredIndex = 3,
 }
+-- Mount Separation Page
+local mountSeparation_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_MountSeparation"
+local mountSeparation_DisplayName = "Mount Separation"
+local initialMountSeparationArgs = {
+	header = {
+		order = 1,
+		type = "header",
+		name = "Mount Separation Management",
+	},
+	desc = {
+		order = 2,
+		type = "description",
+		name = "Separate individual mounts from their families to create custom single-mount families.",
+		fontSize = "medium",
+	},
+	loading_placeholder = {
+		order = 3,
+		type = "description",
+		name = "Loading mount separation data...",
+	},
+}
+addon.separationArgsRef = initialMountSeparationArgs
+local mountSeparationOptionsTable = {
+	name = mountSeparation_DisplayName,
+	handler = addon,
+	type = "group",
+	order = 8,
+	args = initialMountSeparationArgs,
+}
+LibAceConfig:RegisterOptionsTable(mountSeparation_InternalName, mountSeparationOptionsTable)
+local separationPanel, separationCatID = LibAceConfigDialog:AddToBlizOptions(
+	mountSeparation_InternalName,
+	mountSeparation_DisplayName,
+	actualParentCategoryKey
+)
+if separationPanel then
+	addon.optionsPanel_MountSeparation = {
+		frame = separationPanel,
+		id = separationCatID or separationPanel.name,
+	}
+	print("RMB_OPTIONS: Registered '" .. mountSeparation_DisplayName .. "' page.")
+else
+	print("RMB_OPTIONS_ERROR: FAILED Mount Separation AddToBliz.")
+end
+
 print("RMB_OPTIONS: Options.lua END - All sub-categories registration completed.")
