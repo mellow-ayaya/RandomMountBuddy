@@ -1,3 +1,7 @@
+# 0.8.5
+Improved Pagination for Family Assignments menu.
+Improved Family assignments logic to prevent user assigned families from getting stuck in supergroups when they should in fact be separated via the traits/strictness toggles.
+
 # 0.8.4
 Added option to separate mount from family.
 

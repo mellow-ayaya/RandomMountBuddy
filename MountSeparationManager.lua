@@ -102,6 +102,15 @@ function MountSeparationManager:SeparateMount(mountID, customName)
 	addon.lastProcessingEventName = "mount_separation"
 	addon:InitializeProcessedData()
 	addon.lastProcessingEventName = nil
+	-- ENHANCED: Notify SuperGroupManager of the change
+	if addon.SuperGroupManager then
+		print("RMB_SEPARATION: Notifying SuperGroupManager of separation")
+		-- Use a brief delay to ensure data processing is complete
+		C_Timer.After(0.1, function()
+			addon.SuperGroupManager:RefreshAllUIs()
+		end)
+	end
+
 	return true, "Mount separated successfully into family: " .. newFamilyName
 end
 
@@ -113,6 +122,19 @@ function MountSeparationManager:ReuniteSeparatedMount(mountID)
 
 	local separationData = addon.db.profile.separatedMounts[mountID]
 	local originalFamily = separationData.originalFamily
+	local separatedFamilyName = separationData.familyName
+	-- ENHANCED: Clear any supergroup assignments for the separated family
+	if addon.db.profile.superGroupOverrides and addon.db.profile.superGroupOverrides[separatedFamilyName] then
+		print("RMB_SEPARATION: Clearing supergroup override for reunited family: " .. separatedFamilyName)
+		addon.db.profile.superGroupOverrides[separatedFamilyName] = nil
+	end
+
+	-- ENHANCED: Clear weight settings for the separated family (keep mount weight)
+	if addon.db.profile.groupWeights and addon.db.profile.groupWeights[separatedFamilyName] then
+		print("RMB_SEPARATION: Clearing weight for separated family: " .. separatedFamilyName)
+		addon.db.profile.groupWeights[separatedFamilyName] = nil
+	end
+
 	-- Remove separation data
 	addon.db.profile.separatedMounts[mountID] = nil
 	-- Clean up empty table if needed
@@ -125,7 +147,52 @@ function MountSeparationManager:ReuniteSeparatedMount(mountID)
 	addon.lastProcessingEventName = "mount_reunification"
 	addon:InitializeProcessedData()
 	addon.lastProcessingEventName = nil
+	-- ENHANCED: Notify SuperGroupManager of the change
+	if addon.SuperGroupManager then
+		print("RMB_SEPARATION: Notifying SuperGroupManager of reunification")
+		-- Use a brief delay to ensure data processing is complete
+		C_Timer.After(0.1, function()
+			addon.SuperGroupManager:RefreshAllUIs()
+		end)
+	end
+
 	return true, "Mount reunited with original family: " .. originalFamily
+end
+
+-- ENHANCED: Add helper method to check if a family is from a separated mount
+function MountSeparationManager:IsSeparatedFamily(familyName)
+	if not (addon.db and addon.db.profile and addon.db.profile.separatedMounts) then
+		return false, nil
+	end
+
+	for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
+		if separationData.familyName == familyName then
+			return true, tonumber(mountID)
+		end
+	end
+
+	return false, nil
+end
+
+-- ENHANCED: Add method to get separated family info for SuperGroupManager
+function MountSeparationManager:GetSeparatedFamilyInfo(familyName)
+	local isSeparated, mountID = self:IsSeparatedFamily(familyName)
+	if not isSeparated then
+		return nil
+	end
+
+	local separationData = addon.db.profile.separatedMounts[tostring(mountID)]
+	if not separationData then
+		return nil
+	end
+
+	return {
+		mountID = mountID,
+		originalFamily = separationData.originalFamily,
+		separatedAt = separationData.separatedAt,
+		originalTraits = separationData.originalTraits,
+		customTraits = separationData.customTraits,
+	}
 end
 
 -- Get all separable mounts (mounts in families with more than 1 mount)
@@ -336,14 +403,14 @@ function MountSeparationManager:CreateSeparationPaginationControls(currentPage, 
 				width = 0.1,
 			}
 		else
-			-- Add page number button - THIS IS THE KEY CHANGE
+			-- Add page number button - FIXED: Explicitly convert pageNum to string
 			local isCurrentPage = (pageNum == currentPage)
 			paginationArgs["page_" .. pageNum] = {
 				order = buttonOrder,
 				type = "execute",
-				name = isCurrentPage and ("|cffffd700" .. pageNum .. "|r") or tostring(pageNum),
-				desc = isCurrentPage and "Current page" or ("Go to page " .. pageNum),
-				func = function() self:GoToPage(pageNum) end, -- Uses OUR GoToPage function
+				name = isCurrentPage and ("|cffffd700" .. tostring(pageNum) .. "|r") or tostring(pageNum),
+				desc = isCurrentPage and "Current page" or "", -- FIXED: Use empty string instead of concatenation
+				func = function() self:GoToPage(pageNum) end,
 				width = pageButtonWidth,
 				image = "Interface\\AddOns\\RandomMountBuddy\\Media\\Empty",
 				imageWidth = 1,

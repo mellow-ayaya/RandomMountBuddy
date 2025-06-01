@@ -372,6 +372,57 @@ function SuperGroupManager:PopulateSuperGroupManagementUI()
 	print(string.format("RMB_SUPERGROUP: UI build took %.2fms", endTime - startTime))
 end
 
+-- Add the page range calculation function (same as MountSeparationManager)
+function SuperGroupManager:CalculatePageRange(currentPage, totalPages)
+	local maxButtons = 23 -- Maximum page buttons to show
+	local range = {}
+	if totalPages <= maxButtons then
+		-- Show all pages if total is small
+		for i = 1, totalPages do
+			table.insert(range, i)
+		end
+	else
+		-- Smart range calculation for larger page counts
+		local halfRange = math.floor((maxButtons - 3) / 2) -- Reserve space for 1, ..., last
+		-- Always show page 1
+		table.insert(range, 1)
+		-- Calculate start and end of middle range
+		local rangeStart = math.max(2, currentPage - halfRange)
+		local rangeEnd = math.min(totalPages - 1, currentPage + halfRange)
+		-- Adjust range if it's too close to beginning or end
+		if rangeStart <= 3 then
+			rangeEnd = math.min(totalPages - 1, maxButtons - 1)
+			rangeStart = 2
+		elseif rangeEnd >= totalPages - 2 then
+			rangeStart = math.max(2, totalPages - maxButtons + 2)
+			rangeEnd = totalPages - 1
+		end
+
+		-- Add ellipsis before middle range if needed
+		if rangeStart > 2 then
+			table.insert(range, "...")
+		end
+
+		-- Add middle range
+		for i = rangeStart, rangeEnd do
+			table.insert(range, i)
+		end
+
+		-- Add ellipsis after middle range if needed
+		if rangeEnd < totalPages - 1 then
+			table.insert(range, "...")
+		end
+
+		-- Always show last page (if different from first)
+		if totalPages > 1 then
+			table.insert(range, totalPages)
+		end
+	end
+
+	return range
+end
+
+-- ENHANCED: Update PopulateFamilyAssignmentUI to validate compatibility
 function SuperGroupManager:PopulateFamilyAssignmentUI()
 	print("RMB_SUPERGROUP: PopulateFamilyAssignmentUI called")
 	if not addon.sgFamilyArgsRef then
@@ -380,6 +431,15 @@ function SuperGroupManager:PopulateFamilyAssignmentUI()
 	end
 
 	local startTime = debugprofilestop()
+	-- ENHANCED: Validate separated family compatibility before building UI
+	if addon.db and addon.db.profile and addon.db.profile.separatedMounts then
+		local separatedCount = addon:CountTableEntries(addon.db.profile.separatedMounts)
+		if separatedCount > 0 then
+			print("RMB_SUPERGROUP: Validating compatibility with " .. separatedCount .. " separated families")
+			self:ValidateSeparatedFamilyIntegrity()
+		end
+	end
+
 	-- Build new UI arguments
 	local newArgs = self:BuildFamilyAssignmentArgs()
 	-- Update the options table
@@ -390,7 +450,7 @@ function SuperGroupManager:PopulateFamilyAssignmentUI()
 
 	-- Notify AceConfig of changes
 	if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then
-		LibStub("AceConfigRegistry-3.0"):NotifyChange(addonName)
+		LibStub("AceConfigRegistry-3.0"):NotifyChange("RandomMountBuddy")
 	end
 
 	local endTime = debugprofilestop()
@@ -750,7 +810,7 @@ function SuperGroupManager:BuildFamilyAssignmentArgs()
 		end
 	end
 
-	-- Pagination
+	-- FIXED: Use same pagination style as MountSeparationManager
 	local itemsPerPage = 20
 	local totalItems = #filteredFamilies
 	local totalPages = math.max(1, math.ceil(totalItems / itemsPerPage))
@@ -768,7 +828,7 @@ function SuperGroupManager:BuildFamilyAssignmentArgs()
 		order = order + 1
 	end
 
-	-- Legend/Help section
+	-- Enhanced Legend/Help section
 	args.legend_header = {
 		order = order,
 		type = "header",
@@ -779,177 +839,265 @@ function SuperGroupManager:BuildFamilyAssignmentArgs()
 		order = order,
 		type = "description",
 		name = "|cffffd700*|r = User Override Active (you've manually changed this assignment)\n" ..
-				"|cffff9900⚡|r = Separated by Trait Settings (would normally be in supergroup, but your distinctness settings separate it)\n" ..
-				"|cff888888Note: Families separated by trait settings show their conceptual supergroup. Assigning them will override the separation.|r",
+				"|cffff9900⚡|r = Separated by Trait Settings (intended supergroup overridden by trait strictness)\n" ..
+				"|cff1eff00[M]|r = Single Mount Family  |cff0070dd[F]|r = Multi Mount Family\n\n" ..
+				"|cff00ff00How it works:|r Assignments set your intended supergroup structure. Trait strictness settings can still separate families with distinguishing traits from their intended supergroups.\n" ..
+				"|cff888888Example: Assign a unique-effect family to 'Dragons' supergroup. If 'Unique Effects as Distinct' is enabled, it will show as assigned to Dragons but remain separated.|r",
 		fontSize = "medium",
 		width = "full",
 	}
 	order = order + 1
-	-- Family entries
+	-- Family entries header
 	args.family_header = {
 		order = order,
 		type = "header",
 		name = "Family Assignments (Showing " .. math.min(itemsPerPage, totalItems) .. " of " .. totalItems .. ")",
 	}
 	order = order + 1
+	-- ENHANCED: Add column headers for better organization
+	if totalItems > 0 then
+		args.column_headers = {
+			order = order,
+			type = "group",
+			inline = true,
+			name = "",
+			width = "full",
+			args = {
+				previewHeader = {
+					order = 1,
+					type = "description",
+					name = "  |cffffd700Preview|r",
+					width = 0.3,
+				},
+				familyHeader = {
+					order = 2,
+					type = "description",
+					name = "   |cffffd700Family Name|r",
+					width = 1.5,
+				},
+				assignmentHeader = {
+					order = 3,
+					type = "description",
+					name = "   |cffffd700Supergroup Assignment|r",
+					width = 1.0,
+				},
+			},
+		}
+		order = order + 1
+	end
+
+	-- Build family entries for current page
 	for i = startIndex, endIndex do
 		local familyInfo = filteredFamilies[i]
 		if familyInfo then
 			local keyBase = "family_" .. familyInfo.familyName:gsub("[^%w]", "_")
-			-- Family name and info with enhanced status indicators
-			args[keyBase .. "_name"] = {
+			-- ENHANCED: Create comprehensive family entry
+			args[keyBase .. "_entry"] = {
 				order = order,
-				type = "description",
-				name = function()
-					local indicator = (familyInfo.totalCount == 1) and "|cff1eff00[M]|r" or "|cff0070dd[F]|r"
-					local countText = "(" .. familyInfo.collectedCount
-					if familyInfo.uncollectedCount > 0 then
-						countText = countText .. " + |cff9d9d9d" .. familyInfo.uncollectedCount .. "|r"
-					end
-
-					countText = countText .. ")"
-					-- Status indicators
-					local statusIndicators = {}
-					if familyInfo.hasUserOverride then
-						table.insert(statusIndicators, "|cffffd700*|r") -- User override
-					end
-
-					if familyInfo.isSeparatedByStrictness then
-						table.insert(statusIndicators, "|cffff9900⚡|r") -- Separated by strictness
-					end
-
-					local statusText = #statusIndicators > 0 and (" " .. table.concat(statusIndicators, "")) or ""
-					return indicator .. " " .. familyInfo.familyName .. " " .. countText .. statusText
-				end,
-				width = 1.5,
-			}
-			-- Enhanced supergroup assignment dropdown
-			args[keyBase .. "_assign"] = {
-				order = order + 0.1,
-				type = "select",
+				type = "group",
+				inline = true,
 				name = "",
-				desc = function()
-					local baseDesc = "Assign to supergroup\n"
-					local statusLines = {}
-					if familyInfo.hasUserOverride then
-						table.insert(statusLines, "|cffffd700* User Override Active|r")
-					end
-
-					if familyInfo.isSeparatedByStrictness then
-						table.insert(statusLines,
-							"|cffff9900⚡ " .. (familyInfo.separationReason or "Separated by trait settings") .. "|r")
-						table.insert(statusLines,
-							"|cff888888Currently showing conceptual supergroup. Assignment will override separation.|r")
-					end
-
-					if familyInfo.originalSuperGroup and familyInfo.originalSuperGroup ~= familyInfo.displaySuperGroup then
-						table.insert(statusLines, "|cff888888Originally: " .. familyInfo.originalSuperGroup .. "|r")
-					end
-
-					return baseDesc .. (#statusLines > 0 and ("\n" .. table.concat(statusLines, "\n")) or "")
-				end,
-				values = function() return self:GetAvailableSuperGroups() end,
-				get = function()
-					-- Convert actual supergroup to prefixed key for display
-					local actualSG = familyInfo.displaySuperGroup or "<Standalone>"
-					-- Find the matching prefixed key
-					local availableSGs = self:GetAvailableSuperGroups()
-					for prefixedKey, displayName in pairs(availableSGs) do
-						-- Extract the actual supergroup name from the prefixed key
-						local extractedSG = prefixedKey:match("^%d+_%d*_?(.+)$") or prefixedKey:match("^%d+_(.+)$")
-						if extractedSG == actualSG then
-							return prefixedKey
-						end
-					end
-
-					-- Fallback
-					return "0_<Standalone>"
-				end,
-				set = function(info, prefixedValue)
-					-- Extract actual supergroup name from prefixed key
-					local actualSG = prefixedValue:match("^%d+_%d*_?(.+)$") or prefixedValue:match("^%d+_(.+)$")
-					if actualSG then
-						local success, message = self:AssignFamilyToSuperGroup(familyInfo.familyName, actualSG)
-						if success then
-							print("RMB: " .. message)
-							-- Refresh all UIs
-							self:PopulateSuperGroupManagementUI()
-							self:PopulateFamilyAssignmentUI()
-							if addon.PopulateFamilyManagementUI then
-								addon:PopulateFamilyManagementUI()
+				args = {
+					-- Preview button
+					preview = {
+						order = 1,
+						type = "execute",
+						name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
+						desc = function()
+							return addon:GetMountPreviewTooltip(familyInfo.familyName, "familyName")
+						end,
+						func = function()
+							local includeUncollected = addon:GetSetting("showUncollectedMounts")
+							local mountID, mountName, isUncollected = addon:GetRandomMountFromGroup(
+								familyInfo.familyName, "familyName", includeUncollected)
+							if mountID then
+								addon:ShowMountPreview(mountID, mountName, familyInfo.familyName, "familyName", isUncollected)
+							else
+								print("RMB_PREVIEW: No mount available to preview from this family")
 							end
-						else
-							print("RMB Error: " .. message)
-						end
-					end
-				end,
-				width = 1.0,
-			}
-			-- Preview button (unchanged)
-			args[keyBase .. "_preview"] = {
-				order = order + 0.2,
-				type = "execute",
-				name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
-				desc = function()
-					return addon:GetMountPreviewTooltip(familyInfo.familyName, "familyName")
-				end,
-				func = function()
-					local includeUncollected = addon:GetSetting("showUncollectedMounts")
-					local mountID, mountName, isUncollected = addon:GetRandomMountFromGroup(
-						familyInfo.familyName, "familyName", includeUncollected)
-					if mountID then
-						addon:ShowMountPreview(mountID, mountName, familyInfo.familyName, "familyName", isUncollected)
-					else
-						print("RMB_PREVIEW: No mount available to preview from this family")
-					end
-				end,
-				width = 0.2,
-			}
-			-- Line break
-			args[keyBase .. "_break"] = {
-				order = order + 0.9,
-				type = "description",
-				name = "",
-				width = "full",
+						end,
+						width = 0.3,
+					},
+
+					-- ENHANCED: Family name with comprehensive status indicators
+					family_name = {
+						order = 2,
+						type = "description",
+						name = function()
+							local indicator = (familyInfo.totalCount == 1) and "|cff1eff00[M]|r" or "|cff0070dd[F]|r"
+							local countText = "(" .. familyInfo.collectedCount
+							if familyInfo.uncollectedCount > 0 then
+								countText = countText .. " + |cff9d9d9d" .. familyInfo.uncollectedCount .. "|r"
+							end
+
+							countText = countText .. ")"
+							-- Status indicators
+							local statusIndicators = {}
+							if familyInfo.hasUserOverride then
+								table.insert(statusIndicators, "|cffffd700*|r") -- User override
+							end
+
+							if familyInfo.isSeparatedByStrictness then
+								table.insert(statusIndicators, "|cffff9900⚡|r") -- Separated by strictness
+							end
+
+							local statusText = #statusIndicators > 0 and (" " .. table.concat(statusIndicators, "")) or ""
+							return indicator .. " " .. familyInfo.familyName .. " " .. countText .. statusText
+						end,
+						width = 1.5,
+					},
+
+					-- ENHANCED: Supergroup assignment dropdown with better tooltips
+					assignment = {
+						order = 3,
+						type = "select",
+						name = "",
+						desc = function()
+							local baseDesc = "Set intended supergroup assignment\n"
+							local statusLines = {}
+							if familyInfo.hasUserOverride then
+								table.insert(statusLines, "|cffffd700* User Override Active|r")
+							end
+
+							if familyInfo.isSeparatedByStrictness then
+								table.insert(statusLines,
+									"|cffff9900⚡ " .. (familyInfo.separationReason or "Separated by trait settings") .. "|r")
+								table.insert(statusLines,
+									"|cff888888This family is assigned to the supergroup shown, but trait strictness keeps it separated.|r")
+								table.insert(statusLines,
+									"|cff888888Disable relevant trait strictness to reunite it with the supergroup.|r")
+							end
+
+							if familyInfo.originalSuperGroup and familyInfo.originalSuperGroup ~= familyInfo.displaySuperGroup then
+								table.insert(statusLines, "|cff888888Originally: " .. familyInfo.originalSuperGroup .. "|r")
+							end
+
+							return baseDesc .. (#statusLines > 0 and ("\n" .. table.concat(statusLines, "\n")) or "")
+						end,
+						values = function() return self:GetAvailableSuperGroups() end,
+						get = function()
+							-- Convert actual supergroup to prefixed key for display
+							local actualSG = familyInfo.displaySuperGroup or "<Standalone>"
+							-- Find the matching prefixed key
+							local availableSGs = self:GetAvailableSuperGroups()
+							for prefixedKey, displayName in pairs(availableSGs) do
+								-- Extract the actual supergroup name from the prefixed key
+								local extractedSG = prefixedKey:match("^%d+_%d*_?(.+)$") or prefixedKey:match("^%d+_(.+)$")
+								if extractedSG == actualSG then
+									return prefixedKey
+								end
+							end
+
+							-- Fallback
+							return "0_<Standalone>"
+						end,
+						set = function(info, prefixedValue)
+							-- Extract actual supergroup name from prefixed key
+							local actualSG = prefixedValue:match("^%d+_%d*_?(.+)$") or prefixedValue:match("^%d+_(.+)$")
+							if actualSG then
+								local success, message = self:AssignFamilyToSuperGroup(familyInfo.familyName, actualSG)
+								if success then
+									print("RMB: " .. message)
+									-- Refresh all UIs
+									self:PopulateSuperGroupManagementUI()
+									self:PopulateFamilyAssignmentUI()
+									if addon.PopulateFamilyManagementUI then
+										addon:PopulateFamilyManagementUI()
+									end
+								else
+									print("RMB Error: " .. message)
+								end
+							end
+						end,
+						width = 1.0,
+					},
+				},
 			}
 			order = order + 1
 		end
 	end
 
-	-- Pagination controls
+	-- FIXED: Use same pagination style as MountSeparationManager
 	if totalPages > 1 then
-		args.pagination_prev = {
-			order = order,
-			type = "execute",
-			name = "<< Previous",
-			desc = "Previous page",
-			func = function()
-				if currentPage > 1 then
-					self.uiState.currentPage = currentPage - 1
-					self:PopulateFamilyAssignmentUI()
-				end
-			end,
-			disabled = function() return currentPage <= 1 end,
-			width = 0.5,
-		}
-		args.pagination_next = {
-			order = order + 0.1,
-			type = "execute",
-			name = "Next >>",
-			desc = "Next page",
-			func = function()
-				if currentPage < totalPages then
-					self.uiState.currentPage = currentPage + 1
-					self:PopulateFamilyAssignmentUI()
-				end
-			end,
-			disabled = function() return currentPage >= totalPages end,
-			width = 0.5,
-		}
+		local paginationComponents = self:CreateFamilyAssignmentPaginationControls(
+			currentPage, totalPages, order)
+		for k, v in pairs(paginationComponents) do
+			args[k] = v
+		end
+
+		order = order + 1
 	end
 
 	print("RMB_SUPERGROUP: Built family assignment UI with " .. #filteredFamilies .. " families")
 	return args
+end
+
+-- NEW: Create pagination controls matching MountSeparationManager style
+function SuperGroupManager:CreateFamilyAssignmentPaginationControls(currentPage, totalPages, order)
+	if totalPages <= 1 then
+		return {}
+	end
+
+	-- Calculate which pages to show (reuse the logic from MountUIComponents)
+	local pageRange = self:CalculatePageRange(currentPage, totalPages)
+	local paginationArgs = {}
+	local buttonOrder = 1
+	local pageButtonWidth = 0.15
+	local maxButtons = 23
+	-- Add centering spacer if we have fewer than maxButtons pages
+	if totalPages < maxButtons then
+		local missingPages = maxButtons - totalPages
+		local spacerWidth = (missingPages / 2) * pageButtonWidth
+		paginationArgs["centering_spacer"] = {
+			order = buttonOrder,
+			type = "description",
+			name = "",
+			width = spacerWidth,
+		}
+		buttonOrder = buttonOrder + 1
+	end
+
+	-- Add page number buttons
+	for _, pageNum in ipairs(pageRange) do
+		if pageNum == "..." then
+			-- Add ellipsis
+			paginationArgs["ellipsis_" .. buttonOrder] = {
+				order = buttonOrder,
+				type = "description",
+				name = "...",
+				width = 0.1,
+			}
+		else
+			-- Add page number button - THIS IS THE KEY CHANGE
+			local isCurrentPage = (pageNum == currentPage)
+			paginationArgs["page_" .. pageNum] = {
+				order = buttonOrder,
+				type = "execute",
+				name = isCurrentPage and ("|cffffd700" .. pageNum .. "|r") or tostring(pageNum),
+				desc = isCurrentPage and "Current page" or "",
+				func = function()
+					self.uiState.currentPage = pageNum
+					self:PopulateFamilyAssignmentUI()
+				end,
+				width = pageButtonWidth,
+				image = "Interface\\AddOns\\RandomMountBuddy\\Media\\Empty",
+				imageWidth = 1,
+				imageHeight = 1,
+			}
+		end
+
+		buttonOrder = buttonOrder + 1
+	end
+
+	return {
+		family_assignment_pagination = {
+			order = order,
+			type = "group",
+			inline = true,
+			name = "",
+			args = paginationArgs,
+		},
+	}
 end
 
 -- ============================================================================
@@ -1421,18 +1569,62 @@ function SuperGroupManager:GetAllFamilyAssignments()
 		print("RMB_SUPERGROUP: Added " .. uncollectedFamilyCount .. " new families from uncollected mounts")
 	end
 
+	-- FIXED: Also include separated families
+	if addon.db and addon.db.profile and addon.db.profile.separatedMounts then
+		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
+			local newFamilyName = separationData.familyName
+			if newFamilyName and not allFamilies[newFamilyName] then
+				allFamilies[newFamilyName] = true
+				print("RMB_SUPERGROUP: Added separated family: " .. newFamilyName)
+			end
+		end
+	end
+
 	print("RMB_SUPERGROUP: Total unique families to process: " .. addon:CountTableEntries(allFamilies))
 	-- Build assignment data for each family
 	for familyName, _ in pairs(allFamilies) do
 		local originalSG = addon:GetOriginalSuperGroup(familyName) -- Before any changes
-		local dynamicSG = addon:GetDynamicSuperGroup(familyName)   -- After trait processing
-		local effectiveSG = addon:GetEffectiveSuperGroup(familyName) -- After user overrides
-		-- Determine what supergroup to display
-		local displaySuperGroup = effectiveSG or originalSG        -- Show original if no effective assignment
-		-- Determine separation and override status
-		local isSeparatedByStrictness = addon:IsFamilySeparatedByStrictness(familyName)
-		local hasUserOverride = (effectiveSG ~= dynamicSG)
-		local separationReason = addon:GetFamilySeparationReason(familyName)
+		local effectiveSG = addon:GetEffectiveSuperGroup(familyName) -- Final result after all processing
+		-- FIXED: Determine intended supergroup (what user wants, regardless of trait strictness)
+		local intendedSG = originalSG                              -- Start with original
+		local hasUserOverride = false
+		-- Check if there's a user override (this becomes the intended assignment)
+		if addon.db and addon.db.profile and addon.db.profile.superGroupOverrides then
+			local override = addon.db.profile.superGroupOverrides[familyName]
+			if override ~= nil then
+				hasUserOverride = true
+				if override == false then
+					intendedSG = nil -- User explicitly wants it standalone
+				else
+					intendedSG = override -- User assigned to specific supergroup
+				end
+			end
+		end
+
+		-- FIXED: Check if trait strictness is separating this family from its intended assignment
+		local isSeparatedByStrictness = false
+		local separationReason = nil
+		-- If intended assignment differs from effective assignment, check if it's due to trait strictness
+		if intendedSG ~= effectiveSG then
+			-- Check if this family has distinguishing traits that would cause separation
+			local effectiveTraits = addon:GetEffectiveTraits(familyName)
+			local treatMinorArmorAsDistinct = addon:GetSetting("treatMinorArmorAsDistinct")
+			local treatMajorArmorAsDistinct = addon:GetSetting("treatMajorArmorAsDistinct")
+			local treatModelVariantsAsDistinct = addon:GetSetting("treatModelVariantsAsDistinct")
+			local treatUniqueEffectsAsDistinct = addon:GetSetting("treatUniqueEffectsAsDistinct")
+			if (treatMinorArmorAsDistinct and effectiveTraits.hasMinorArmor) or
+					(treatMajorArmorAsDistinct and effectiveTraits.hasMajorArmor) or
+					(treatModelVariantsAsDistinct and effectiveTraits.hasModelVariant) or
+					(treatUniqueEffectsAsDistinct and effectiveTraits.isUniqueEffect) then
+				isSeparatedByStrictness = true
+				separationReason = addon:GetFamilySeparationReason(familyName)
+				print("RMB_SUPERGROUP: Family '" ..
+					familyName .. "' separated by trait strictness from intended: " .. tostring(intendedSG))
+			end
+		end
+
+		-- Display the intended assignment (what the user wants)
+		local displaySuperGroup = intendedSG
 		-- Count mounts in this family
 		local collectedCount = (addon.processedData.familyToMountIDsMap and
 			addon.processedData.familyToMountIDsMap[familyName] and
@@ -1450,9 +1642,9 @@ function SuperGroupManager:GetAllFamilyAssignments()
 				familyName = familyName,
 				-- Supergroup relationships
 				originalSuperGroup = originalSG,   -- What it was originally
-				dynamicSuperGroup = dynamicSG,     -- After trait processing
-				effectiveSuperGroup = effectiveSG, -- After user overrides
-				displaySuperGroup = displaySuperGroup, -- What to show in UI
+				intendedSuperGroup = intendedSG,   -- What user wants (intended assignment)
+				effectiveSuperGroup = effectiveSG, -- Final result after all processing
+				displaySuperGroup = displaySuperGroup, -- What to show in UI (intended)
 				-- Status flags
 				isSeparatedByStrictness = isSeparatedByStrictness,
 				hasUserOverride = hasUserOverride,
@@ -1465,7 +1657,7 @@ function SuperGroupManager:GetAllFamilyAssignments()
 		end
 	end
 
-	-- Sort alphabetically
+	-- Sort alphabetically with custom supergroups first
 	table.sort(familyAssignments, function(a, b)
 		-- Get supergroup info for both families
 		local aSGIsCustom = false
@@ -1505,38 +1697,173 @@ function SuperGroupManager:AssignFamilyToSuperGroup(familyName, targetSG)
 		addon.db.profile.superGroupOverrides = {}
 	end
 
-	-- Get the family's relationships
-	local originalSG = addon:GetOriginalSuperGroup(familyName)
-	local dynamicSG = addon:GetDynamicSuperGroup(familyName) -- After trait processing
-	print("RMB_SUPERGROUP: Assigning " .. familyName .. " - Original: " .. tostring(originalSG) ..
-		", Dynamic: " .. tostring(dynamicSG) .. ", Target: " .. tostring(targetSG))
-	if targetSG == nil or targetSG == "" or targetSG == "<Standalone>" then
-		-- Assign to standalone
-		if dynamicSG == nil then
-			-- Already standalone after trait processing, remove any override
-			addon.db.profile.superGroupOverrides[familyName] = nil
-			print("RMB_SUPERGROUP: Cleared override for " .. familyName .. " (already standalone)")
-		else
-			-- Force to standalone (override the dynamic grouping)
-			addon.db.profile.superGroupOverrides[familyName] = false
-			print("RMB_SUPERGROUP: Forced " .. familyName .. " to standalone")
-		end
-	else
-		-- Assign to specific supergroup
-		if targetSG == dynamicSG then
-			-- Same as dynamic result, remove any override
-			addon.db.profile.superGroupOverrides[familyName] = nil
-			print("RMB_SUPERGROUP: Cleared override for " .. familyName .. " (matches dynamic grouping)")
-		else
-			-- Override to new supergroup
-			addon.db.profile.superGroupOverrides[familyName] = targetSG
-			print("RMB_SUPERGROUP: Overrode " .. familyName .. " to " .. targetSG)
+	-- ENHANCED: Check if this is a separated family
+	local isSeparatedFamily = false
+	local separatedMountID = nil
+	if addon.db and addon.db.profile and addon.db.profile.separatedMounts then
+		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
+			if separationData.familyName == familyName then
+				isSeparatedFamily = true
+				separatedMountID = tonumber(mountID)
+				break
+			end
 		end
 	end
 
-	-- Trigger rebuild
+	-- Get the family's relationships
+	local originalSG = addon:GetOriginalSuperGroup(familyName)
+	print("RMB_SUPERGROUP: Assigning " .. familyName .. " - Original: " .. tostring(originalSG) ..
+		", Target: " .. tostring(targetSG) .. ", IsSeparated: " .. tostring(isSeparatedFamily))
+	if targetSG == nil or targetSG == "" or targetSG == "<Standalone>" then
+		-- Assign to standalone (set intended assignment to standalone)
+		if originalSG == nil then
+			-- Already originally standalone, remove any override
+			addon.db.profile.superGroupOverrides[familyName] = nil
+			print("RMB_SUPERGROUP: Cleared override for " .. familyName .. " (originally standalone)")
+		else
+			-- Force to standalone (override original assignment)
+			addon.db.profile.superGroupOverrides[familyName] = false
+			print("RMB_SUPERGROUP: Set " .. familyName .. " intended assignment to standalone")
+		end
+	else
+		-- Assign to specific supergroup (set intended assignment)
+		if targetSG == originalSG then
+			-- Same as original assignment, remove any override
+			addon.db.profile.superGroupOverrides[familyName] = nil
+			print("RMB_SUPERGROUP: Cleared override for " .. familyName .. " (matches original assignment)")
+		else
+			-- Override to new supergroup (set intended assignment)
+			addon.db.profile.superGroupOverrides[familyName] = targetSG
+			print("RMB_SUPERGROUP: Set " .. familyName .. " intended assignment to " .. targetSG)
+		end
+	end
+
+	-- ENHANCED: Handle weight synchronization for separated families
+	if isSeparatedFamily and separatedMountID then
+		local mountKey = "mount_" .. separatedMountID
+		local familyWeight = addon:GetGroupWeight(familyName)
+		local mountWeight = addon:GetGroupWeight(mountKey)
+		-- Ensure family and mount weights are synchronized
+		if familyWeight ~= mountWeight then
+			print("RMB_SUPERGROUP: Synchronizing weights for separated family - Family: " ..
+				familyWeight .. ", Mount: " .. mountWeight)
+			-- Use the higher weight to avoid downgrading
+			local syncWeight = math.max(familyWeight, mountWeight)
+			addon:SetGroupWeight(familyName, syncWeight)
+			addon:SetGroupWeight(mountKey, syncWeight)
+		end
+	end
+
+	-- Trigger rebuild - this will apply the intended assignment, then trait strictness
 	addon:RebuildMountGrouping()
-	return true, "Family assignment updated"
+	-- ENHANCED: Also refresh mount pools if they exist
+	if addon.MountSummon and addon.MountSummon.RefreshMountPools then
+		addon.MountSummon:RefreshMountPools()
+	end
+
+	-- Check if the assignment was overridden by trait strictness
+	local effectiveSG = addon:GetEffectiveSuperGroup(familyName)
+	if targetSG ~= "<Standalone>" and targetSG ~= effectiveSG then
+		-- Family was assigned but separated by trait strictness
+		return true, "Family assigned to " .. targetSG .. " (currently separated by trait strictness settings)"
+	elseif targetSG == "<Standalone>" and effectiveSG ~= nil then
+		-- Family was set to standalone but trait strictness might have placed it elsewhere
+		return true, "Family set to standalone"
+	else
+		return true, "Family assignment updated"
+	end
+end
+
+-- ENHANCED: Add helper method to check separated family compatibility
+function SuperGroupManager:ValidateSeparatedFamilyIntegrity()
+	if not (addon.db and addon.db.profile and addon.db.profile.separatedMounts) then
+		return true
+	end
+
+	local issues = {}
+	local fixedIssues = 0
+	for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
+		local familyName = separationData.familyName
+		local mountIDNum = tonumber(mountID)
+		-- Check if the separated family exists in processed data
+		local familyExists = false
+		if addon.processedData then
+			-- Check collected mounts
+			if addon.processedData.familyToMountIDsMap and
+					addon.processedData.familyToMountIDsMap[familyName] then
+				for _, id in ipairs(addon.processedData.familyToMountIDsMap[familyName]) do
+					if id == mountIDNum then
+						familyExists = true
+						break
+					end
+				end
+			end
+
+			-- Check uncollected mounts
+			if not familyExists and addon.processedData.familyToUncollectedMountIDsMap and
+					addon.processedData.familyToUncollectedMountIDsMap[familyName] then
+				for _, id in ipairs(addon.processedData.familyToUncollectedMountIDsMap[familyName]) do
+					if id == mountIDNum then
+						familyExists = true
+						break
+					end
+				end
+			end
+		end
+
+		if not familyExists then
+			table.insert(issues, "Separated mount " .. mountID .. " family '" .. familyName .. "' not found in processed data")
+		end
+
+		-- Check weight synchronization
+		if familyExists then
+			local mountKey = "mount_" .. mountID
+			local familyWeight = addon:GetGroupWeight(familyName)
+			local mountWeight = addon:GetGroupWeight(mountKey)
+			if familyWeight ~= mountWeight then
+				-- Auto-fix weight synchronization
+				local syncWeight = math.max(familyWeight, mountWeight, 3) -- At least Normal weight
+				addon:SetGroupWeight(familyName, syncWeight)
+				addon:SetGroupWeight(mountKey, syncWeight)
+				fixedIssues = fixedIssues + 1
+				print("RMB_SUPERGROUP: Fixed weight sync for " .. familyName .. " -> " .. syncWeight)
+			end
+		end
+	end
+
+	if #issues > 0 then
+		print("RMB_SUPERGROUP: Found " .. #issues .. " separated family integrity issues")
+		for _, issue in ipairs(issues) do
+			print("RMB_SUPERGROUP: ISSUE: " .. issue)
+		end
+	end
+
+	if fixedIssues > 0 then
+		print("RMB_SUPERGROUP: Auto-fixed " .. fixedIssues .. " weight synchronization issues")
+	end
+
+	return #issues == 0, issues
+end
+
+-- ENHANCED: Add integration check method
+function SuperGroupManager:RefreshAllUIs()
+	print("RMB_SUPERGROUP: Refreshing all UIs after major change")
+	-- Validate separated family integrity first
+	self:ValidateSeparatedFamilyIntegrity()
+	-- Refresh SuperGroup Management UIs
+	self:PopulateSuperGroupManagementUI()
+	self:PopulateFamilyAssignmentUI()
+	-- Refresh main Family & Groups UI
+	if addon.PopulateFamilyManagementUI then
+		addon:PopulateFamilyManagementUI()
+	end
+
+	-- Refresh Mount Separation UI if it exists
+	if addon.MountSeparationManager and addon.MountSeparationManager.PopulateSeparationManagementUI then
+		addon.MountSeparationManager:PopulateSeparationManagementUI()
+	end
+
+	print("RMB_SUPERGROUP: All UI refresh completed")
 end
 
 -- Get available supergroups for assignment dropdown

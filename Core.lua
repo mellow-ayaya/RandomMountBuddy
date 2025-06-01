@@ -756,101 +756,17 @@ function addon:RebuildMountGrouping()
 		end
 	end
 
-	-- Get trait settings
-	local treatMinorArmorAsDistinct = self:GetSetting("treatMinorArmorAsDistinct")
-	local treatMajorArmorAsDistinct = self:GetSetting("treatMajorArmorAsDistinct")
-	local treatModelVariantsAsDistinct = self:GetSetting("treatModelVariantsAsDistinct")
-	local treatUniqueEffectsAsDistinct = self:GetSetting("treatUniqueEffectsAsDistinct")
-	print("RMB_DYNAMIC: Rebuilding groups with settings - MinorArmor:", treatMinorArmorAsDistinct,
-		"MajorArmor:", treatMajorArmorAsDistinct, "ModelVariants:", treatModelVariantsAsDistinct,
-		"UniqueEffects:", treatUniqueEffectsAsDistinct)
-	-- UPDATED: Use effective traits instead of original traits
-	local familiesWithDistinguishingTraits = {}
-	-- Get all unique families
-	local allFamilies = {}
-	for mountID, mountInfo in pairs(self.processedData.allCollectedMountFamilyInfo) do
-		allFamilies[mountInfo.familyName] = true
-	end
-
-	if self.processedData.allUncollectedMountFamilyInfo then
-		for mountID, mountInfo in pairs(self.processedData.allUncollectedMountFamilyInfo) do
-			allFamilies[mountInfo.familyName] = true
-		end
-	end
-
-	-- FIX: Include separated families
-	if self.db and self.db.profile and self.db.profile.separatedMounts then
-		for mountID, separationData in pairs(self.db.profile.separatedMounts) do
-			allFamilies[separationData.familyName] = true
-		end
-	end
-
-	-- Check each family using effective traits
-	for familyName, _ in pairs(allFamilies) do
-		local effectiveTraits = self:GetEffectiveTraits(familyName)
-		if (treatMinorArmorAsDistinct and effectiveTraits.hasMinorArmor) or
-				(treatMajorArmorAsDistinct and effectiveTraits.hasMajorArmor) or
-				(treatModelVariantsAsDistinct and effectiveTraits.hasModelVariant) or
-				(treatUniqueEffectsAsDistinct and effectiveTraits.isUniqueEffect) then
-			familiesWithDistinguishingTraits[familyName] = true
-			-- FIX: Add debug for separated families
-			if self.db and self.db.profile and self.db.profile.separatedMounts then
-				for mountID, separationData in pairs(self.db.profile.separatedMounts) do
-					if separationData.familyName == familyName then
-						print("RMB_DYNAMIC: Separated family '" ..
-							familyName .. "' has distinguishing traits, will remain standalone")
-						break
-					end
-				end
-			end
-		end
-	end
-
-	if self.processedData.allUncollectedMountFamilyInfo then
-		for mountID, mountInfo in pairs(self.processedData.allUncollectedMountFamilyInfo) do
-			allFamilies[mountInfo.familyName] = true
-		end
-	end
-
-	-- FIX: Also include families from standaloneFamilyNames (including separated families)
-	if self.processedData.standaloneFamilyNames then
-		for familyName, _ in pairs(self.processedData.standaloneFamilyNames) do
-			allFamilies[familyName] = true
-		end
-	end
-
-	-- Check each family using effective traits
-	for familyName, _ in pairs(allFamilies) do
-		local effectiveTraits = self:GetEffectiveTraits(familyName)
-		if (treatMinorArmorAsDistinct and effectiveTraits.hasMinorArmor) or
-				(treatMajorArmorAsDistinct and effectiveTraits.hasMajorArmor) or
-				(treatModelVariantsAsDistinct and effectiveTraits.hasModelVariant) or
-				(treatUniqueEffectsAsDistinct and effectiveTraits.isUniqueEffect) then
-			familiesWithDistinguishingTraits[familyName] = true
-		end
-
-		-- FIX: Separated families should always be standalone regardless of traits
-		if self.db and self.db.profile and self.db.profile.separatedMounts then
-			for mountID, separationData in pairs(self.db.profile.separatedMounts) do
-				if separationData.familyName == familyName then
-					-- Force separated families to be standalone
-					newStandaloneFamilies[familyName] = true
-					break
-				end
-			end
-		end
-	end
-
-	-- Second pass: create the new grouping structure using ALL mounts (collected + uncollected)
+	print("RMB_DYNAMIC: Rebuilding mount grouping...")
+	-- STEP 1: Start with original grouping structure
+	-- Process collected and uncollected mounts to establish baseline
 	local allFamiliesProcessed = {}
 	-- Process collected mounts
 	for mountID, mountInfo in pairs(self.processedData.allCollectedMountFamilyInfo) do
 		local familyName = mountInfo.familyName
 		local superGroup = mountInfo.superGroup
-		local shouldBeStandalone = familiesWithDistinguishingTraits[familyName] or false
 		if not allFamiliesProcessed[familyName] then
-			if superGroup and not shouldBeStandalone then
-				-- Keep in supergroup
+			if superGroup then
+				-- Add to original supergroup
 				if not newSuperGroupMap[superGroup] then
 					newSuperGroupMap[superGroup] = {}
 				end
@@ -867,7 +783,7 @@ function addon:RebuildMountGrouping()
 					table.insert(newSuperGroupMap[superGroup], familyName)
 				end
 			else
-				-- Make standalone
+				-- Originally standalone
 				newStandaloneFamilies[familyName] = true
 			end
 
@@ -875,15 +791,14 @@ function addon:RebuildMountGrouping()
 		end
 	end
 
-	-- ENHANCED: Also process uncollected mounts
+	-- Process uncollected mounts
 	if self.processedData.allUncollectedMountFamilyInfo then
 		for mountID, mountInfo in pairs(self.processedData.allUncollectedMountFamilyInfo) do
 			local familyName = mountInfo.familyName
 			local superGroup = mountInfo.superGroup
-			local shouldBeStandalone = familiesWithDistinguishingTraits[familyName] or false
 			if not allFamiliesProcessed[familyName] then
-				if superGroup and not shouldBeStandalone then
-					-- Keep in supergroup
+				if superGroup then
+					-- Add to original supergroup
 					if not newSuperGroupMap[superGroup] then
 						newSuperGroupMap[superGroup] = {}
 					end
@@ -900,7 +815,7 @@ function addon:RebuildMountGrouping()
 						table.insert(newSuperGroupMap[superGroup], familyName)
 					end
 				else
-					-- Make standalone
+					-- Originally standalone
 					newStandaloneFamilies[familyName] = true
 				end
 
@@ -909,12 +824,9 @@ function addon:RebuildMountGrouping()
 		end
 	end
 
-	-- ============================================================================
-	-- APPLY SUPERGROUP OVERRIDES (after trait-based regrouping)
-	-- ============================================================================
-	print("RMB_DYNAMIC: Applying supergroup overrides...")
+	-- STEP 2: Apply user overrides to set INTENDED structure
+	print("RMB_DYNAMIC: Applying user supergroup overrides...")
 	local overrideCount = 0
-	-- Apply individual family overrides
 	if self.db and self.db.profile and self.db.profile.superGroupOverrides then
 		for familyName, overrideSG in pairs(self.db.profile.superGroupOverrides) do
 			if overrideSG == false then
@@ -925,7 +837,7 @@ function addon:RebuildMountGrouping()
 					for i = #families, 1, -1 do
 						if families[i] == familyName then
 							table.remove(families, i)
-							print("RMB_DYNAMIC: Moved " .. familyName .. " from " .. sgName .. " to standalone (override)")
+							print("RMB_DYNAMIC: Moved " .. familyName .. " from " .. sgName .. " to standalone (user override)")
 							overrideCount = overrideCount + 1
 						end
 					end
@@ -958,7 +870,7 @@ function addon:RebuildMountGrouping()
 
 				if not alreadyExists then
 					table.insert(newSuperGroupMap[overrideSG], familyName)
-					print("RMB_DYNAMIC: Moved " .. familyName .. " to " .. overrideSG .. " (override)")
+					print("RMB_DYNAMIC: Moved " .. familyName .. " to " .. overrideSG .. " (user override)")
 					overrideCount = overrideCount + 1
 				end
 			end
@@ -988,7 +900,64 @@ function addon:RebuildMountGrouping()
 		end
 	end
 
-	-- Clean up empty supergroups created by overrides
+	if overrideCount > 0 then
+		print("RMB_DYNAMIC: Applied " .. overrideCount .. " user supergroup overrides")
+	end
+
+	-- STEP 3: NOW apply trait strictness to the intended structure
+	-- Get trait settings
+	local treatMinorArmorAsDistinct = self:GetSetting("treatMinorArmorAsDistinct")
+	local treatMajorArmorAsDistinct = self:GetSetting("treatMajorArmorAsDistinct")
+	local treatModelVariantsAsDistinct = self:GetSetting("treatModelVariantsAsDistinct")
+	local treatUniqueEffectsAsDistinct = self:GetSetting("treatUniqueEffectsAsDistinct")
+	print("RMB_DYNAMIC: Applying trait strictness AFTER user overrides - MinorArmor:", treatMinorArmorAsDistinct,
+		"MajorArmor:", treatMajorArmorAsDistinct, "ModelVariants:", treatModelVariantsAsDistinct,
+		"UniqueEffects:", treatUniqueEffectsAsDistinct)
+	-- Find families that should be separated due to trait strictness
+	local familiesWithDistinguishingTraits = {}
+	local traitSeparationCount = 0
+	-- Get all unique families from the current intended structure
+	local allIntendedFamilies = {}
+	for sgName, families in pairs(newSuperGroupMap) do
+		for _, familyName in ipairs(families) do
+			allIntendedFamilies[familyName] = sgName -- Track which supergroup it's intended for
+		end
+	end
+
+	for familyName, _ in pairs(newStandaloneFamilies) do
+		allIntendedFamilies[familyName] = nil -- Mark as intended standalone
+	end
+
+	-- Check each family using effective traits
+	for familyName, intendedSG in pairs(allIntendedFamilies) do
+		if intendedSG then -- Only check families that are intended to be in supergroups
+			local effectiveTraits = self:GetEffectiveTraits(familyName)
+			if (treatMinorArmorAsDistinct and effectiveTraits.hasMinorArmor) or
+					(treatMajorArmorAsDistinct and effectiveTraits.hasMajorArmor) or
+					(treatModelVariantsAsDistinct and effectiveTraits.hasModelVariant) or
+					(treatUniqueEffectsAsDistinct and effectiveTraits.isUniqueEffect) then
+				familiesWithDistinguishingTraits[familyName] = true
+				-- Remove from intended supergroup and make standalone
+				if newSuperGroupMap[intendedSG] then
+					for i = #newSuperGroupMap[intendedSG], 1, -1 do
+						if newSuperGroupMap[intendedSG][i] == familyName then
+							table.remove(newSuperGroupMap[intendedSG], i)
+							newStandaloneFamilies[familyName] = true
+							traitSeparationCount = traitSeparationCount + 1
+							print("RMB_DYNAMIC: Separated " .. familyName .. " from " .. intendedSG .. " due to trait strictness")
+							break
+						end
+					end
+				end
+			end
+		end
+	end
+
+	if traitSeparationCount > 0 then
+		print("RMB_DYNAMIC: Separated " .. traitSeparationCount .. " families due to trait strictness")
+	end
+
+	-- Clean up empty supergroups created by trait separation
 	local emptySuperGroups = {}
 	for sgName, families in pairs(newSuperGroupMap) do
 		if #families == 0 then
@@ -999,10 +968,6 @@ function addon:RebuildMountGrouping()
 	for _, sgName in ipairs(emptySuperGroups) do
 		newSuperGroupMap[sgName] = nil
 		print("RMB_DYNAMIC: Removed empty supergroup: " .. sgName)
-	end
-
-	if overrideCount > 0 then
-		print("RMB_DYNAMIC: Applied " .. overrideCount .. " supergroup overrides")
 	end
 
 	-- Replace the original grouping with the new one
