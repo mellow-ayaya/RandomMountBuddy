@@ -1,3 +1,6 @@
+# 0.9.0
+Added debug toggle. Next time do this at the start of the project.
+
 # 0.8.7
 Improved import/export to include separated mounts.
 Exporting now actually works.

@@ -2,7 +2,7 @@
 -- Handles comprehensive filtering for mount groups and individual mounts
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
-print("RMB_DEBUG: FilterSystem.lua START.")
+addon:DebugCore("FilterSystem.lua START.")
 -- ============================================================================
 -- FILTER SYSTEM CLASS
 -- ============================================================================
@@ -49,28 +49,28 @@ FilterSystem.SUMMON_CHANCES = {
 -- INITIALIZATION
 -- ============================================================================
 function FilterSystem:Initialize()
-	print("RMB_FILTER: Initializing filter system...")
+	addon:DebugUI("Initializing filter system...")
 	-- Try to initialize database immediately if possible
 	if addon.db and addon.db.profile then
 		self:InitializeFilterDatabase()
 	else
-		print("RMB_FILTER: Database not ready during init, will initialize later")
+		addon:DebugUI("Database not ready during init, will initialize later")
 	end
 
 	-- Filter state tracking
 	self.filtersActive = false
 	self.lastFilteredResults = {}
-	print("RMB_FILTER: Filter system initialized")
+	addon:DebugUI("Filter system initialized")
 end
 
 function FilterSystem:InitializeFilterDatabase()
 	if not addon.db or not addon.db.profile then
-		print("RMB_FILTER: Database not ready, deferring filter DB init")
+		addon:DebugUI("Database not ready, deferring filter DB init")
 		return false
 	end
 
 	if not addon.db.profile.filterSettings then
-		print("RMB_FILTER: Creating new filter settings structure")
+		addon:DebugUI("Creating new filter settings structure")
 		addon.db.profile.filterSettings = {
 			mountSources = {},
 			mountTypes = {},
@@ -95,9 +95,9 @@ function FilterSystem:InitializeFilterDatabase()
 			addon.db.profile.filterSettings.summonChances[chanceName] = false
 		end
 
-		print("RMB_FILTER: Initialized default filter settings (all disabled)")
+		addon:DebugUI("Initialized default filter settings (all disabled)")
 	else
-		print("RMB_FILTER: Filter settings already exist")
+		addon:DebugUI("Filter settings already exist")
 	end
 
 	return true
@@ -118,7 +118,7 @@ function FilterSystem:GetFilterSetting(category, key)
 
 	-- Additional safety check - make sure categorySettings is a table
 	if type(categorySettings) ~= "table" then
-		print("RMB_FILTER_ERROR: Category " ..
+		addon:DebugUI(" Category " ..
 			category .. " is not a table (it's " .. type(categorySettings) .. "), returning false")
 		return false
 	end
@@ -133,7 +133,7 @@ end
 
 function FilterSystem:SetFilterSetting(category, key, value)
 	if not addon.db or not addon.db.profile then
-		print("RMB_FILTER: Cannot save filter setting - database not ready")
+		addon:DebugUI("Cannot save filter setting - database not ready")
 		return
 	end
 
@@ -144,12 +144,12 @@ function FilterSystem:SetFilterSetting(category, key, value)
 
 	-- Additional safety check - make sure the category is a table
 	if type(addon.db.profile.filterSettings[category]) ~= "table" then
-		print("RMB_FILTER_ERROR: Category " .. category .. " is not a table, recreating it")
+		addon:DebugFilter("Category " .. category .. " is not a table, recreating it")
 		addon.db.profile.filterSettings[category] = {}
 	end
 
 	addon.db.profile.filterSettings[category][key] = value
-	print("RMB_FILTER: Set " .. category .. "[" .. tostring(key) .. "] = " .. tostring(value))
+	addon:DebugUI("Set " .. category .. "[" .. tostring(key) .. "] = " .. tostring(value))
 	-- Trigger filter refresh
 	self:ApplyFilters()
 end
@@ -465,7 +465,7 @@ function FilterSystem:ApplyFilters()
 	-- Trigger UI refresh
 	if addon.PopulateFamilyManagementUI then
 		addon:PopulateFamilyManagementUI()
-		print("RMB_FILTER: UI refresh triggered after filter change")
+		addon:DebugUI("UI refresh triggered after filter change")
 	end
 end
 
@@ -481,7 +481,7 @@ function FilterSystem:GetFilteredGroups(allGroups)
 		end
 	end
 
-	print("RMB_FILTER: Filtered " .. #allGroups .. " groups down to " .. #filteredGroups)
+	addon:DebugUI("Filtered " .. #allGroups .. " groups down to " .. #filteredGroups)
 	return filteredGroups
 end
 
@@ -511,7 +511,7 @@ function FilterSystem:ResetAllFilters()
 		settings.summonChances[chanceName] = false
 	end
 
-	print("RMB_FILTER: Reset all filters")
+	addon:DebugUI("Reset all filters")
 	self:ApplyFilters()
 end
 
@@ -592,10 +592,10 @@ end
 -- EVENT HANDLERS
 -- ============================================================================
 function FilterSystem:OnDataReady()
-	print("RMB_FILTER: Data ready, initializing filter database")
+	addon:DebugUI("Data ready, initializing filter database")
 	local success = self:InitializeFilterDatabase()
 	if not success then
-		print("RMB_FILTER: Filter database initialization failed - will retry later")
+		addon:DebugUI("Filter database initialization failed - will retry later")
 	end
 end
 
@@ -612,12 +612,12 @@ end
 -- ============================================================================
 function addon:InitializeFilterSystem()
 	if not self.FilterSystem then
-		print("RMB_FILTER: ERROR - FilterSystem not found!")
+		addon:DebugUI("ERROR - FilterSystem not found!")
 		return
 	end
 
 	self.FilterSystem:Initialize()
-	print("RMB_FILTER: Integration complete")
+	addon:DebugUI("Integration complete")
 end
 
 -- Public interface methods for other modules
@@ -649,4 +649,4 @@ function addon:ResetAllFilters()
 	end
 end
 
-print("RMB_DEBUG: FilterSystem.lua END.")
+addon:DebugCore("FilterSystem.lua END.")

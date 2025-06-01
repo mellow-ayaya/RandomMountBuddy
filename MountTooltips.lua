@@ -2,7 +2,7 @@
 -- Tooltip management and generation for mount interface
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
-print("RMB_DEBUG: MountTooltips.lua START.")
+addon:DebugCore("MountTooltips.lua START.")
 -- ============================================================================
 -- TOOLTIP MANAGER CLASS
 -- ============================================================================
@@ -12,16 +12,16 @@ addon.MountTooltips = MountTooltips
 -- TOOLTIP GENERATION
 -- ============================================================================
 function MountTooltips:Initialize()
-	print("RMB_TOOLTIPS: Initializing tooltip system...")
+	addon:DebugUI("Initializing tooltip system...")
 	-- Tooltip cache to prevent repeated lookups
 	self.tooltipCache = {}
 	self.cacheTimeout = 30 -- 30 second cache
-	print("RMB_TOOLTIPS: Initialized successfully")
+	addon:DebugUI("Initialized successfully")
 end
 
 -- Main tooltip generation function
 function MountTooltips:GetMountPreviewTooltip(groupKey, groupType)
-	print("RMB_TOOLTIPS: Getting tooltip for " .. tostring(groupKey) .. " (" .. tostring(groupType) .. ")")
+	addon:DebugUI("Getting tooltip for " .. tostring(groupKey) .. " (" .. tostring(groupType) .. ")")
 	-- Check cache first
 	local cacheKey = groupKey .. "_" .. (groupType or "")
 	local cached = self.tooltipCache[cacheKey]
@@ -58,13 +58,13 @@ function MountTooltips:GenerateTooltip(groupKey, groupType)
 	end
 
 	if not mountID then
-		print("RMB_TOOLTIPS: No mounts found for " .. tostring(groupKey))
+		addon:DebugUI("No mounts found for " .. tostring(groupKey))
 		return "No mounts found in this group", nil
 	end
 
 	-- Generate tooltip text
 	local tooltip = self:FormatTooltipText(mountID, mountName, isUncollected, groupKey, groupType)
-	print("RMB_TOOLTIPS: Generated tooltip for " .. tostring(mountName))
+	addon:DebugUI("Generated tooltip for " .. tostring(mountName))
 	return tooltip, mountID
 end
 
@@ -229,7 +229,7 @@ end
 -- ============================================================================
 function MountTooltips:ClearCache()
 	self.tooltipCache = {}
-	print("RMB_TOOLTIPS: Cleared tooltip cache")
+	addon:DebugUI("Cleared tooltip cache")
 end
 
 function MountTooltips:InvalidateGroup(groupKey, groupType)
@@ -237,7 +237,7 @@ function MountTooltips:InvalidateGroup(groupKey, groupType)
 
 	local cacheKey = groupKey .. "_" .. (groupType or "")
 	self.tooltipCache[cacheKey] = nil
-	print("RMB_TOOLTIPS: Invalidated cache for " .. cacheKey)
+	addon:DebugUI("Invalidated cache for " .. cacheKey)
 end
 
 function MountTooltips:CleanExpiredCache()
@@ -251,7 +251,7 @@ function MountTooltips:CleanExpiredCache()
 	end
 
 	if cleaned > 0 then
-		print("RMB_TOOLTIPS: Cleaned " .. cleaned .. " expired cache entries")
+		addon:DebugUI("Cleaned " .. cleaned .. " expired cache entries")
 	end
 end
 
@@ -310,7 +310,7 @@ end
 -- Auto-initialize when addon loads
 function addon:InitializeMountTooltips()
 	if not self.MountTooltips then
-		print("RMB_TOOLTIPS: ERROR - MountTooltips not found!")
+		addon:DebugUI("ERROR - MountTooltips not found!")
 		return
 	end
 
@@ -319,7 +319,7 @@ function addon:InitializeMountTooltips()
 	C_Timer.NewTicker(60, function() -- Every 60 seconds
 		self.MountTooltips:DoMaintenance()
 	end)
-	print("RMB_TOOLTIPS: Integration complete")
+	addon:DebugUI("Integration complete")
 end
 
-print("RMB_DEBUG: MountTooltips.lua END.")
+addon:DebugCore("MountTooltips.lua END.")

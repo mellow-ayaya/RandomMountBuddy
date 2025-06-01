@@ -4,7 +4,7 @@ local addon = RandomMountBuddy
 local MountSeparationManager = {}
 addon.MountSeparationManager = MountSeparationManager
 function MountSeparationManager:Initialize()
-	print("RMB_SEPARATION: Initializing Mount Separation Manager...")
+	addon:DebugSeparation(" Initializing Mount Separation Manager...")
 	-- UI state
 	self.uiState = {
 		searchTerm = "",
@@ -73,7 +73,7 @@ function MountSeparationManager:SeparateMount(mountID, customName)
 			originalTraits[traitName] = traitValue
 		end
 
-		print("RMB_SEPARATION: Preserved original traits for mount " .. mountID .. ": " ..
+		addon:DebugSeparation(" Preserved original traits for mount " .. mountID .. ": " ..
 			table.concat({ "hasMinorArmor=" .. tostring(originalTraits.hasMinorArmor or false),
 				"hasMajorArmor=" .. tostring(originalTraits.hasMajorArmor or false),
 				"hasModelVariant=" .. tostring(originalTraits.hasModelVariant or false),
@@ -94,9 +94,9 @@ function MountSeparationManager:SeparateMount(mountID, customName)
 	-- Set both family and mount weights to ensure they're in sync
 	addon.db.profile.groupWeights[newFamilyName] = currentMountWeight
 	addon.db.profile.groupWeights[mountKey] = currentMountWeight
-	print("RMB_SEPARATION: Set initial weights - Family '" ..
+	addon:DebugSeparation(" Set initial weights - Family '" ..
 		newFamilyName .. "' and Mount '" .. mountKey .. "' both set to " .. currentMountWeight)
-	print("RMB_SEPARATION: Separated mount '" ..
+	addon:DebugSeparation(" Separated mount '" ..
 		mountName .. "' from family '" .. originalFamily .. "' into new family '" .. newFamilyName .. "'")
 	-- FIX: Trigger complete data reinitialization instead of just rebuild
 	addon.lastProcessingEventName = "mount_separation"
@@ -104,7 +104,7 @@ function MountSeparationManager:SeparateMount(mountID, customName)
 	addon.lastProcessingEventName = nil
 	-- ENHANCED: Notify SuperGroupManager of the change
 	if addon.SuperGroupManager then
-		print("RMB_SEPARATION: Notifying SuperGroupManager of separation")
+		addon:DebugSeparation(" Notifying SuperGroupManager of separation")
 		-- Use a brief delay to ensure data processing is complete
 		C_Timer.After(0.1, function()
 			addon.SuperGroupManager:RefreshAllUIs()
@@ -125,13 +125,13 @@ function MountSeparationManager:ReuniteSeparatedMount(mountID)
 	local separatedFamilyName = separationData.familyName
 	-- ENHANCED: Clear any supergroup assignments for the separated family
 	if addon.db.profile.superGroupOverrides and addon.db.profile.superGroupOverrides[separatedFamilyName] then
-		print("RMB_SEPARATION: Clearing supergroup override for reunited family: " .. separatedFamilyName)
+		addon:DebugSeparation(" Clearing supergroup override for reunited family: " .. separatedFamilyName)
 		addon.db.profile.superGroupOverrides[separatedFamilyName] = nil
 	end
 
 	-- ENHANCED: Clear weight settings for the separated family (keep mount weight)
 	if addon.db.profile.groupWeights and addon.db.profile.groupWeights[separatedFamilyName] then
-		print("RMB_SEPARATION: Clearing weight for separated family: " .. separatedFamilyName)
+		addon:DebugSeparation(" Clearing weight for separated family: " .. separatedFamilyName)
 		addon.db.profile.groupWeights[separatedFamilyName] = nil
 	end
 
@@ -142,14 +142,14 @@ function MountSeparationManager:ReuniteSeparatedMount(mountID)
 		addon.db.profile.separatedMounts = {}
 	end
 
-	print("RMB_SEPARATION: Reunited mount " .. mountID .. " with original family '" .. originalFamily .. "'")
+	addon:DebugSeparation(" Reunited mount " .. mountID .. " with original family '" .. originalFamily .. "'")
 	-- FIX: Trigger complete data reinitialization instead of just rebuild
 	addon.lastProcessingEventName = "mount_reunification"
 	addon:InitializeProcessedData()
 	addon.lastProcessingEventName = nil
 	-- ENHANCED: Notify SuperGroupManager of the change
 	if addon.SuperGroupManager then
-		print("RMB_SEPARATION: Notifying SuperGroupManager of reunification")
+		addon:DebugSeparation(" Notifying SuperGroupManager of reunification")
 		-- Use a brief delay to ensure data processing is complete
 		C_Timer.After(0.1, function()
 			addon.SuperGroupManager:RefreshAllUIs()
@@ -318,7 +318,7 @@ function MountSeparationManager:GoToPage(pageNumber)
 	if targetPage and targetPage >= 1 and targetPage <= totalPages then
 		self:SetCurrentPage(targetPage)
 		self:PopulateSeparationManagementUI()
-		print("RMB_SEPARATION: Jumped to page " .. targetPage)
+		addon:DebugSeparation(" Jumped to page " .. targetPage)
 	end
 end
 
@@ -666,14 +666,14 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 								local success, message = self:SeparateMount(mountData.mountID, self.uiState.customSeparationName)
 								if success then
 									self.uiState.customSeparationName = ""
-									print("RMB: " .. message)
+									addon:AlwaysPrint(" " .. message)
 									self:PopulateSeparationManagementUI()
 									-- Also refresh the main Family & Groups UI
 									if addon.PopulateFamilyManagementUI then
 										addon:PopulateFamilyManagementUI()
 									end
 								else
-									print("RMB Error: " .. message)
+									addon:AlwaysPrint(" " .. message)
 								end
 							end,
 							width = 0.4,
@@ -786,14 +786,14 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 						func = function()
 							local success, message = self:ReuniteSeparatedMount(mountData.mountID)
 							if success then
-								print("RMB: " .. message)
+								addon:AlwaysPrint(" " .. message)
 								self:PopulateSeparationManagementUI()
 								-- Also refresh the main Family & Groups UI
 								if addon.PopulateFamilyManagementUI then
 									addon:PopulateFamilyManagementUI()
 								end
 							else
-								print("RMB Error: " .. message)
+								addon:AlwaysPrint(" " .. message)
 							end
 						end,
 						width = 0.4,
@@ -825,12 +825,12 @@ function MountSeparationManager:PopulateSeparationManagementUI()
 	end
 
 	local endTime = debugprofilestop()
-	print(string.format("RMB_SEPARATION: UI build took %.2fms", endTime - startTime))
+	addon:DebugSeparation(string.format(" UI build took %.2fms", endTime - startTime))
 end
 
 -- Add OnDataReady method
 function MountSeparationManager:OnDataReady()
-	print("RMB_SEPARATION: Data ready, populating UI...")
+	addon:DebugSeparation(" Data ready, populating UI...")
 	self:PopulateSeparationManagementUI()
 end
 
@@ -841,5 +841,5 @@ function addon:InitializeMountSeparationManager()
 	end
 
 	self.MountSeparationManager:Initialize()
-	print("RMB_SEPARATION: Mount Separation Manager initialized")
+	addon:DebugSeparation(" Mount Separation Manager initialized")
 end

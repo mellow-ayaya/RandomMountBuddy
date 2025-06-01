@@ -1,27 +1,26 @@
 -- Options.lua (Improved formatting and organization)
 local PARENT_ADDON_INTERNAL_NAME = "RandomMountBuddy"  -- Used as the key for the parent category
 local PARENT_ADDON_DISPLAY_NAME = "Random Mount Buddy" -- What the user sees for the top-level
-print("RMB_OPTIONS: Options.lua START. Root Addon Name: " .. PARENT_ADDON_INTERNAL_NAME)
 local addon = RandomMountBuddy
 if not addon then
-	print("RMB_OPTIONS: CRITICAL ERROR - RandomMountBuddy global (addon object) is nil!")
+	addon:DebugOptions("CRITICAL ERROR - RandomMountBuddy global (addon object) is nil!")
 	return
 end
 
 local LibAceConfig = LibStub("AceConfig-3.0")
 local LibAceConfigDialog = LibStub("AceConfigDialog-3.0")
 if not (LibAceConfig and LibAceConfigDialog) then
-	print("RMB_OPTIONS: CRITICAL ERROR - AceConfig or AceConfigDialog libraries not found!")
+	addon:DebugOptions("CRITICAL ERROR - AceConfig or AceConfigDialog libraries not found!")
 	return
 end
 
 -- Ensure necessary functions exist on the addon object for various pages
 if type(addon.GetSetting) ~= "function" or type(addon.SetSetting) ~= "function" then
-	print("RMB_OPTIONS_WARN: Core Get/SetSetting methods missing!")
+	addon:DebugOptions(" Core Get/SetSetting methods missing!")
 end
 
 if type(addon.BuildFamilyManagementArgs) ~= "function" then
-	print("RMB_OPTIONS_WARN: addon.BuildFamilyManagementArgs is missing!")
+	addon:DebugOptions(" addon.BuildFamilyManagementArgs is missing!")
 	addon.BuildFamilyManagementArgs = function()
 		return {
 			err = {
@@ -34,7 +33,7 @@ if type(addon.BuildFamilyManagementArgs) ~= "function" then
 end
 
 if type(addon.GetFavoriteMountsForOptions) ~= "function" then
-	print("RMB_OPTIONS_WARN: addon.GetFavoriteMountsForOptions is missing!")
+	addon:DebugOptions(" addon.GetFavoriteMountsForOptions is missing!")
 	addon.GetFavoriteMountsForOptions = function()
 		return {
 			err = {
@@ -47,7 +46,7 @@ if type(addon.GetFavoriteMountsForOptions) ~= "function" then
 end
 
 if type(addon.PopulateFamilyManagementUI) ~= "function" then
-	print("RMB_OPTIONS_WARN: addon.PopulateFamilyManagementUI is missing!")
+	addon:DebugOptions(" addon.PopulateFamilyManagementUI is missing!")
 end
 
 --[[-----------------------------------------------------------------------------
@@ -64,7 +63,33 @@ local rootOptionsTable = {
 			type = "header",
 			name = "General Configuration",
 		},
+		enableDebugMode = {
+			order = 2.1,
+			type = "toggle",
+			name = "Enable Debug Messages",
+			desc = "Show detailed debug information in chat. Useful for troubleshooting.",
+			get = function()
+				-- Direct database access to avoid any SetSetting loops
+				if addon.db and addon.db.profile then
+					return addon.db.profile.enableDebugMode or false
+				end
 
+				return false
+			end,
+			set = function(i, v)
+				-- Direct database write to avoid triggering other systems
+				if addon.db and addon.db.profile then
+					addon.db.profile.enableDebugMode = v
+				end
+
+				-- Simple direct print - don't use AlwaysPrint to avoid any loops
+				if v then
+					print("RMB: Debug mode enabled - you'll see detailed debug messages")
+				else
+					print("RMB: Debug mode disabled")
+				end
+			end,
+		},
 		contextualSummoning = {
 			order = 5,
 			type = "toggle",
@@ -76,7 +101,7 @@ local rootOptionsTable = {
 				-- ENHANCED: Refresh mount pools since this affects mount selection logic
 				if addon.MountSummon and addon.MountSummon.RefreshMountPools then
 					addon.MountSummon:RefreshMountPools()
-					print("RMB_OPTIONS: Refreshed mount pools after contextual summoning change")
+					addon:DebugOptions("Refreshed mount pools after contextual summoning change")
 				end
 			end,
 		},
@@ -99,13 +124,13 @@ local rootOptionsTable = {
 						end
 					end
 
-					print("RMB_DETERMINISTIC: Cache reset due to mode toggle")
+					addon:DebugSummon(" Cache reset due to mode toggle")
 				end
 
 				-- ENHANCED: Refresh mount pools since this affects selection logic
 				if addon.MountSummon and addon.MountSummon.RefreshMountPools then
 					addon.MountSummon:RefreshMountPools()
-					print("RMB_OPTIONS: Refreshed mount pools after deterministic summoning change")
+					addon:DebugOptions("Refreshed mount pools after deterministic summoning change")
 				end
 			end,
 		},
@@ -237,7 +262,7 @@ local rootOptionsTable = {
 				C_Timer.After(0.1, function()
 					if addon.RefreshMountPools then
 						addon:RefreshMountPools()
-						print("RMB_OPTIONS: Refreshed mount pools after trait distinctness change")
+						addon:DebugOptions("Refreshed mount pools after trait distinctness change")
 					end
 				end)
 			end,
@@ -256,7 +281,7 @@ local rootOptionsTable = {
 				C_Timer.After(0.1, function()
 					if addon.RefreshMountPools then
 						addon:RefreshMountPools()
-						print("RMB_OPTIONS: Refreshed mount pools after trait distinctness change")
+						addon:DebugOptions("Refreshed mount pools after trait distinctness change")
 					end
 				end)
 			end,
@@ -275,7 +300,7 @@ local rootOptionsTable = {
 				C_Timer.After(0.1, function()
 					if addon.RefreshMountPools then
 						addon:RefreshMountPools()
-						print("RMB_OPTIONS: Refreshed mount pools after trait distinctness change")
+						addon:DebugOptions("Refreshed mount pools after trait distinctness change")
 					end
 				end)
 			end,
@@ -294,7 +319,7 @@ local rootOptionsTable = {
 				C_Timer.After(0.1, function()
 					if addon.RefreshMountPools then
 						addon:RefreshMountPools()
-						print("RMB_OPTIONS: Refreshed mount pools after trait distinctness change")
+						addon:DebugOptions("Refreshed mount pools after trait distinctness change")
 					end
 				end)
 			end,
@@ -376,7 +401,7 @@ local rootOptionsTable = {
 				C_Timer.After(0.2, function()
 					if addon.RefreshMountPools then
 						addon:RefreshMountPools()
-						print("RMB_OPTIONS: Refreshed mount pools after FavoriteSync enable/disable")
+						addon:DebugOptions("Refreshed mount pools after FavoriteSync enable/disable")
 					end
 
 					-- Refresh the Family Management UI to show/hide sync warnings
@@ -433,7 +458,7 @@ local rootOptionsTable = {
 				C_Timer.After(0.1, function()
 					if addon.RefreshMountPools then
 						addon:RefreshMountPools()
-						print("RMB_OPTIONS: Refreshed mount pools after favorite weight change")
+						addon:DebugOptions("Refreshed mount pools after favorite weight change")
 					end
 				end)
 			end,
@@ -469,7 +494,7 @@ local rootOptionsTable = {
 				C_Timer.After(0.1, function()
 					if addon.RefreshMountPools then
 						addon:RefreshMountPools()
-						print("RMB_OPTIONS: Refreshed mount pools after non-favorite weight change")
+						addon:DebugOptions("Refreshed mount pools after non-favorite weight change")
 					end
 				end)
 			end,
@@ -500,7 +525,7 @@ local rootOptionsTable = {
 				C_Timer.After(0.1, function()
 					if addon.RefreshMountPools then
 						addon:RefreshMountPools()
-						print("RMB_OPTIONS: Refreshed mount pools after weight mode change")
+						addon:DebugOptions("Refreshed mount pools after weight mode change")
 					end
 				end)
 			end,
@@ -527,7 +552,7 @@ local rootOptionsTable = {
 				C_Timer.After(0.2, function()
 					if addon.RefreshMountPools then
 						addon:RefreshMountPools()
-						print("RMB_OPTIONS: Refreshed mount pools after family sync setting change")
+						addon:DebugOptions("Refreshed mount pools after family sync setting change")
 					end
 
 					-- Refresh the Family Management UI to show/hide family-level sync warnings
@@ -559,7 +584,7 @@ local rootOptionsTable = {
 				C_Timer.After(0.2, function()
 					if addon.RefreshMountPools then
 						addon:RefreshMountPools()
-						print("RMB_OPTIONS: Refreshed mount pools after supergroup sync setting change")
+						addon:DebugOptions("Refreshed mount pools after supergroup sync setting change")
 					end
 
 					-- Refresh the Family Management UI to show/hide supergroup-level sync warnings
@@ -635,11 +660,11 @@ local rootOptionsTable = {
 LibAceConfig:RegisterOptionsTable(rootOptions_InternalName, rootOptionsTable)
 local rootPanel, rootCategoryID = LibAceConfigDialog:AddToBlizOptions(rootOptions_InternalName, PARENT_ADDON_DISPLAY_NAME)
 if not rootPanel then
-	print("RMB_OPTIONS_ERROR: FAILED to create parent category '" ..
+	addon:DebugOptions(" FAILED to create parent category '" ..
 		PARENT_ADDON_DISPLAY_NAME .. "' in Blizzard Options.")
 	return -- If parent can't be made, children will fail
 else
-	print("RMB_OPTIONS: Parent category '" ..
+	addon:DebugOptions(" Parent category '" ..
 		PARENT_ADDON_DISPLAY_NAME ..
 		"' created/found. ID/Name: " .. tostring(rootCategoryID or (rootPanel and rootPanel.name)))
 end
@@ -699,7 +724,7 @@ local mainSettingsOptionsArgs = {
 			if addon.PopulateFamilyManagementUI then
 				addon:PopulateFamilyManagementUI()
 			else
-				print("RMB_OPTIONS: Cannot refresh mount list - PopulateFamilyManagementUI missing")
+				addon:DebugOptions("Cannot refresh mount list - PopulateFamilyManagementUI missing")
 			end
 		end,
 	},
@@ -765,9 +790,9 @@ if mainPanel then
 		id = mainCatID or mainPanel.name,
 	}
 	addon.optionsPanelObject = addon.optionsPanel_Main
-	print("RMB_OPTIONS: Registered '" .. mainSettings_DisplayName .. "' page.")
+	addon:DebugOptions("Registered '" .. mainSettings_DisplayName .. "' page.")
 else
-	print("RMB_OPTIONS_ERROR: FAILED Main Settings AddToBliz.")
+	addon:DebugOptions("FAILED Main Settings AddToBliz.")
 end
 --]]
 --[[-----------------------------------------------------------------------------
@@ -802,7 +827,7 @@ local initialFamilyManagementArgs = {
 			if addon.PopulateFamilyManagementUI then
 				addon:PopulateFamilyManagementUI()
 			else
-				print("RMB_OPTIONS_ERROR: PopulateFamilyManagementUI missing!")
+				addon:DebugOptions("PopulateFamilyManagementUI missing!")
 			end
 		end,
 		width = "full",
@@ -833,9 +858,9 @@ if familyPanel then
 		frame = familyPanel,
 		id = familyCatID or familyPanel.name,
 	}
-	print("RMB_OPTIONS: Registered '" .. familyManagement_DisplayName .. "' page.")
+	addon:DebugOptions("Registered '" .. familyManagement_DisplayName .. "' page.")
 else
-	print("RMB_OPTIONS_ERROR: FAILED Family & Groups AddToBliz.")
+	addon:DebugOptions("FAILED Family & Groups AddToBliz.")
 end
 
 --[[-----------------------------------------------------------------------------
@@ -884,9 +909,9 @@ if inspPanel then
 		frame = inspPanel,
 		id = inspCatID or inspPanel.name,
 	}
-	print("RMB_OPTIONS: Registered '" .. mountInspector_DisplayName .. "' page.")
+	addon:DebugOptions("Registered '" .. mountInspector_DisplayName .. "' page.")
 else
-	print("RMB_OPTIONS_ERROR: FAILED Mount Inspector AddToBliz.")
+	addon:DebugOptions("FAILED Mount Inspector AddToBliz.")
 end
 
 --[[-----------------------------------------------------------------------------
@@ -918,9 +943,9 @@ if weightsPanel then
 		frame = weightsPanel,
 		id = weightsCatID or weightsPanel.name,
 	}
-	print("RMB_OPTIONS: Registered '" .. groupWeights_DisplayName .. "' page.")
+	addon:DebugOptions("Registered '" .. groupWeights_DisplayName .. "' page.")
 else
-	print("RMB_OPTIONS_ERROR: FAILED Group Weights AddToBliz.")
+	addon:DebugOptions("FAILED Group Weights AddToBliz.")
 end
 
 --[[-----------------------------------------------------------------------------
@@ -972,9 +997,9 @@ if mgmtPanel then
 		frame = mgmtPanel,
 		id = mgmtCatID or mgmtPanel.name,
 	}
-	print("RMB_OPTIONS: Registered '" .. superGroupMgmt_DisplayName .. "' page.")
+	addon:DebugOptions("Registered '" .. superGroupMgmt_DisplayName .. "' page.")
 else
-	print("RMB_OPTIONS_ERROR: FAILED Supergroup Management AddToBliz.")
+	addon:DebugOptions("FAILED Supergroup Management AddToBliz.")
 end
 
 -- Page 2: Family Assignment
@@ -1022,9 +1047,9 @@ if assignPanel then
 		frame = assignPanel,
 		id = assignCatID or assignPanel.name,
 	}
-	print("RMB_OPTIONS: Registered '" .. familyAssign_DisplayName .. "' page.")
+	addon:DebugOptions("Registered '" .. familyAssign_DisplayName .. "' page.")
 else
-	print("RMB_OPTIONS_ERROR: FAILED Family Assignment AddToBliz.")
+	addon:DebugOptions("FAILED Family Assignment AddToBliz.")
 end
 
 -- Page 3: Import/Export
@@ -1074,13 +1099,13 @@ local importExportOptionsTable = {
 					if success then
 						local reportText = addon.SuperGroupManager:FormatValidationReport(report)
 						addon.SuperGroupManager.lastValidationReport = reportText
-						print("RMB: Validation check completed")
+						addon:AlwaysPrint(" Validation check completed")
 						-- Refresh UI to show the report
 						if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then
 							LibStub("AceConfigRegistry-3.0"):NotifyChange("RandomMountBuddy")
 						end
 					else
-						print("RMB Error: " .. tostring(report))
+						addon:AlwaysPrint(" " .. tostring(report))
 					end
 				end
 			end,
@@ -1098,10 +1123,10 @@ local importExportOptionsTable = {
 					if success then
 						local reportText = addon.SuperGroupManager:FormatValidationReport(report)
 						addon.SuperGroupManager.lastValidationReport = reportText
-						print("RMB: Validation and auto-fix completed")
+						addon:AlwaysPrint(" Validation and auto-fix completed")
 						-- If any issues were fixed, trigger a data refresh
 						if report.totalFixed > 0 then
-							print("RMB: " .. report.totalFixed .. " issues were fixed, refreshing data...")
+							addon:AlwaysPrint(" " .. report.totalFixed .. " issues were fixed, refreshing data...")
 							-- Trigger data rebuild to apply fixes
 							addon:RebuildMountGrouping()
 							-- Refresh all UIs
@@ -1115,7 +1140,7 @@ local importExportOptionsTable = {
 							LibStub("AceConfigRegistry-3.0"):NotifyChange("RandomMountBuddy")
 						end
 					else
-						print("RMB Error: " .. tostring(report))
+						addon:AlwaysPrint(" " .. tostring(report))
 					end
 				end
 			end,
@@ -1207,12 +1232,12 @@ local importExportOptionsTable = {
 						StaticPopup_Show("RMB_EXPORT_CONFIG_POPUP", nil, nil, {
 							configString = config,
 						})
-						print("RMB: Configuration export popup opened - copy the text from the dialog")
+						addon:AlwaysPrint(" Configuration export popup opened - copy the text from the dialog")
 					else
-						print("RMB Error: Failed to generate configuration export")
+						addon:AlwaysPrint(" Failed to generate configuration export")
 					end
 				else
-					print("RMB Error: SuperGroupManager not available")
+					addon:AlwaysPrint(" SuperGroupManager not available")
 				end
 			end,
 			width = 1.0,
@@ -1270,9 +1295,9 @@ local importExportOptionsTable = {
 					local success, message = addon.SuperGroupManager:ImportConfiguration(configString, importMode)
 					if success then
 						addon.SuperGroupManager.pendingImportString = ""
-						print("RMB: " .. message)
+						addon:AlwaysPrint(" " .. message)
 					else
-						print("RMB Error: " .. message)
+						addon:AlwaysPrint(" " .. message)
 					end
 				end
 			end,
@@ -1348,9 +1373,9 @@ if iePanel then
 		frame = iePanel,
 		id = ieCatID or iePanel.name,
 	}
-	print("RMB_OPTIONS: Registered '" .. importExport_DisplayName .. "' page.")
+	addon:DebugOptions("Registered '" .. importExport_DisplayName .. "' page.")
 else
-	print("RMB_OPTIONS_ERROR: FAILED Import/Export AddToBliz.")
+	addon:DebugOptions("FAILED Import/Export AddToBliz.")
 end
 
 -- Static Popup Dialogs for SuperGroup Management (FIXED)
@@ -1381,11 +1406,11 @@ StaticPopupDialogs["RMB_MERGE_SUPERGROUPS_CONFIRM"] = {
 			if success then
 				addon.SuperGroupManager.pendingMergeSource = ""
 				addon.SuperGroupManager.pendingMergeTarget = ""
-				print("RMB: " .. message)
+				addon:AlwaysPrint(" " .. message)
 				-- FIXED: Use enhanced refresh method that updates ALL UIs
 				addon.SuperGroupManager:RefreshAllUIs()
 			else
-				print("RMB Error: " .. message)
+				addon:AlwaysPrint(" " .. message)
 			end
 		end
 	end,
@@ -1547,9 +1572,7 @@ if separationPanel then
 		frame = separationPanel,
 		id = separationCatID or separationPanel.name,
 	}
-	print("RMB_OPTIONS: Registered '" .. mountSeparation_DisplayName .. "' page.")
+	addon:DebugOptions("Registered '" .. mountSeparation_DisplayName .. "' page.")
 else
-	print("RMB_OPTIONS_ERROR: FAILED Mount Separation AddToBliz.")
+	addon:DebugOptions("FAILED Mount Separation AddToBliz.")
 end
-
-print("RMB_OPTIONS: Options.lua END - All sub-categories registration completed.")

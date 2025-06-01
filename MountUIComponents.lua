@@ -2,7 +2,7 @@
 -- Added visual warnings when FavoriteSync auto-sync is enabled
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
-print("RMB_DEBUG: MountUIComponents.lua (Enhanced Conditional Controls) START.")
+addon:DebugCore("MountUIComponents.lua (Enhanced Conditional Controls) START.")
 -- ============================================================================
 -- UI COMPONENT BUILDER CLASS
 -- ============================================================================
@@ -157,7 +157,7 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 				if mountID then
 					addon:ShowMountPreview(mountID, mountName, groupKey, groupData.type, isUncollected)
 				else
-					print("RMB_PREVIEW: No mount available to preview from this group")
+					addon:DebugUI("No mount available to preview from this group")
 				end
 			end,
 			width = layout.previewWidth,
@@ -197,7 +197,7 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 				addon:DecrementGroupWeight(groupKey)
 				-- Show brief reminder if sync is active
 				if weightProps.shouldWarn then
-					print("RMB: Weight changed. Note: FavoriteSync may override this change.")
+					addon:AlwaysPrint(" Weight changed. Note: FavoriteSync may override this change.")
 				end
 			end,
 			disabled = function() return addon:GetGroupWeight(groupKey) == 0 end,
@@ -247,7 +247,7 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 				addon:IncrementGroupWeight(groupKey)
 				-- Show brief reminder if sync is active
 				if weightProps.shouldWarn then
-					print("RMB: Weight changed. Note: FavoriteSync may override this change.")
+					addon:AlwaysPrint(" Weight changed. Note: FavoriteSync may override this change.")
 				end
 			end,
 			disabled = function() return addon:GetGroupWeight(groupKey) == 6 end,
@@ -560,7 +560,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 				if mountID then
 					addon:ShowMountPreview(mountID, mountName, familyName, "familyName", isUncollected)
 				else
-					print("RMB_PREVIEW: No mount available to preview from this family")
+					addon:DebugUI("No mount available to preview from this family")
 				end
 			end,
 			width = layout.previewWidth,
@@ -600,7 +600,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 				addon:DecrementGroupWeight(familyName)
 				-- Show brief reminder if sync is active
 				if weightProps.shouldWarn then
-					print("RMB: Weight changed. Note: FavoriteSync may override this change.")
+					addon:AlwaysPrint(" Weight changed. Note: FavoriteSync may override this change.")
 				end
 			end,
 			disabled = function() return addon:GetGroupWeight(familyName) == 0 end,
@@ -648,7 +648,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 				addon:IncrementGroupWeight(familyName)
 				-- Show brief reminder if sync is active
 				if weightProps.shouldWarn then
-					print("RMB: Weight changed. Note: FavoriteSync may override this change.")
+					addon:AlwaysPrint(" Weight changed. Note: FavoriteSync may override this change.")
 				end
 			end,
 			disabled = function() return addon:GetGroupWeight(familyName) == 6 end,
@@ -985,7 +985,7 @@ function MountUIComponents:BuildMountEntry(mountData, order, familyPrefix)
 				addon:DecrementGroupWeight("mount_" .. mountID)
 				-- Show brief reminder if sync is active
 				if weightProps.shouldWarn then
-					print("RMB: Weight changed. Note: FavoriteSync may override this change.")
+					addon:AlwaysPrint(" Weight changed. Note: FavoriteSync may override this change.")
 				end
 			end,
 			disabled = function() return addon:GetGroupWeight("mount_" .. mountID) == 0 end,
@@ -1040,7 +1040,7 @@ function MountUIComponents:BuildMountEntry(mountData, order, familyPrefix)
 				addon:IncrementGroupWeight("mount_" .. mountID)
 				-- Show brief reminder if sync is active
 				if weightProps.shouldWarn then
-					print("RMB: Weight changed. Note: FavoriteSync may override this change.")
+					addon:AlwaysPrint(" Weight changed. Note: FavoriteSync may override this change.")
 				end
 			end,
 			disabled = function() return addon:GetGroupWeight("mount_" .. mountID) == 6 end,
@@ -1365,4 +1365,4 @@ function MountUIComponents:BuildMountList(groupKey, groupType, startOrder)
 	return entries
 end
 
-print("RMB_DEBUG: MountUIComponents.lua (Enhanced Conditional Controls) END.")
+addon:DebugCore("MountUIComponents.lua (Enhanced Conditional Controls) END.")

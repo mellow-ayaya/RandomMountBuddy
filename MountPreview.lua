@@ -2,7 +2,7 @@
 -- Mount preview dialog and functionality
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
-print("RMB_DEBUG: MountPreview.lua START.")
+addon:DebugCore("MountPreview.lua START.")
 -- ============================================================================
 -- MOUNT PREVIEW CLASS
 -- ============================================================================
@@ -12,18 +12,18 @@ addon.MountPreview = MountPreview
 -- PREVIEW DIALOG CREATION AND MANAGEMENT
 -- ============================================================================
 function MountPreview:Initialize()
-	print("RMB_PREVIEW: Initializing preview system...")
+	addon:DebugUI("Initializing preview system...")
 	-- Preview consistency system
 	self.currentPreviewSelection = {}
 	self.previewDialog = nil
 	self:SetupPreviewConsistency()
-	print("RMB_PREVIEW: Initialized successfully")
+	addon:DebugUI("Initialized successfully")
 end
 
 -- Create or update the preview dialog
 function MountPreview:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncollected)
 	if not mountID then
-		print("RMB_PREVIEW: No mount ID provided")
+		addon:DebugUI("No mount ID provided")
 		return
 	end
 
@@ -39,7 +39,7 @@ function MountPreview:ShowMountPreview(mountID, mountName, groupKey, groupType, 
 end
 
 function MountPreview:CreatePreviewDialog()
-	print("RMB_PREVIEW: Creating preview dialog...")
+	addon:DebugUI("Creating preview dialog...")
 	-- Create main dialog frame
 	local frame = CreateFrame("Frame", "RMB_PreviewDialog", UIParent, "BackdropTemplate")
 	frame:SetSize(350, 350)
@@ -94,7 +94,7 @@ function MountPreview:CreatePreviewDialog()
 	frame:EnableKeyboard(true)
 	-- Store reference
 	self.previewDialog = frame
-	print("RMB_PREVIEW: Preview dialog created")
+	addon:DebugUI("Preview dialog created")
 end
 
 function MountPreview:UpdatePreviewDialog(mountID, mountName, groupKey, groupType, isUncollected)
@@ -125,7 +125,7 @@ function MountPreview:UpdatePreviewDialog(mountID, mountName, groupKey, groupTyp
 			frame.model:SetPosition(0, 0, 0)
 			frame.model:SetFacing(0.5)
 		else
-			print("RMB_PREVIEW: No display ID found for mount: " .. tostring(mountID))
+			addon:DebugUI("No display ID found for mount: " .. tostring(mountID))
 		end
 	end
 
@@ -166,7 +166,7 @@ function MountPreview:ShowNextRandomMount(groupKey, groupType)
 	if mountID then
 		self:UpdatePreviewDialog(mountID, mountName, groupKey, groupType, isUncollected)
 	else
-		print("RMB_PREVIEW: No mount available for next random preview")
+		addon:DebugUI("No mount available for next random preview")
 	end
 end
 
@@ -180,14 +180,14 @@ function MountPreview:SummonCurrentMount()
 	C_MountJournal.SummonByID(frame.currentMountID)
 	-- Hide the dialog
 	frame:Hide()
-	print("RMB_PREVIEW: Summoned mount: " .. tostring(frame.currentMountName))
+	addon:DebugUI("Summoned mount: " .. tostring(frame.currentMountName))
 end
 
 -- ============================================================================
 -- PREVIEW CONSISTENCY SYSTEM
 -- ============================================================================
 function MountPreview:SetupPreviewConsistency()
-	print("RMB_PREVIEW: Setting up preview consistency system...")
+	addon:DebugUI("Setting up preview consistency system...")
 	-- Hook tooltip hiding to reset selection
 	if GameTooltip then
 		GameTooltip:HookScript("OnHide", function()
@@ -215,7 +215,7 @@ function MountPreview:SetupPreviewConsistency()
 		end
 	end
 
-	print("RMB_PREVIEW: Preview consistency system installed")
+	addon:DebugUI("Preview consistency system installed")
 end
 
 -- Get consistent random mount for tooltip/preview (prevents flickering)
@@ -251,7 +251,7 @@ end
 -- TOOLTIP MODEL DISPLAY
 -- ============================================================================
 function MountPreview:InitializeTooltipModel()
-	print("RMB_PREVIEW: Initializing tooltip model display...")
+	addon:DebugUI("Initializing tooltip model display...")
 	-- Create backdrop frame
 	local bg = CreateFrame("Frame", "RMB_ModelTooltipBG", UIParent, "BackdropTemplate")
 	bg:SetSize(160, 160)
@@ -278,7 +278,7 @@ function MountPreview:InitializeTooltipModel()
 	self.modelTooltip = frame
 	-- Hook GameTooltip
 	self:HookTooltipEvents()
-	print("RMB_PREVIEW: Tooltip model display initialized")
+	addon:DebugUI("Tooltip model display initialized")
 end
 
 function MountPreview:HookTooltipEvents()
@@ -337,7 +337,7 @@ function MountPreview:ShowModelForTooltip(tooltip)
 		-- Show both
 		bg:Show()
 		frame:Show()
-		print("RMB_PREVIEW: Showing tooltip model for mount ID: " .. mountID)
+		addon:DebugUI("Showing tooltip model for mount ID: " .. mountID)
 	else
 		self.modelTooltipBG:Hide()
 		self.modelTooltip:Hide()
@@ -381,13 +381,13 @@ end
 -- Auto-initialize when addon loads
 function addon:InitializeMountPreview()
 	if not self.MountPreview then
-		print("RMB_PREVIEW: ERROR - MountPreview not found!")
+		addon:DebugUI("ERROR - MountPreview not found!")
 		return
 	end
 
 	self.MountPreview:Initialize()
 	self.MountPreview:InitializeTooltipModel()
-	print("RMB_PREVIEW: Integration complete")
+	addon:DebugUI("Integration complete")
 end
 
-print("RMB_DEBUG: MountPreview.lua END.")
+addon:DebugCore("MountPreview.lua END.")

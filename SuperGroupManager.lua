@@ -1,7 +1,7 @@
 -- SuperGroupManager.lua - Supergroup Customization Interface
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
-print("RMB_DEBUG: SuperGroupManager.lua START.")
+addon:DebugCore("SuperGroupManager.lua START.")
 -- ============================================================================
 -- SUPERGROUP MANAGER CLASS
 -- ============================================================================
@@ -9,7 +9,7 @@ local SuperGroupManager = {}
 addon.SuperGroupManager = SuperGroupManager
 -- Initialize the SuperGroup Manager
 function SuperGroupManager:Initialize()
-	print("RMB_SUPERGROUP: Initializing SuperGroup Manager...")
+	addon:DebugSupergr(" Initializing SuperGroup Manager...")
 	-- UI state for the manager
 	self.uiState = {
 		currentPage = 1,
@@ -25,13 +25,13 @@ function SuperGroupManager:Initialize()
 	-- Initialize dynamic content references
 	self.existingListArgsRef = {}
 	self.familyListArgsRef = {}
-	print("RMB_SUPERGROUP: Validation system initialized")
+	addon:DebugSupergr(" Validation system initialized")
 	-- Start refresh polling
 	self:StartRefreshPolling()
 	-- Populate initial content (will be empty until data is ready)
 	self:PopulateExistingSuperGroupsList()
 	self:PopulateFamilyAssignmentList()
-	print("RMB_SUPERGROUP: SuperGroup Manager initialized")
+	addon:DebugSupergr(" SuperGroup Manager initialized")
 end
 
 -- Add this new function to SuperGroupManager.lua:
@@ -41,7 +41,7 @@ function SuperGroupManager:StartRefreshPolling()
 		self.refreshTimer = C_Timer.NewTicker(0.5, function()
 			if self.needsRefresh then
 				self.needsRefresh = false
-				print("RMB_SUPERGROUP: Polling detected refresh needed")
+				addon:DebugSupergr(" Polling detected refresh needed")
 				-- Refresh all UIs
 				self:PopulateSuperGroupManagementUI()
 				self:PopulateFamilyAssignmentUI()
@@ -50,7 +50,7 @@ function SuperGroupManager:StartRefreshPolling()
 					addon:PopulateFamilyManagementUI()
 				end
 
-				print("RMB_SUPERGROUP: Refresh completed via polling")
+				addon:DebugSupergr(" Refresh completed via polling")
 			end
 		end)
 	end
@@ -58,7 +58,7 @@ end
 
 -- Add this new function to SuperGroupManager.lua:
 function SuperGroupManager:RequestRefresh()
-	print("RMB_SUPERGROUP: Refresh requested, will process on next poll")
+	addon:DebugSupergr(" Refresh requested, will process on next poll")
 	self.needsRefresh = true
 end
 
@@ -67,7 +67,7 @@ SuperGroupManager.existingListArgsRef = {}
 SuperGroupManager.familyListArgsRef = {}
 -- UI population functions (similar to PopulateFamilyManagementUI)
 function SuperGroupManager:PopulateExistingSuperGroupsList()
-	print("RMB_SUPERGROUP: Populating existing supergroups list")
+	addon:DebugSupergr(" Populating existing supergroups list")
 	-- Clear existing content
 	wipe(self.existingListArgsRef)
 	if not addon.SuperGroupManager then
@@ -179,7 +179,7 @@ function SuperGroupManager:PopulateExistingSuperGroupsList()
 end
 
 function SuperGroupManager:PopulateFamilyAssignmentList()
-	print("RMB_SUPERGROUP: Populating family assignment list")
+	addon:DebugSupergr(" Populating family assignment list")
 	-- Clear existing content
 	wipe(self.familyListArgsRef)
 	if not addon.SuperGroupManager then
@@ -261,11 +261,11 @@ function SuperGroupManager:PopulateFamilyAssignmentList()
 					if addon.SuperGroupManager then
 						local success, message = addon.SuperGroupManager:AssignFamilyToSuperGroup(familyInfo.familyName, value)
 						if success then
-							print("RMB: " .. message)
+							addon:AlwaysPrint(" " .. message)
 							-- Refresh the list to show changes
 							addon.SuperGroupManager:PopulateFamilyAssignmentList()
 						else
-							print("RMB Error: " .. message)
+							addon:AlwaysPrint(" " .. message)
 						end
 					end
 				end,
@@ -286,7 +286,7 @@ function SuperGroupManager:PopulateFamilyAssignmentList()
 					if mountID then
 						addon:ShowMountPreview(mountID, mountName, familyInfo.familyName, "familyName", isUncollected)
 					else
-						print("RMB_PREVIEW: No mount available to preview from this family")
+						addon:DebugUI("No mount available to preview from this family")
 					end
 				end,
 				width = 0.2,
@@ -351,9 +351,9 @@ end
 
 -- Populate supergroup management UI (same pattern as PopulateFamilyManagementUI)
 function SuperGroupManager:PopulateSuperGroupManagementUI()
-	print("RMB_SUPERGROUP: PopulateSuperGroupManagementUI called")
+	addon:DebugSupergr(" PopulateSuperGroupManagementUI called")
 	if not addon.sgMgmtArgsRef then
-		print("RMB_SUPERGROUP_ERROR: addon.sgMgmtArgsRef is nil! Options.lua problem.")
+		addon:DebugSupergr("addon.sgMgmtArgsRef is nil! Options.lua problem.")
 		return
 	end
 
@@ -372,7 +372,7 @@ function SuperGroupManager:PopulateSuperGroupManagementUI()
 	end
 
 	local endTime = debugprofilestop()
-	print(string.format("RMB_SUPERGROUP: UI build took %.2fms", endTime - startTime))
+	addon:DebugSupergr(string.format(" UI build took %.2fms", endTime - startTime))
 end
 
 -- Add the page range calculation function (same as MountSeparationManager)
@@ -427,9 +427,9 @@ end
 
 -- ENHANCED: Update PopulateFamilyAssignmentUI to validate compatibility
 function SuperGroupManager:PopulateFamilyAssignmentUI()
-	print("RMB_SUPERGROUP: PopulateFamilyAssignmentUI called")
+	addon:DebugSupergr(" PopulateFamilyAssignmentUI called")
 	if not addon.sgFamilyArgsRef then
-		print("RMB_SUPERGROUP_ERROR: addon.sgFamilyArgsRef is nil! Options.lua problem.")
+		addon:DebugSupergr("addon.sgFamilyArgsRef is nil! Options.lua problem.")
 		return
 	end
 
@@ -438,7 +438,7 @@ function SuperGroupManager:PopulateFamilyAssignmentUI()
 	if addon.db and addon.db.profile and addon.db.profile.separatedMounts then
 		local separatedCount = addon:CountTableEntries(addon.db.profile.separatedMounts)
 		if separatedCount > 0 then
-			print("RMB_SUPERGROUP: Validating compatibility with " .. separatedCount .. " separated families")
+			addon:DebugSupergr(" Validating compatibility with " .. separatedCount .. " separated families")
 			self:ValidateSeparatedFamilyIntegrity()
 		end
 	end
@@ -457,12 +457,12 @@ function SuperGroupManager:PopulateFamilyAssignmentUI()
 	end
 
 	local endTime = debugprofilestop()
-	print(string.format("RMB_SUPERGROUP: Family assignment UI build took %.2fms", endTime - startTime))
+	addon:DebugSupergr(string.format(" Family assignment UI build took %.2fms", endTime - startTime))
 end
 
 -- Build supergroup management page content
 function SuperGroupManager:BuildSuperGroupManagementArgs()
-	print("RMB_SUPERGROUP: BuildSuperGroupManagementArgs called")
+	addon:DebugSupergr(" BuildSuperGroupManagementArgs called")
 	local args = {}
 	local order = 1
 	-- Header
@@ -540,10 +540,10 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 			local success, message = self:CreateSuperGroup(name)
 			if success then
 				self.pendingCreateName = ""
-				print("RMB: " .. message)
+				addon:AlwaysPrint(" " .. message)
 				self:PopulateSuperGroupManagementUI()
 			else
-				print("RMB Error: " .. message)
+				addon:AlwaysPrint(" " .. message)
 			end
 		end,
 		disabled = function()
@@ -654,7 +654,7 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 						end
 
 						self.deleteConfirmation[sgInfo.name] = true
-						print("RMB: Confirm deletion of '" .. sgInfo.displayName .. "'")
+						addon:AlwaysPrint(" Confirm deletion of '" .. sgInfo.displayName .. "'")
 						-- Refresh UI to show confirmation buttons
 						self:PopulateSuperGroupManagementUI()
 						-- Auto-cancel after 10 seconds
@@ -662,7 +662,7 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 							if self.deleteConfirmation and self.deleteConfirmation[sgInfo.name] then
 								self.deleteConfirmation[sgInfo.name] = nil
 								self:PopulateSuperGroupManagementUI()
-								print("RMB: Delete confirmation timed out for '" .. sgInfo.displayName .. "'")
+								addon:AlwaysPrint(" Delete confirmation timed out for '" .. sgInfo.displayName .. "'")
 							end
 						end)
 					end,
@@ -696,7 +696,7 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 						-- Actually delete the supergroup
 						local success, message = self:DeleteSuperGroup(sgInfo.name)
 						if success then
-							print("RMB: " .. message)
+							addon:AlwaysPrint(" " .. message)
 							self.deleteConfirmation[sgInfo.name] = nil
 							-- Refresh all UIs
 							self:PopulateSuperGroupManagementUI()
@@ -705,7 +705,7 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 								addon:PopulateFamilyManagementUI()
 							end
 						else
-							print("RMB Error: " .. message)
+							addon:AlwaysPrint(" " .. message)
 							-- Clear confirmation mode on error
 							self.deleteConfirmation[sgInfo.name] = nil
 							self:PopulateSuperGroupManagementUI()
@@ -723,7 +723,7 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 						-- Exit confirmation mode
 						self.deleteConfirmation[sgInfo.name] = nil
 						self:PopulateSuperGroupManagementUI()
-						print("RMB: Delete cancelled for '" .. sgInfo.displayName .. "'")
+						addon:AlwaysPrint(" Delete cancelled for '" .. sgInfo.displayName .. "'")
 					end,
 					width = 0.25,
 				}
@@ -756,13 +756,13 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 		order = order + 1
 	end
 
-	print("RMB_SUPERGROUP: Built management UI with " .. #allSGs .. " supergroups")
+	addon:DebugSupergr(" Built management UI with " .. #allSGs .. " supergroups")
 	return args
 end
 
 -- Build family assignment page content
 function SuperGroupManager:BuildFamilyAssignmentArgs()
-	print("RMB_SUPERGROUP: BuildFamilyAssignmentArgs called")
+	addon:DebugSupergr(" BuildFamilyAssignmentArgs called")
 	local args = {}
 	local order = 1
 	-- Header
@@ -916,7 +916,7 @@ function SuperGroupManager:BuildFamilyAssignmentArgs()
 							if mountID then
 								addon:ShowMountPreview(mountID, mountName, familyInfo.familyName, "familyName", isUncollected)
 							else
-								print("RMB_PREVIEW: No mount available to preview from this family")
+								addon:DebugUI("No mount available to preview from this family")
 							end
 						end,
 						width = 0.3,
@@ -1000,7 +1000,7 @@ function SuperGroupManager:BuildFamilyAssignmentArgs()
 							if actualSG then
 								local success, message = self:AssignFamilyToSuperGroup(familyInfo.familyName, actualSG)
 								if success then
-									print("RMB: " .. message)
+									addon:AlwaysPrint(" " .. message)
 									-- Refresh all UIs
 									self:PopulateSuperGroupManagementUI()
 									self:PopulateFamilyAssignmentUI()
@@ -1008,7 +1008,7 @@ function SuperGroupManager:BuildFamilyAssignmentArgs()
 										addon:PopulateFamilyManagementUI()
 									end
 								else
-									print("RMB Error: " .. message)
+									addon:AlwaysPrint(" " .. message)
 								end
 							end
 						end,
@@ -1031,7 +1031,7 @@ function SuperGroupManager:BuildFamilyAssignmentArgs()
 		order = order + 1
 	end
 
-	print("RMB_SUPERGROUP: Built family assignment UI with " .. #filteredFamilies .. " families")
+	addon:DebugSupergr(" Built family assignment UI with " .. #filteredFamilies .. " families")
 	return args
 end
 
@@ -1111,14 +1111,14 @@ function SuperGroupManager:GetAllSuperGroups()
 	local allSuperGroups = {}
 	-- Ensure data is ready
 	if not addon.RMB_DataReadyForUI or not addon.processedData then
-		print("RMB_SUPERGROUP: Data not ready for GetAllSuperGroups")
+		addon:DebugSupergr(" Data not ready for GetAllSuperGroups")
 		return allSuperGroups
 	end
 
-	print("RMB_SUPERGROUP: GetAllSuperGroups - Data is ready, processing...")
+	addon:DebugSupergr(" GetAllSuperGroups - Data is ready, processing...")
 	-- Add original supergroups (if not deleted)
 	if addon.processedData.superGroupMap then
-		print("RMB_SUPERGROUP: Found " ..
+		addon:DebugSupergr(" Found " ..
 			addon:CountTableEntries(addon.processedData.superGroupMap) .. " original supergroups")
 		for sgName, _ in pairs(addon.processedData.superGroupMap) do
 			if not addon:IsSuperGroupDeleted(sgName) then
@@ -1129,18 +1129,18 @@ function SuperGroupManager:GetAllSuperGroups()
 					isRenamed = addon:IsSuperGroupRenamed(sgName),
 					isDeleted = false,
 				})
-				print("RMB_SUPERGROUP: Added original supergroup: " .. sgName)
+				addon:DebugSupergr(" Added original supergroup: " .. sgName)
 			else
-				print("RMB_SUPERGROUP: Skipped deleted supergroup: " .. sgName)
+				addon:DebugSupergr(" Skipped deleted supergroup: " .. sgName)
 			end
 		end
 	else
-		print("RMB_SUPERGROUP: No original supergroups found in processedData")
+		addon:DebugSupergr(" No original supergroups found in processedData")
 	end
 
 	-- Add custom supergroups
 	if addon.db and addon.db.profile and addon.db.profile.superGroupDefinitions then
-		print("RMB_SUPERGROUP: Found " ..
+		addon:DebugSupergr(" Found " ..
 			addon:CountTableEntries(addon.db.profile.superGroupDefinitions) .. " supergroup definitions")
 		for sgName, definition in pairs(addon.db.profile.superGroupDefinitions) do
 			if definition.isCustom then
@@ -1151,11 +1151,11 @@ function SuperGroupManager:GetAllSuperGroups()
 					isRenamed = false,
 					isDeleted = false,
 				})
-				print("RMB_SUPERGROUP: Added custom supergroup: " .. sgName)
+				addon:DebugSupergr(" Added custom supergroup: " .. sgName)
 			end
 		end
 	else
-		print("RMB_SUPERGROUP: No custom supergroup definitions found")
+		addon:DebugSupergr(" No custom supergroup definitions found")
 	end
 
 	-- Add deleted supergroups (for restore functionality)
@@ -1169,7 +1169,7 @@ function SuperGroupManager:GetAllSuperGroups()
 					isRenamed = false,
 					isDeleted = true,
 				})
-				print("RMB_SUPERGROUP: Added deleted supergroup for restore: " .. sgName)
+				addon:DebugSupergr(" Added deleted supergroup for restore: " .. sgName)
 			end
 		end
 	end
@@ -1186,7 +1186,7 @@ function SuperGroupManager:GetAllSuperGroups()
 			return a.displayName < b.displayName
 		end
 	end)
-	print("RMB_SUPERGROUP: GetAllSuperGroups returning " .. #allSuperGroups .. " supergroups")
+	addon:DebugSupergr(" GetAllSuperGroups returning " .. #allSuperGroups .. " supergroups")
 	return allSuperGroups
 end
 
@@ -1281,7 +1281,7 @@ function SuperGroupManager:CreateSuperGroup(userInputName)
 		isCustom = true,
 		isRenamed = false,       -- Not renamed since it starts with user's preferred name
 	}
-	print("RMB_SUPERGROUP: Created custom supergroup: '" .. displayName .. "' (internal: " .. internalName .. ")")
+	addon:DebugSupergr(" Created custom supergroup: '" .. displayName .. "' (internal: " .. internalName .. ")")
 	-- Trigger rebuild
 	addon:RebuildMountGrouping()
 	return true, "Supergroup '" .. displayName .. "' created successfully"
@@ -1321,7 +1321,7 @@ function SuperGroupManager:RenameSuperGroup(sgName, newDisplayName)
 			end
 		end
 
-		print("RMB_SUPERGROUP: Restored original name for supergroup: " .. sgName)
+		addon:DebugSupergr(" Restored original name for supergroup: " .. sgName)
 	else
 		-- Renaming to a different name - update or create definition
 		if not addon.db.profile.superGroupDefinitions[sgName] then
@@ -1330,7 +1330,7 @@ function SuperGroupManager:RenameSuperGroup(sgName, newDisplayName)
 
 		addon.db.profile.superGroupDefinitions[sgName].displayName = trimmedNewName
 		addon.db.profile.superGroupDefinitions[sgName].isRenamed = true
-		print("RMB_SUPERGROUP: Renamed supergroup: " .. sgName .. " to '" .. trimmedNewName .. "'")
+		addon:DebugSupergr(" Renamed supergroup: " .. sgName .. " to '" .. trimmedNewName .. "'")
 	end
 
 	-- Trigger UI refresh
@@ -1372,7 +1372,7 @@ function SuperGroupManager:RestoreOriginalName(sgName)
 		addon.db.profile.superGroupDefinitions[sgName] = nil
 	end
 
-	print("RMB_SUPERGROUP: Restored original name for: " .. sgName)
+	addon:DebugSupergr(" Restored original name for: " .. sgName)
 	-- Trigger UI refresh
 	if addon.MountDataManager and addon.MountDataManager.InvalidateCache then
 		addon.MountDataManager:InvalidateCache("supergroup_name_restored")
@@ -1400,11 +1400,11 @@ function SuperGroupManager:DeleteSuperGroup(sgName)
 			addon.db.profile.superGroupDefinitions[sgName] = nil
 		end
 
-		print("RMB_SUPERGROUP: Deleted custom supergroup: " .. sgName)
+		addon:DebugSupergr(" Deleted custom supergroup: " .. sgName)
 	else
 		-- For original supergroups, mark as deleted
 		addon.db.profile.deletedSuperGroups[sgName] = true
-		print("RMB_SUPERGROUP: Marked original supergroup as deleted: " .. sgName)
+		addon:DebugSupergr(" Marked original supergroup as deleted: " .. sgName)
 	end
 
 	-- Remove any family assignments to this supergroup
@@ -1418,7 +1418,7 @@ function SuperGroupManager:DeleteSuperGroup(sgName)
 		end
 
 		if #clearedFamilies > 0 then
-			print("RMB_SUPERGROUP: Cleared assignments for " .. #clearedFamilies .. " families")
+			addon:DebugSupergr(" Cleared assignments for " .. #clearedFamilies .. " families")
 		end
 	end
 
@@ -1451,10 +1451,10 @@ function SuperGroupManager:RestoreSuperGroup(sgName)
 			not addon.db.profile.superGroupDefinitions[sgName].isCustom then
 		-- For original supergroups, remove the definition entirely to restore original name
 		addon.db.profile.superGroupDefinitions[sgName] = nil
-		print("RMB_SUPERGROUP: Cleaned up rename data during restoration of: " .. sgName)
+		addon:DebugSupergr(" Cleaned up rename data during restoration of: " .. sgName)
 	end
 
-	print("RMB_SUPERGROUP: Restored supergroup: " .. sgName)
+	addon:DebugSupergr(" Restored supergroup: " .. sgName)
 	-- Trigger rebuild
 	addon:RebuildMountGrouping()
 	return true, "Supergroup restored to original state"
@@ -1507,7 +1507,7 @@ function SuperGroupManager:MergeSuperGroups(sourceSG, targetSG)
 	-- Delete the source supergroup
 	local deleteSuccess, deleteMessage = self:DeleteSuperGroup(sourceSG)
 	if deleteSuccess then
-		print("RMB_SUPERGROUP: Merged '" ..
+		addon:DebugSupergr(" Merged '" ..
 			sourceDisplayName .. "' into '" .. targetDisplayName .. "' (" .. movedFamilies .. " families moved)")
 		return true,
 				"Merged " .. movedFamilies .. " families from '" .. sourceDisplayName .. "' to '" .. targetDisplayName .. "'"
@@ -1543,11 +1543,11 @@ function SuperGroupManager:GetAllFamilyAssignments()
 	local familyAssignments = {}
 	-- Ensure data is ready
 	if not addon.RMB_DataReadyForUI or not addon.processedData then
-		print("RMB_SUPERGROUP: Data not ready for GetAllFamilyAssignments")
+		addon:DebugSupergr(" Data not ready for GetAllFamilyAssignments")
 		return familyAssignments
 	end
 
-	print("RMB_SUPERGROUP: GetAllFamilyAssignments - Data is ready, processing...")
+	addon:DebugSupergr(" GetAllFamilyAssignments - Data is ready, processing...")
 	-- Get all unique families from collected mounts
 	local allFamilies = {}
 	if addon.processedData.allCollectedMountFamilyInfo then
@@ -1555,7 +1555,7 @@ function SuperGroupManager:GetAllFamilyAssignments()
 			allFamilies[mountInfo.familyName] = true
 		end
 
-		print("RMB_SUPERGROUP: Found families from collected mounts: " .. addon:CountTableEntries(allFamilies))
+		addon:DebugSupergr(" Found families from collected mounts: " .. addon:CountTableEntries(allFamilies))
 	end
 
 	-- Add families from uncollected mounts
@@ -1569,7 +1569,7 @@ function SuperGroupManager:GetAllFamilyAssignments()
 			allFamilies[mountInfo.familyName] = true
 		end
 
-		print("RMB_SUPERGROUP: Added " .. uncollectedFamilyCount .. " new families from uncollected mounts")
+		addon:DebugSupergr(" Added " .. uncollectedFamilyCount .. " new families from uncollected mounts")
 	end
 
 	-- FIXED: Also include separated families
@@ -1578,12 +1578,12 @@ function SuperGroupManager:GetAllFamilyAssignments()
 			local newFamilyName = separationData.familyName
 			if newFamilyName and not allFamilies[newFamilyName] then
 				allFamilies[newFamilyName] = true
-				print("RMB_SUPERGROUP: Added separated family: " .. newFamilyName)
+				addon:DebugSupergr(" Added separated family: " .. newFamilyName)
 			end
 		end
 	end
 
-	print("RMB_SUPERGROUP: Total unique families to process: " .. addon:CountTableEntries(allFamilies))
+	addon:DebugSupergr(" Total unique families to process: " .. addon:CountTableEntries(allFamilies))
 	-- Build assignment data for each family
 	for familyName, _ in pairs(allFamilies) do
 		local originalSG = addon:GetOriginalSuperGroup(familyName) -- Before any changes
@@ -1621,7 +1621,7 @@ function SuperGroupManager:GetAllFamilyAssignments()
 					(treatUniqueEffectsAsDistinct and effectiveTraits.isUniqueEffect) then
 				isSeparatedByStrictness = true
 				separationReason = addon:GetFamilySeparationReason(familyName)
-				print("RMB_SUPERGROUP: Family '" ..
+				addon:DebugSupergr(" Family '" ..
 					familyName .. "' separated by trait strictness from intended: " .. tostring(intendedSG))
 			end
 		end
@@ -1685,7 +1685,7 @@ function SuperGroupManager:GetAllFamilyAssignments()
 			return a.familyName < b.familyName
 		end
 	end)
-	print("RMB_SUPERGROUP: GetAllFamilyAssignments returning " .. #familyAssignments .. " family assignments")
+	addon:DebugSupergr(" GetAllFamilyAssignments returning " .. #familyAssignments .. " family assignments")
 	return familyAssignments
 end
 
@@ -1715,29 +1715,29 @@ function SuperGroupManager:AssignFamilyToSuperGroup(familyName, targetSG)
 
 	-- Get the family's relationships
 	local originalSG = addon:GetOriginalSuperGroup(familyName)
-	print("RMB_SUPERGROUP: Assigning " .. familyName .. " - Original: " .. tostring(originalSG) ..
+	addon:DebugSupergr(" Assigning " .. familyName .. " - Original: " .. tostring(originalSG) ..
 		", Target: " .. tostring(targetSG) .. ", IsSeparated: " .. tostring(isSeparatedFamily))
 	if targetSG == nil or targetSG == "" or targetSG == "<Standalone>" then
 		-- Assign to standalone (set intended assignment to standalone)
 		if originalSG == nil then
 			-- Already originally standalone, remove any override
 			addon.db.profile.superGroupOverrides[familyName] = nil
-			print("RMB_SUPERGROUP: Cleared override for " .. familyName .. " (originally standalone)")
+			addon:DebugSupergr(" Cleared override for " .. familyName .. " (originally standalone)")
 		else
 			-- Force to standalone (override original assignment)
 			addon.db.profile.superGroupOverrides[familyName] = false
-			print("RMB_SUPERGROUP: Set " .. familyName .. " intended assignment to standalone")
+			addon:DebugSupergr(" Set " .. familyName .. " intended assignment to standalone")
 		end
 	else
 		-- Assign to specific supergroup (set intended assignment)
 		if targetSG == originalSG then
 			-- Same as original assignment, remove any override
 			addon.db.profile.superGroupOverrides[familyName] = nil
-			print("RMB_SUPERGROUP: Cleared override for " .. familyName .. " (matches original assignment)")
+			addon:DebugSupergr(" Cleared override for " .. familyName .. " (matches original assignment)")
 		else
 			-- Override to new supergroup (set intended assignment)
 			addon.db.profile.superGroupOverrides[familyName] = targetSG
-			print("RMB_SUPERGROUP: Set " .. familyName .. " intended assignment to " .. targetSG)
+			addon:DebugSupergr(" Set " .. familyName .. " intended assignment to " .. targetSG)
 		end
 	end
 
@@ -1748,7 +1748,7 @@ function SuperGroupManager:AssignFamilyToSuperGroup(familyName, targetSG)
 		local mountWeight = addon:GetGroupWeight(mountKey)
 		-- Ensure family and mount weights are synchronized
 		if familyWeight ~= mountWeight then
-			print("RMB_SUPERGROUP: Synchronizing weights for separated family - Family: " ..
+			addon:DebugSupergr(" Synchronizing weights for separated family - Family: " ..
 				familyWeight .. ", Mount: " .. mountWeight)
 			-- Use the higher weight to avoid downgrading
 			local syncWeight = math.max(familyWeight, mountWeight)
@@ -1829,20 +1829,20 @@ function SuperGroupManager:ValidateSeparatedFamilyIntegrity()
 				addon:SetGroupWeight(familyName, syncWeight)
 				addon:SetGroupWeight(mountKey, syncWeight)
 				fixedIssues = fixedIssues + 1
-				print("RMB_SUPERGROUP: Fixed weight sync for " .. familyName .. " -> " .. syncWeight)
+				addon:DebugSupergr(" Fixed weight sync for " .. familyName .. " -> " .. syncWeight)
 			end
 		end
 	end
 
 	if #issues > 0 then
-		print("RMB_SUPERGROUP: Found " .. #issues .. " separated family integrity issues")
+		addon:DebugSupergr(" Found " .. #issues .. " separated family integrity issues")
 		for _, issue in ipairs(issues) do
-			print("RMB_SUPERGROUP: ISSUE: " .. issue)
+			addon:DebugSupergr(" ISSUE: " .. issue)
 		end
 	end
 
 	if fixedIssues > 0 then
-		print("RMB_SUPERGROUP: Auto-fixed " .. fixedIssues .. " weight synchronization issues")
+		addon:DebugSupergr(" Auto-fixed " .. fixedIssues .. " weight synchronization issues")
 	end
 
 	return #issues == 0, issues
@@ -1976,7 +1976,7 @@ function SuperGroupManager:ImportConfiguration(configString, importMode)
 	-- Check version for compatibility
 	local configVersion = config.version or "1.0"
 	local hasSeparatedMounts = config.separatedMounts ~= nil
-	print("RMB_IMPORT: Importing configuration version " .. configVersion ..
+	addon:DebugImport(" Importing configuration version " .. configVersion ..
 		(hasSeparatedMounts and " (with separated mounts)" or " (no separated mounts)"))
 	-- Initialize database structures if needed
 	if not addon.db.profile.superGroupOverrides then
@@ -2009,7 +2009,7 @@ function SuperGroupManager:ImportConfiguration(configString, importMode)
 		wipe(addon.db.profile.deletedSuperGroups)
 		-- ENHANCED: Clear separated mounts in replace mode
 		wipe(addon.db.profile.separatedMounts)
-		print("RMB_IMPORT: Cleared existing configuration for replace mode")
+		addon:DebugImport("Cleared existing configuration for replace mode")
 	end
 
 	-- Import overrides
@@ -2048,14 +2048,14 @@ function SuperGroupManager:ImportConfiguration(configString, importMode)
 
 				importStats.separatedMounts = importStats.separatedMounts + 1
 			else
-				print("RMB_IMPORT: Skipped invalid separated mount data for mount " .. mountID)
+				addon:DebugImport(" Skipped invalid separated mount data for mount " .. mountID)
 			end
 		end
 	end
 
 	-- Trigger complete data rebuild since separated mounts affect the data structure
 	if importStats.separatedMounts > 0 then
-		print("RMB_IMPORT: Rebuilding data due to separated mounts import...")
+		addon:DebugImport("Rebuilding data due to separated mounts import...")
 		addon.lastProcessingEventName = "import_with_separated_mounts"
 		addon:InitializeProcessedData()
 		addon.lastProcessingEventName = nil
@@ -2073,7 +2073,7 @@ function SuperGroupManager:ImportConfiguration(configString, importMode)
 		message = message .. string.format(", and %d separated mounts", importStats.separatedMounts)
 	end
 
-	print("RMB_SUPERGROUP: " .. message)
+	addon:DebugSupergr(" " .. message)
 	return true, message
 end
 
@@ -2122,7 +2122,7 @@ function SuperGroupManager:ResetToDefaults(resetType)
 
 	if resetType == "all" then
 		-- ENHANCED: Clear ALL customizations for complete reset
-		print("RMB_RESET: Performing complete reset of all saved variables...")
+		addon:DebugImport("Performing complete reset of all saved variables...")
 		-- Clear all supergroup customizations including renames
 		if addon.db.profile.superGroupDefinitions then
 			wipe(addon.db.profile.superGroupDefinitions)
@@ -2132,27 +2132,27 @@ function SuperGroupManager:ResetToDefaults(resetType)
 		if addon.db.profile.separatedMounts then
 			resetStats.separatedMounts = addon:CountTableEntries(addon.db.profile.separatedMounts)
 			wipe(addon.db.profile.separatedMounts)
-			print("RMB_RESET: Cleared " .. resetStats.separatedMounts .. " separated mounts")
+			addon:DebugImport("Cleared " .. resetStats.separatedMounts .. " separated mounts")
 		end
 
 		-- ENHANCED: Clear all group weights (mount, family, and supergroup weights)
 		if addon.db.profile.groupWeights then
 			resetStats.groupWeights = addon:CountTableEntries(addon.db.profile.groupWeights)
 			wipe(addon.db.profile.groupWeights)
-			print("RMB_RESET: Cleared " .. resetStats.groupWeights .. " weight settings")
+			addon:DebugImport("Cleared " .. resetStats.groupWeights .. " weight settings")
 		end
 
 		-- ENHANCED: Clear all trait overrides
 		if addon.db.profile.traitOverrides then
 			resetStats.traitOverrides = addon:CountTableEntries(addon.db.profile.traitOverrides)
 			wipe(addon.db.profile.traitOverrides)
-			print("RMB_RESET: Cleared " .. resetStats.traitOverrides .. " trait overrides")
+			addon:DebugImport("Cleared " .. resetStats.traitOverrides .. " trait overrides")
 		end
 	end
 
 	-- ENHANCED: Trigger complete data rebuild if separated mounts were cleared
 	if resetStats.separatedMounts > 0 then
-		print("RMB_RESET: Rebuilding data due to separated mounts reset...")
+		addon:DebugImport("Rebuilding data due to separated mounts reset...")
 		addon.lastProcessingEventName = "reset_with_separated_mounts"
 		addon:InitializeProcessedData()
 		addon.lastProcessingEventName = nil
@@ -2185,7 +2185,7 @@ function SuperGroupManager:ResetToDefaults(resetType)
 		end
 	end
 
-	print("RMB_SUPERGROUP: " .. message)
+	addon:DebugSupergr(" " .. message)
 	return true, message
 end
 
@@ -2204,7 +2204,7 @@ function SuperGroupManager:ResetMountSeparationOnly()
 		return false, "No separated mounts found"
 	end
 
-	print("RMB_RESET_SEPARATION: Resetting " .. separatedCount .. " separated mounts...")
+	addon:DebugImport(" Resetting " .. separatedCount .. " separated mounts...")
 	-- Clear separated mount family weight settings (but keep individual mount weights)
 	local clearedFamilyWeights = 0
 	if addon.db.profile.groupWeights then
@@ -2243,7 +2243,7 @@ function SuperGroupManager:ResetMountSeparationOnly()
 
 	-- Clear the separated mounts data
 	wipe(addon.db.profile.separatedMounts)
-	print("RMB_RESET_SEPARATION: Cleared separated mounts and " .. clearedFamilyWeights ..
+	addon:DebugImport(" Cleared separated mounts and " .. clearedFamilyWeights ..
 		" family weights, " .. clearedOverrides .. " supergroup overrides, " ..
 		clearedTraitOverrides .. " trait overrides")
 	-- Trigger complete data rebuild
@@ -2263,7 +2263,7 @@ function SuperGroupManager:ResetMountSeparationOnly()
 		)
 	end
 
-	print("RMB_RESET_SEPARATION: " .. message)
+	addon:DebugImport(" " .. message)
 	return true, message
 end
 
@@ -2320,7 +2320,7 @@ function SuperGroupManager:RunDataValidation(autoFix)
 		return false, "Data not ready for validation"
 	end
 
-	print("RMB_VALIDATION: Starting comprehensive data validation...")
+	addon:DebugValidation(" Starting comprehensive data validation...")
 	local startTime = debugprofilestop()
 	local report = {
 		weightSyncIssues = {},
@@ -2334,7 +2334,7 @@ function SuperGroupManager:RunDataValidation(autoFix)
 	self:ValidateOrphanedSettings(report, autoFix)
 	self:ValidateSeparatedFamilyNames(report, autoFix)
 	local endTime = debugprofilestop()
-	print(string.format("RMB_VALIDATION: Completed in %.2fms - %d issues found, %d fixed",
+	addon:DebugValidation(string.format(" Completed in %.2fms - %d issues found, %d fixed",
 		endTime - startTime, report.totalIssues, report.totalFixed))
 	return true, report
 end
@@ -2358,7 +2358,7 @@ end
 
 -- ADD: Enhanced RefreshAllUIs method to handle validation fixes
 function SuperGroupManager:RefreshAllUIs()
-	print("RMB_SUPERGROUP: Refreshing all UIs after validation fixes")
+	addon:DebugSupergr(" Refreshing all UIs after validation fixes")
 	-- Validate separated family integrity first
 	self:ValidateSeparatedFamilyIntegrity()
 	-- Refresh SuperGroup Management UIs
@@ -2379,13 +2379,13 @@ function SuperGroupManager:RefreshAllUIs()
 		addon.MountSummon:RefreshMountPools()
 	end
 
-	print("RMB_SUPERGROUP: All UI refresh completed")
+	addon:DebugSupergr(" All UI refresh completed")
 end
 
 -- ADD: Method to clear validation report (useful for UI)
 function SuperGroupManager:ClearValidationReport()
 	self.lastValidationReport = nil
-	print("RMB_SUPERGROUP: Validation report cleared")
+	addon:DebugSupergr(" Validation report cleared")
 end
 
 -- ADD: Method to get validation statistics for display
@@ -2428,7 +2428,7 @@ end
 -- 1. WEIGHT SYNCHRONIZATION VALIDATION
 -- ============================================================================
 function SuperGroupManager:ValidateWeightSynchronization(report, autoFix)
-	print("RMB_VALIDATION: Checking weight synchronization...")
+	addon:DebugValidation(" Checking weight synchronization...")
 	if not (addon.db and addon.db.profile and addon.db.profile.groupWeights) then
 		return
 	end
@@ -2437,7 +2437,7 @@ function SuperGroupManager:ValidateWeightSynchronization(report, autoFix)
 	local issuesFound = 0
 	local issuesFixed = 0
 	-- Check 1: Single-mount families where family weight ≠ mount weight
-	print("RMB_VALIDATION: Checking single-mount family weight sync...")
+	addon:DebugValidation(" Checking single-mount family weight sync...")
 	for familyName, _ in pairs(addon.processedData.familyToMountIDsMap or {}) do
 		local isSingleMount, mountID = addon:IsSingleMountFamily(familyName)
 		if isSingleMount and mountID then
@@ -2463,14 +2463,14 @@ function SuperGroupManager:ValidateWeightSynchronization(report, autoFix)
 					issue.fixedWeight = syncWeight
 					issue.fixed = true
 					issuesFixed = issuesFixed + 1
-					print("RMB_VALIDATION: Fixed single-mount sync: " .. familyName .. " -> " .. syncWeight)
+					addon:DebugValidation(" Fixed single-mount sync: " .. familyName .. " -> " .. syncWeight)
 				end
 			end
 		end
 	end
 
 	-- Check 2: Separated families where separated family weight ≠ mount weight
-	print("RMB_VALIDATION: Checking separated family weight sync...")
+	addon:DebugValidation(" Checking separated family weight sync...")
 	if addon.db.profile.separatedMounts then
 		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
 			local familyName = separationData.familyName
@@ -2496,14 +2496,14 @@ function SuperGroupManager:ValidateWeightSynchronization(report, autoFix)
 					issue.fixedWeight = syncWeight
 					issue.fixed = true
 					issuesFixed = issuesFixed + 1
-					print("RMB_VALIDATION: Fixed separated family sync: " .. familyName .. " -> " .. syncWeight)
+					addon:DebugValidation(" Fixed separated family sync: " .. familyName .. " -> " .. syncWeight)
 				end
 			end
 		end
 	end
 
 	-- Check 3: Invalid weight ranges (outside 0-6)
-	print("RMB_VALIDATION: Checking weight ranges...")
+	addon:DebugValidation(" Checking weight ranges...")
 	for groupKey, weight in pairs(weightSettings) do
 		local numWeight = tonumber(weight)
 		if not numWeight or numWeight < 0 or numWeight > 6 then
@@ -2520,13 +2520,13 @@ function SuperGroupManager:ValidateWeightSynchronization(report, autoFix)
 				issue.fixedWeight = 3
 				issue.fixed = true
 				issuesFixed = issuesFixed + 1
-				print("RMB_VALIDATION: Fixed invalid weight: " .. groupKey .. " " .. tostring(weight) .. " -> 3")
+				addon:DebugValidation(" Fixed invalid weight: " .. groupKey .. " " .. tostring(weight) .. " -> 3")
 			end
 		end
 	end
 
 	-- Check 4: Separated mounts missing family or mount weights
-	print("RMB_VALIDATION: Checking missing separated mount weights...")
+	addon:DebugValidation(" Checking missing separated mount weights...")
 	if addon.db.profile.separatedMounts then
 		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
 			local familyName = separationData.familyName
@@ -2558,7 +2558,7 @@ function SuperGroupManager:ValidateWeightSynchronization(report, autoFix)
 					issue.fixedWeight = defaultWeight
 					issue.fixed = true
 					issuesFixed = issuesFixed + 1
-					print("RMB_VALIDATION: Fixed missing separated weights: " .. familyName .. " -> " .. defaultWeight)
+					addon:DebugValidation(" Fixed missing separated weights: " .. familyName .. " -> " .. defaultWeight)
 				end
 			end
 		end
@@ -2566,14 +2566,14 @@ function SuperGroupManager:ValidateWeightSynchronization(report, autoFix)
 
 	report.totalIssues = report.totalIssues + issuesFound
 	report.totalFixed = report.totalFixed + issuesFixed
-	print("RMB_VALIDATION: Weight sync check complete - " .. issuesFound .. " issues, " .. issuesFixed .. " fixed")
+	addon:DebugValidation(" Weight sync check complete - " .. issuesFound .. " issues, " .. issuesFixed .. " fixed")
 end
 
 -- ============================================================================
 -- 2. ORPHANED SETTINGS CLEANUP
 -- ============================================================================
 function SuperGroupManager:ValidateOrphanedSettings(report, autoFix)
-	print("RMB_VALIDATION: Checking for orphaned settings...")
+	addon:DebugValidation(" Checking for orphaned settings...")
 	if not (addon.db and addon.db.profile) then
 		return
 	end
@@ -2611,7 +2611,7 @@ function SuperGroupManager:ValidateOrphanedSettings(report, autoFix)
 	end
 
 	-- Check 1: Orphaned weight settings
-	print("RMB_VALIDATION: Checking orphaned weight settings...")
+	addon:DebugValidation(" Checking orphaned weight settings...")
 	if addon.db.profile.groupWeights then
 		for groupKey, weight in pairs(addon.db.profile.groupWeights) do
 			local isValid = false
@@ -2637,14 +2637,14 @@ function SuperGroupManager:ValidateOrphanedSettings(report, autoFix)
 					addon.db.profile.groupWeights[groupKey] = nil
 					issue.fixed = true
 					issuesFixed = issuesFixed + 1
-					print("RMB_VALIDATION: Removed orphaned weight: " .. groupKey)
+					addon:DebugValidation(" Removed orphaned weight: " .. groupKey)
 				end
 			end
 		end
 	end
 
 	-- Check 2: Orphaned supergroup overrides
-	print("RMB_VALIDATION: Checking orphaned supergroup overrides...")
+	addon:DebugValidation(" Checking orphaned supergroup overrides...")
 	if addon.db.profile.superGroupOverrides then
 		for familyName, override in pairs(addon.db.profile.superGroupOverrides) do
 			if not validFamilies[familyName] then
@@ -2659,14 +2659,14 @@ function SuperGroupManager:ValidateOrphanedSettings(report, autoFix)
 					addon.db.profile.superGroupOverrides[familyName] = nil
 					issue.fixed = true
 					issuesFixed = issuesFixed + 1
-					print("RMB_VALIDATION: Removed orphaned supergroup override: " .. familyName)
+					addon:DebugValidation(" Removed orphaned supergroup override: " .. familyName)
 				end
 			end
 		end
 	end
 
 	-- Check 3: Orphaned trait overrides
-	print("RMB_VALIDATION: Checking orphaned trait overrides...")
+	addon:DebugValidation(" Checking orphaned trait overrides...")
 	if addon.db.profile.traitOverrides then
 		for familyName, traits in pairs(addon.db.profile.traitOverrides) do
 			if not validFamilies[familyName] then
@@ -2681,7 +2681,7 @@ function SuperGroupManager:ValidateOrphanedSettings(report, autoFix)
 					addon.db.profile.traitOverrides[familyName] = nil
 					issue.fixed = true
 					issuesFixed = issuesFixed + 1
-					print("RMB_VALIDATION: Removed orphaned trait override: " .. familyName)
+					addon:DebugValidation(" Removed orphaned trait override: " .. familyName)
 				end
 			end
 		end
@@ -2689,14 +2689,14 @@ function SuperGroupManager:ValidateOrphanedSettings(report, autoFix)
 
 	report.totalIssues = report.totalIssues + issuesFound
 	report.totalFixed = report.totalFixed + issuesFixed
-	print("RMB_VALIDATION: Orphaned settings check complete - " .. issuesFound .. " issues, " .. issuesFixed .. " fixed")
+	addon:DebugValidation(" Orphaned settings check complete - " .. issuesFound .. " issues, " .. issuesFixed .. " fixed")
 end
 
 -- ============================================================================
 -- 3. SEPARATED FAMILY NAME CONFLICT VALIDATION
 -- ============================================================================
 function SuperGroupManager:ValidateSeparatedFamilyNames(report, autoFix)
-	print("RMB_VALIDATION: Checking separated family name conflicts...")
+	addon:DebugValidation(" Checking separated family name conflicts...")
 	if not (addon.db and addon.db.profile and addon.db.profile.separatedMounts) then
 		return
 	end
@@ -2776,7 +2776,7 @@ function SuperGroupManager:ValidateSeparatedFamilyNames(report, autoFix)
 				issue.fixed = true
 				issuesFixed = issuesFixed + 1
 				separatedFamilies[newName] = true
-				print("RMB_VALIDATION: Fixed name conflict: " .. familyName .. " -> " .. newName)
+				addon:DebugValidation(" Fixed name conflict: " .. familyName .. " -> " .. newName)
 			end
 		else
 			-- Track this separated family name
@@ -2822,14 +2822,14 @@ function SuperGroupManager:ValidateSeparatedFamilyNames(report, autoFix)
 				issue.fixed = true
 				issuesFixed = issuesFixed + 1
 				separatedFamilies[newName] = true
-				print("RMB_VALIDATION: Fixed duplicate separated name: " .. familyName .. " -> " .. newName)
+				addon:DebugValidation(" Fixed duplicate separated name: " .. familyName .. " -> " .. newName)
 			end
 		end
 	end
 
 	report.totalIssues = report.totalIssues + issuesFound
 	report.totalFixed = report.totalFixed + issuesFixed
-	print("RMB_VALIDATION: Name conflict check complete - " .. issuesFound .. " issues, " .. issuesFixed .. " fixed")
+	addon:DebugValidation(" Name conflict check complete - " .. issuesFound .. " issues, " .. issuesFixed .. " fixed")
 end
 
 -- Helper function to generate unique separated family names
@@ -2952,12 +2952,12 @@ end
 -- Initialize SuperGroup Manager when addon loads
 function addon:InitializeSuperGroupManager()
 	if not self.SuperGroupManager then
-		print("RMB_SUPERGROUP: ERROR - SuperGroupManager not found!")
+		addon:DebugSupergr(" ERROR - SuperGroupManager not found!")
 		return
 	end
 
 	self.SuperGroupManager:Initialize()
-	print("RMB_SUPERGROUP: Integration complete")
+	addon:DebugSupergr(" Integration complete")
 end
 
-print("RMB_DEBUG: SuperGroupManager.lua END.")
+addon:DebugCore("SuperGroupManager.lua END.")

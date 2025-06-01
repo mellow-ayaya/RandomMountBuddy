@@ -2,7 +2,7 @@
 -- Handles all search functionality for mount groups and individual mounts
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
-print("RMB_DEBUG: SearchSystem.lua START.")
+addon:DebugCore("SearchSystem.lua START.")
 -- ============================================================================
 -- SEARCH SYSTEM CLASS
 -- ============================================================================
@@ -12,7 +12,7 @@ addon.SearchSystem = SearchSystem
 -- INITIALIZATION
 -- ============================================================================
 function SearchSystem:Initialize()
-	print("RMB_SEARCH: Initializing search system...")
+	addon:DebugUI("Initializing search system...")
 	-- Search state
 	self.searchActive = false
 	self.searchTerm = ""
@@ -20,7 +20,7 @@ function SearchSystem:Initialize()
 	-- Search configuration
 	self.minSearchLength = 1
 	self.maxResults = 50
-	print("RMB_SEARCH: Search system initialized")
+	addon:DebugUI("Search system initialized")
 end
 
 -- ============================================================================
@@ -36,11 +36,11 @@ function SearchSystem:ExecuteSearch(searchTerm)
 
 	-- Check minimum length
 	if #cleanTerm < self.minSearchLength then
-		print("RMB_SEARCH: Search term too short: " .. cleanTerm)
+		addon:DebugUI("Search term too short: " .. cleanTerm)
 		return
 	end
 
-	print("RMB_SEARCH: Executing search for: '" .. cleanTerm .. "'")
+	addon:DebugUI("Executing search for: '" .. cleanTerm .. "'")
 	-- Get all available groups
 	local allGroups = addon:GetDisplayableGroups() or {}
 	local results = {}
@@ -48,7 +48,7 @@ function SearchSystem:ExecuteSearch(searchTerm)
 	-- Search through groups
 	for _, groupData in ipairs(allGroups) do
 		if resultCount >= self.maxResults then
-			print("RMB_SEARCH: Hit max results limit (" .. self.maxResults .. ")")
+			addon:DebugUI("Hit max results limit (" .. self.maxResults .. ")")
 			break
 		end
 
@@ -57,10 +57,10 @@ function SearchSystem:ExecuteSearch(searchTerm)
 			if self:GroupMatchesSearch(groupData, cleanTerm) then
 				table.insert(results, groupData)
 				resultCount = resultCount + 1
-				print("RMB_SEARCH: Match found - " .. (groupData.displayName or groupData.key))
+				addon:DebugUI("Match found - " .. (groupData.displayName or groupData.key))
 			end
 		else
-			print("RMB_SEARCH_WARNING: Invalid group data structure encountered")
+			addon:AlwaysPrint(" Invalid group data structure encountered")
 		end
 	end
 
@@ -72,13 +72,13 @@ function SearchSystem:ExecuteSearch(searchTerm)
 	self.searchActive = true
 	self.searchTerm = searchTerm or ""
 	self.searchResults = results
-	print("RMB_SEARCH: Found " .. #results .. " results for '" .. cleanTerm .. "'")
+	addon:DebugUI("Found " .. #results .. " results for '" .. cleanTerm .. "'")
 	-- Trigger UI refresh
 	if addon.PopulateFamilyManagementUI then
 		addon:PopulateFamilyManagementUI()
-		print("RMB_SEARCH: UI refresh triggered after search")
+		addon:DebugUI("UI refresh triggered after search")
 	else
-		print("RMB_SEARCH_ERROR: PopulateFamilyManagementUI not available")
+		addon:AlwaysPrint("PopulateFamilyManagementUI not available")
 	end
 end
 
@@ -195,7 +195,7 @@ end
 -- SEARCH STATE MANAGEMENT
 -- ============================================================================
 function SearchSystem:ClearSearch()
-	print("RMB_SEARCH: Clearing search")
+	addon:DebugUI("Clearing search")
 	-- Reset state
 	self.searchActive = false
 	self.searchTerm = ""
@@ -203,9 +203,9 @@ function SearchSystem:ClearSearch()
 	-- Trigger UI refresh
 	if addon.PopulateFamilyManagementUI then
 		addon:PopulateFamilyManagementUI()
-		print("RMB_SEARCH: UI refresh triggered after clearing search")
+		addon:DebugUI("UI refresh triggered after clearing search")
 	else
-		print("RMB_SEARCH_ERROR: PopulateFamilyManagementUI not available")
+		addon:AlwaysPrint("PopulateFamilyManagementUI not available")
 	end
 end
 
@@ -262,12 +262,12 @@ end
 -- ============================================================================
 function addon:InitializeSearchSystem()
 	if not self.SearchSystem then
-		print("RMB_SEARCH: ERROR - SearchSystem not found!")
+		addon:DebugUI("ERROR - SearchSystem not found!")
 		return
 	end
 
 	self.SearchSystem:Initialize()
-	print("RMB_SEARCH: Integration complete")
+	addon:DebugUI("Integration complete")
 end
 
 -- Public interface methods for other modules
@@ -295,4 +295,4 @@ function addon:GetSearchStatus()
 	return self.SearchSystem and self.SearchSystem:GetSearchStatus() or nil
 end
 
-print("RMB_DEBUG: SearchSystem.lua END.")
+addon:DebugCore("SearchSystem.lua END.")

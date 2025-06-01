@@ -2,7 +2,7 @@
 -- Centralized data processing and caching for mount information
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
-print("RMB_DEBUG: MountDataManager.lua START.")
+addon:DebugCore("MountDataManager.lua START.")
 -- ============================================================================
 -- DATA MANAGER CLASS
 -- ============================================================================
@@ -10,7 +10,7 @@ local MountDataManager = {}
 addon.MountDataManager = MountDataManager
 -- Initialize the data manager
 function MountDataManager:Initialize()
-	print("RMB_DATA_MANAGER: Initializing...")
+	addon:DebugData(" Initializing...")
 	-- Cache system
 	self.cache = {
 		familyTraits = {},
@@ -28,7 +28,7 @@ function MountDataManager:Initialize()
 			cache.groupTypes = {}
 			cache.processedGroups = {}
 			cache.lastCacheTime = GetTime()
-			print("RMB_CACHE: Cleared all data caches")
+			addon:DebugData("RMB_CACHE: Cleared all data caches")
 		end,
 
 		isValid = function(cache)
@@ -45,25 +45,25 @@ function MountDataManager:Initialize()
 		displayOrder = {}, -- Sorted array for UI display
 		lastBuilt = 0,   -- When this was last built
 	}
-	print("RMB_DATA_MANAGER: Initialized successfully")
+	addon:DebugData(" Initialized successfully")
 end
 
 function MountDataManager:OnMountCollectionChanged()
-	print("RMB_DATA_MANAGER: Mount collection changed, invalidating caches...")
+	addon:DebugData(" Mount collection changed, invalidating caches...")
 	-- Clear all caches since mount collection has changed
 	self:InvalidateCache("mount_collection_changed")
 	-- Rebuild unified group system
 	self:BuildUnifiedGroupSystem()
-	print("RMB_DATA_MANAGER: Cache invalidation completed")
+	addon:DebugData(" Cache invalidation completed")
 end
 
 -- ============================================================================
 -- UNIFIED GROUP PROCESSING (replaces multiple family systems)
 -- ============================================================================
 function MountDataManager:BuildUnifiedGroupSystem()
-	print("RMB_DATA_MANAGER: Building unified group system...")
+	addon:DebugData(" Building unified group system...")
 	if not addon.processedData then
-		print("RMB_DATA_MANAGER: No processed data available")
+		addon:DebugData(" No processed data available")
 		return
 	end
 
@@ -138,7 +138,7 @@ function MountDataManager:BuildUnifiedGroupSystem()
 		return (a.displayName or "") < (b.displayName or "")
 	end)
 	self.unifiedGroups.lastBuilt = GetTime()
-	print("RMB_DATA_MANAGER: Built unified group system - " ..
+	addon:DebugData(" Built unified group system - " ..
 		#self.unifiedGroups.displayOrder .. " total groups")
 end
 
@@ -214,7 +214,7 @@ function MountDataManager:InvalidateTraitCache(familyName)
 	if familyName then
 		local cacheKey = familyName .. "_effective"
 		self.cache.familyTraits[cacheKey] = nil
-		print("RMB_DATA_MANAGER: Invalidated trait cache for " .. familyName)
+		addon:DebugData(" Invalidated trait cache for " .. familyName)
 	else
 		-- Clear all trait caches
 		for k, v in pairs(self.cache.familyTraits) do
@@ -223,7 +223,7 @@ function MountDataManager:InvalidateTraitCache(familyName)
 			end
 		end
 
-		print("RMB_DATA_MANAGER: Invalidated all effective trait caches")
+		addon:DebugData(" Invalidated all effective trait caches")
 	end
 end
 
@@ -243,7 +243,7 @@ function MountDataManager:ShouldShowTraits(groupKey, groupType)
 		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
 			if separationData.familyName == groupKey then
 				shouldShow = true
-				print("RMB_TRAITS: Showing traits for separated family: " .. groupKey)
+				addon:DebugTraits("Showing traits for separated family: " .. groupKey)
 				self.cache.groupTypes[cacheKey] = shouldShow
 				return shouldShow
 			end
@@ -365,7 +365,7 @@ end
 -- MOUNT SELECTION (optimized)
 -- ============================================================================
 function MountDataManager:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
-	print("RMB_DATA_MANAGER: GetRandomMountFromGroup called for " .. tostring(groupKey))
+	addon:DebugData(" GetRandomMountFromGroup called for " .. tostring(groupKey))
 	if not groupKey then
 		return nil
 	end
@@ -513,7 +513,7 @@ function MountDataManager:GetGroupTypeFromKey(groupKey)
 end
 
 function MountDataManager:InvalidateCache(reason)
-	print("RMB_DATA_MANAGER: Invalidating cache - " .. tostring(reason))
+	addon:DebugData(" Invalidating cache - " .. tostring(reason))
 	self.cache:clear()
 	-- Also invalidate unified group system if settings changed
 	if reason == "settings_changed" then
@@ -537,12 +537,12 @@ end
 -- Initialize when addon loads
 function addon:InitializeMountDataManager()
 	if not self.MountDataManager then
-		print("RMB_DATA_MANAGER: ERROR - MountDataManager not found!")
+		addon:DebugData(" ERROR - MountDataManager not found!")
 		return
 	end
 
 	self.MountDataManager:Initialize()
-	print("RMB_DATA_MANAGER: Integration complete")
+	addon:DebugData(" Integration complete")
 end
 
-print("RMB_DEBUG: MountDataManager.lua END.")
+addon:DebugCore("MountDataManager.lua END.")

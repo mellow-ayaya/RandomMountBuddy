@@ -1,7 +1,7 @@
 -- MountListUI.lua - Fixed to Use Dynamic Grouping
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
-print("RMB_DEBUG: MountListUI.lua (Fixed Dynamic Grouping) START.")
+addon:DebugCore("MountListUI.lua (Fixed Dynamic Grouping) START.")
 -- ============================================================================
 -- DYNAMIC GROUPING HELPERS
 -- ============================================================================
@@ -39,18 +39,18 @@ end
 -- MAIN UI CONTROLLER
 -- ============================================================================
 function addon:InitializeMountUI()
-	print("RMB_UI: Initializing mount UI systems...")
+	addon:DebugUI(" Initializing mount UI systems...")
 	-- Initialize UI state
 	self.fmCurrentPage = 1
 	self.fmItemsPerPage = self.fmItemsPerPage or 14
-	print("RMB_UI: Mount UI system initialized")
+	addon:DebugUI(" Mount UI system initialized")
 end
 
 -- ============================================================================
 -- MAIN UI BUILDING FUNCTION
 -- ============================================================================
 function addon:BuildFamilyManagementArgs()
-	print("RMB_UI: BuildFamilyManagementArgs called (With Bulk Priority, Search and Filters)")
+	addon:DebugUI(" BuildFamilyManagementArgs called (With Bulk Priority, Search and Filters)")
 	local pageArgs = {}
 	local displayOrder = 1
 	-- Check if data is ready
@@ -238,7 +238,7 @@ function addon:BuildFamilyManagementArgs()
 			end
 
 			if #groupKeys == 0 then
-				print("RMB_BULK: No items found to update")
+				addon:DebugBulk("No items found to update")
 				return
 			end
 
@@ -402,7 +402,7 @@ function addon:BuildFamilyManagementArgs()
 
 		displayOrder = displayOrder + 1
 	else
-		print("RMB_UI_ERROR: MountUIComponents not available")
+		addon:DebugUI("MountUIComponents not available")
 		return pageArgs
 	end
 
@@ -410,7 +410,7 @@ function addon:BuildFamilyManagementArgs()
 	-- Calculate page bounds and build group entries
 	local startIndex = (currentPage - 1) * itemsPerPage + 1
 	local endIndex = math.min(startIndex + itemsPerPage - 1, totalGroups)
-	print("RMB_UI: Building page " .. currentPage .. " (" .. startIndex .. "-" .. endIndex .. " of " .. totalGroups .. ")")
+	addon:DebugUI(" Building page " .. currentPage .. " (" .. startIndex .. "-" .. endIndex .. " of " .. totalGroups .. ")")
 	local groupEntryOrder = displayOrder
 	local actualItemsOnPage = 0
 	for i = startIndex, endIndex do
@@ -477,7 +477,7 @@ function addon:BuildFamilyManagementArgs()
 		end
 	end
 
-	print("RMB_UI: Built UI with " .. (endIndex - startIndex + 1) .. " group entries")
+	addon:DebugUI(" Built UI with " .. (endIndex - startIndex + 1) .. " group entries")
 	return pageArgs
 end
 
@@ -603,7 +603,7 @@ function addon:BuildFilterPanelArgs()
 			-- ENHANCED: Refresh mount pools since this affects which mounts are available
 			if self.RefreshMountPools then
 				self:RefreshMountPools()
-				print("RMB_OPTIONS: Refreshed mount pools after uncollected mounts setting change")
+				addon:DebugOptions("Refreshed mount pools after uncollected mounts setting change")
 			end
 
 			-- Trigger immediate UI refresh to show/hide uncollected items
@@ -626,7 +626,7 @@ function addon:BuildFilterPanelArgs()
 			-- ENHANCED: Refresh mount pools since this affects which groups are available
 			if self.RefreshMountPools then
 				self:RefreshMountPools()
-				print("RMB_OPTIONS: Refreshed mount pools after uncollected groups setting change")
+				addon:DebugOptions("Refreshed mount pools after uncollected groups setting change")
 			end
 
 			-- Trigger immediate UI refresh to show/hide uncollected groups
@@ -667,7 +667,7 @@ end
 -- EXPANDED DETAILS BUILDER - FIXED TO USE DYNAMIC GROUPING
 -- ============================================================================
 function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
-	print("RMB_UI_DETAILS: GetExpandedGroupDetailsArgs for " .. tostring(groupKey) .. " (" .. tostring(groupType) .. ")")
+	addon:DebugUI("GetExpandedGroupDetailsArgs for " .. tostring(groupKey) .. " (" .. tostring(groupType) .. ")")
 	local detailsArgs = {}
 	local displayOrder = 1
 	local showUncollected = self:GetSetting("showUncollectedMounts")
@@ -870,9 +870,9 @@ end
 -- UI REFRESH AND POPULATION
 -- ============================================================================
 function addon:PopulateFamilyManagementUI()
-	print("RMB_UI: PopulateFamilyManagementUI called (Fixed Dynamic Grouping)")
+	addon:DebugUI(" PopulateFamilyManagementUI called (Fixed Dynamic Grouping)")
 	if not self.fmArgsRef then
-		print("RMB_UI_ERROR: self.fmArgsRef is nil! Options.lua problem.")
+		addon:DebugUI("self.fmArgsRef is nil! Options.lua problem.")
 		return
 	end
 
@@ -890,7 +890,7 @@ function addon:PopulateFamilyManagementUI()
 	if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then
 		LibStub("AceConfigRegistry-3.0"):NotifyChange(addonName)
 	else
-		print("RMB_UI_ERROR: AceConfigRegistry missing or LibStub not available.")
+		addon:DebugUI("AceConfigRegistry missing or LibStub not available.")
 	end
 
 	-- Clean up tooltips
@@ -904,10 +904,10 @@ function addon:PopulateFamilyManagementUI()
 	local endTime = debugprofilestop()
 	local elapsed = endTime - startTime
 	if elapsed > 50 then
-		print(string.format("RMB_PERF: UI build took %.2fms", elapsed))
+		addon:DebugPerf(string.format(" UI build took %.2fms", elapsed))
 	end
 
-	print("RMB_UI: UI populated successfully")
+	addon:DebugUI(" UI populated successfully")
 end
 
 -- ============================================================================
@@ -915,7 +915,7 @@ end
 -- ============================================================================
 function addon:DecrementGroupWeight(groupKey)
 	if not (self.db and self.db.profile and self.db.profile.groupWeights) then
-		print("RMB_WEIGHT: DB or profile not available")
+		addon:DebugWeight("DB or profile not available")
 		return
 	end
 
@@ -924,14 +924,14 @@ function addon:DecrementGroupWeight(groupKey)
 	if newWeight ~= currentWeight then
 		-- Use SetGroupWeight which handles syncing
 		self:SetGroupWeight(groupKey, newWeight)
-		print("RMB_WEIGHT: Decremented " .. tostring(groupKey) .. " to " .. tostring(newWeight))
+		addon:DebugWeight("Decremented " .. tostring(groupKey) .. " to " .. tostring(newWeight))
 		self:TriggerFamilyManagementUIRefresh()
 	end
 end
 
 function addon:IncrementGroupWeight(groupKey)
 	if not (self.db and self.db.profile and self.db.profile.groupWeights) then
-		print("RMB_WEIGHT: DB or profile not available")
+		addon:DebugWeight("DB or profile not available")
 		return
 	end
 
@@ -940,7 +940,7 @@ function addon:IncrementGroupWeight(groupKey)
 	if newWeight ~= currentWeight then
 		-- Use SetGroupWeight which handles syncing
 		self:SetGroupWeight(groupKey, newWeight)
-		print("RMB_WEIGHT: Incremented " .. tostring(groupKey) .. " to " .. tostring(newWeight))
+		addon:DebugWeight("Incremented " .. tostring(groupKey) .. " to " .. tostring(newWeight))
 		self:TriggerFamilyManagementUIRefresh()
 	end
 end
@@ -950,13 +950,13 @@ end
 -- ============================================================================
 function addon:ToggleExpansionState(groupKey)
 	if not self.uiState then
-		print("RMB_UI: UI state not initialized")
+		addon:DebugUI(" UI state not initialized")
 		return
 	end
 
 	-- Store expansion state in memory only (not saved to database)
 	self.uiState.expansionStates[groupKey] = not self.uiState.expansionStates[groupKey]
-	print("RMB_UI: Toggled expansion for '" .. tostring(groupKey) .. "' to " ..
+	addon:DebugUI(" Toggled expansion for '" .. tostring(groupKey) .. "' to " ..
 		tostring(self.uiState.expansionStates[groupKey]))
 	self:TriggerFamilyManagementUIRefresh()
 end
@@ -970,7 +970,7 @@ function addon:IsGroupExpanded(groupKey)
 end
 
 function addon:CollapseAllExpanded()
-	print("RMB_UI: Collapsing all expanded groups")
+	addon:DebugUI(" Collapsing all expanded groups")
 	if not self.uiState then
 		return false
 	end
@@ -1004,9 +1004,9 @@ function addon:FMG_SetItemsPerPage(items)
 
 		self.fmCurrentPage = 1          -- Reset to first page
 		self:PopulateFamilyManagementUI() -- Refresh UI
-		print("RMB_NAV: Items per page set to " .. numItems)
+		addon:DebugUI("Items per page set to " .. numItems)
 	else
-		print("RMB_NAV: Invalid items per page value: " .. tostring(items))
+		addon:DebugUI("Invalid items per page value: " .. tostring(items))
 	end
 end
 
@@ -1028,9 +1028,9 @@ function addon:FMG_GoToPage(pageNumber)
 
 		self.fmCurrentPage = targetPage -- Keep legacy for compatibility
 		self:PopulateFamilyManagementUI()
-		print("RMB_NAV: Jumped to page " .. targetPage)
+		addon:DebugUI("Jumped to page " .. targetPage)
 	else
-		print("RMB_NAV: Invalid page number: " .. tostring(pageNumber) .. " (valid range: 1-" .. totalPages .. ")")
+		addon:DebugUI("Invalid page number: " .. tostring(pageNumber) .. " (valid range: 1-" .. totalPages .. ")")
 	end
 end
 
@@ -1051,7 +1051,7 @@ function addon:FMG_NextPage()
 
 		self.fmCurrentPage = newPage -- Keep legacy for compatibility
 		self:PopulateFamilyManagementUI()
-		print("RMB_NAV: Next page -> " .. newPage)
+		addon:DebugUI("Next page -> " .. newPage)
 	end
 end
 
@@ -1068,7 +1068,7 @@ function addon:FMG_PrevPage()
 
 		self.fmCurrentPage = newPage -- Keep legacy for compatibility
 		self:PopulateFamilyManagementUI()
-		print("RMB_NAV: Previous page -> " .. newPage)
+		addon:DebugUI("Previous page -> " .. newPage)
 	end
 end
 
@@ -1106,7 +1106,7 @@ function addon:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
 		return self.MountDataManager:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
 	end
 
-	print("RMB_UI_ERROR: MountDataManager not available for GetRandomMountFromGroup")
+	addon:DebugUI("MountDataManager not available for GetRandomMountFromGroup")
 	return nil
 end
 
@@ -1115,7 +1115,7 @@ function addon:GetGroupTypeFromKey(groupKey)
 		return self.MountDataManager:GetGroupTypeFromKey(groupKey)
 	end
 
-	print("RMB_UI_ERROR: MountDataManager not available for GetGroupTypeFromKey")
+	addon:DebugUI("MountDataManager not available for GetGroupTypeFromKey")
 	return nil
 end
 
@@ -1124,7 +1124,7 @@ function addon:GetMountPreviewTooltip(groupKey, groupType)
 		return self.MountTooltips:GetMountPreviewTooltip(groupKey, groupType)
 	end
 
-	print("RMB_UI_ERROR: MountTooltips not available for GetMountPreviewTooltip")
+	addon:DebugUI("MountTooltips not available for GetMountPreviewTooltip")
 	return "Tooltip not available"
 end
 
@@ -1133,19 +1133,19 @@ function addon:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncol
 		return self.MountPreview:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncollected)
 	end
 
-	print("RMB_UI_ERROR: MountPreview not available for ShowMountPreview")
+	addon:DebugUI("MountPreview not available for ShowMountPreview")
 	return false
 end
 
 function addon:TriggerFamilyManagementUIRefresh()
-	print("RMB_UI: Manual refresh triggered")
+	addon:DebugUI(" Manual refresh triggered")
 	if self.MountDataManager and self.MountDataManager.InvalidateCache then
 		self.MountDataManager:InvalidateCache("manual_refresh")
 	else
-		print("RMB_UI_WARN: MountDataManager or InvalidateCache not found for refresh")
+		addon:DebugUI(" MountDataManager or InvalidateCache not found for refresh")
 	end
 
 	self:PopulateFamilyManagementUI()
 end
 
-print("RMB_DEBUG: MountListUI.lua (Fixed Dynamic Grouping) END.")
+addon:DebugCore("MountListUI.lua (Fixed Dynamic Grouping) END.")
