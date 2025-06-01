@@ -1,3 +1,11 @@
+# 0.8.7
+Improved import/export to include separated mounts.
+Exporting now actually works.
+Improved reset everything to actually reset everything.
+Added new button to reset only separated mounts.
+Orphaned families cleanup is now done automatically on login.
+Fixed mount pools not refreshing when some of the settings were toggled.
+
 # 0.8.6
 Added data cleanup buttons.
 

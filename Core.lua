@@ -7,7 +7,7 @@ local dbDefaults = {
 		overrideBlizzardButton = true,
 		-- Summoning
 		contextualSummoning = true,
-		useDeterministicSummoning = false,
+		useDeterministicSummoning = true,
 		-- Class Spells
 		-- Druid
 		useTravelFormWhileMoving = true,
@@ -301,6 +301,37 @@ function addon:InitializeProcessedData()
 
 	print("RMB_DEBUG_DATA: StandaloneFams:" .. fnC)
 	print("RMB_DEBUG_DATA: Init COMPLETE.")
+	-- ENHANCED: Run automatic orphaned settings cleanup at startup
+	if self.SuperGroupManager then
+		print("RMB_STARTUP: Running automatic orphaned settings cleanup...")
+		local canRun, reason = self.SuperGroupManager:CanRunValidation()
+		if canRun then
+			-- Run validation with auto-fix enabled, but only for orphaned settings
+			local success, report = self.SuperGroupManager:RunDataValidation(true)
+			if success then
+				local orphanedCount = #(report.orphanedSettings or {})
+				local fixedCount = 0
+				for _, issue in ipairs(report.orphanedSettings or {}) do
+					if issue.fixed then
+						fixedCount = fixedCount + 1
+					end
+				end
+
+				if fixedCount > 0 then
+					print("RMB_STARTUP: Cleaned up " .. fixedCount .. " orphaned settings automatically")
+				else
+					print("RMB_STARTUP: No orphaned settings found during startup cleanup")
+				end
+			else
+				print("RMB_STARTUP: Orphaned settings cleanup failed: " .. tostring(report))
+			end
+		else
+			print("RMB_STARTUP: Skipped orphaned settings cleanup: " .. tostring(reason))
+		end
+	else
+		print("RMB_STARTUP: SuperGroupManager not available for orphaned settings cleanup")
+	end
+
 	self.RMB_DataReadyForUI = true
 	print("RMB_DEBUG_DATA: Set RMB_DataReadyForUI to true.")
 	self:ProcessSeparatedMounts()

@@ -1909,11 +1909,12 @@ end
 -- Export current supergroup configuration
 function SuperGroupManager:ExportConfiguration()
 	local config = {
-		version = "1.0",
+		version = "1.1", -- Bumped version to indicate separated mounts support
 		timestamp = time(),
 		superGroupOverrides = {},
 		superGroupDefinitions = {},
 		deletedSuperGroups = {},
+		separatedMounts = {}, -- ENHANCED: Include separated mounts
 	}
 	-- Copy current configuration
 	if addon.db and addon.db.profile then
@@ -1937,6 +1938,16 @@ function SuperGroupManager:ExportConfiguration()
 				config.deletedSuperGroups[k] = v
 			end
 		end
+
+		-- ENHANCED: Export separated mounts data
+		if addon.db.profile.separatedMounts then
+			for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
+				config.separatedMounts[mountID] = {}
+				for kk, vv in pairs(separationData) do
+					config.separatedMounts[mountID][kk] = vv
+				end
+			end
+		end
 	end
 
 	-- Convert to string
@@ -1957,11 +1968,16 @@ function SuperGroupManager:ImportConfiguration(configString, importMode)
 		return false, "Invalid configuration format"
 	end
 
-	-- Validate configuration
+	-- Validate configuration - support both old and new formats
 	if not config.superGroupOverrides or not config.superGroupDefinitions or not config.deletedSuperGroups then
 		return false, "Configuration is missing required data"
 	end
 
+	-- Check version for compatibility
+	local configVersion = config.version or "1.0"
+	local hasSeparatedMounts = config.separatedMounts ~= nil
+	print("RMB_IMPORT: Importing configuration version " .. configVersion ..
+		(hasSeparatedMounts and " (with separated mounts)" or " (no separated mounts)"))
 	-- Initialize database structures if needed
 	if not addon.db.profile.superGroupOverrides then
 		addon.db.profile.superGroupOverrides = {}
@@ -1975,12 +1991,25 @@ function SuperGroupManager:ImportConfiguration(configString, importMode)
 		addon.db.profile.deletedSuperGroups = {}
 	end
 
-	local importStats = { overrides = 0, definitions = 0, deletions = 0 }
+	-- ENHANCED: Initialize separated mounts if needed
+	if not addon.db.profile.separatedMounts then
+		addon.db.profile.separatedMounts = {}
+	end
+
+	local importStats = {
+		overrides = 0,
+		definitions = 0,
+		deletions = 0,
+		separatedMounts = 0, -- ENHANCED: Track separated mounts
+	}
 	if importMode == "replace" then
 		-- Clear existing configuration
 		wipe(addon.db.profile.superGroupOverrides)
 		wipe(addon.db.profile.superGroupDefinitions)
 		wipe(addon.db.profile.deletedSuperGroups)
+		-- ENHANCED: Clear separated mounts in replace mode
+		wipe(addon.db.profile.separatedMounts)
+		print("RMB_IMPORT: Cleared existing configuration for replace mode")
 	end
 
 	-- Import overrides
@@ -2007,22 +2036,62 @@ function SuperGroupManager:ImportConfiguration(configString, importMode)
 		end
 	end
 
-	-- Trigger rebuild
-	addon:RebuildMountGrouping()
-	local message = string.format("Imported %d family assignments, %d supergroup definitions, and %d deletions",
-		importStats.overrides, importStats.definitions, importStats.deletions)
+	-- ENHANCED: Import separated mounts if present
+	if hasSeparatedMounts then
+		for mountID, separationData in pairs(config.separatedMounts) do
+			-- Validate separated mount data before importing
+			if separationData.familyName and separationData.originalFamily then
+				addon.db.profile.separatedMounts[mountID] = {}
+				for k, v in pairs(separationData) do
+					addon.db.profile.separatedMounts[mountID][k] = v
+				end
+
+				importStats.separatedMounts = importStats.separatedMounts + 1
+			else
+				print("RMB_IMPORT: Skipped invalid separated mount data for mount " .. mountID)
+			end
+		end
+	end
+
+	-- Trigger complete data rebuild since separated mounts affect the data structure
+	if importStats.separatedMounts > 0 then
+		print("RMB_IMPORT: Rebuilding data due to separated mounts import...")
+		addon.lastProcessingEventName = "import_with_separated_mounts"
+		addon:InitializeProcessedData()
+		addon.lastProcessingEventName = nil
+	else
+		-- Regular rebuild for supergroup changes
+		addon:RebuildMountGrouping()
+	end
+
+	-- ENHANCED: Build comprehensive import message
+	local message = string.format(
+		"Imported %d family assignments, %d supergroup definitions, %d deletions",
+		importStats.overrides, importStats.definitions, importStats.deletions
+	)
+	if importStats.separatedMounts > 0 then
+		message = message .. string.format(", and %d separated mounts", importStats.separatedMounts)
+	end
+
 	print("RMB_SUPERGROUP: " .. message)
 	return true, message
 end
 
--- Reset to defaults (clear all customizations)
+-- Reset to defaults (clear all customizations) - ENHANCED to reset everything
 function SuperGroupManager:ResetToDefaults(resetType)
 	resetType = resetType or "all"
 	if not addon.db or not addon.db.profile then
 		return false, "Database not available"
 	end
 
-	local resetStats = { overrides = 0, definitions = 0, deletions = 0 }
+	local resetStats = {
+		overrides = 0,
+		definitions = 0,
+		deletions = 0,
+		separatedMounts = 0, -- ENHANCED: Track separated mounts
+		groupWeights = 0,  -- ENHANCED: Track weight settings
+		traitOverrides = 0, -- ENHANCED: Track trait overrides
+	}
 	if resetType == "all" or resetType == "assignments" then
 		-- Clear family assignments
 		if addon.db.profile.superGroupOverrides then
@@ -2052,18 +2121,149 @@ function SuperGroupManager:ResetToDefaults(resetType)
 	end
 
 	if resetType == "all" then
-		-- Clear all customizations including renames
+		-- ENHANCED: Clear ALL customizations for complete reset
+		print("RMB_RESET: Performing complete reset of all saved variables...")
+		-- Clear all supergroup customizations including renames
 		if addon.db.profile.superGroupDefinitions then
 			wipe(addon.db.profile.superGroupDefinitions)
 		end
+
+		-- ENHANCED: Clear separated mounts
+		if addon.db.profile.separatedMounts then
+			resetStats.separatedMounts = addon:CountTableEntries(addon.db.profile.separatedMounts)
+			wipe(addon.db.profile.separatedMounts)
+			print("RMB_RESET: Cleared " .. resetStats.separatedMounts .. " separated mounts")
+		end
+
+		-- ENHANCED: Clear all group weights (mount, family, and supergroup weights)
+		if addon.db.profile.groupWeights then
+			resetStats.groupWeights = addon:CountTableEntries(addon.db.profile.groupWeights)
+			wipe(addon.db.profile.groupWeights)
+			print("RMB_RESET: Cleared " .. resetStats.groupWeights .. " weight settings")
+		end
+
+		-- ENHANCED: Clear all trait overrides
+		if addon.db.profile.traitOverrides then
+			resetStats.traitOverrides = addon:CountTableEntries(addon.db.profile.traitOverrides)
+			wipe(addon.db.profile.traitOverrides)
+			print("RMB_RESET: Cleared " .. resetStats.traitOverrides .. " trait overrides")
+		end
 	end
 
-	-- Trigger rebuild
-	addon:RebuildMountGrouping()
+	-- ENHANCED: Trigger complete data rebuild if separated mounts were cleared
+	if resetStats.separatedMounts > 0 then
+		print("RMB_RESET: Rebuilding data due to separated mounts reset...")
+		addon.lastProcessingEventName = "reset_with_separated_mounts"
+		addon:InitializeProcessedData()
+		addon.lastProcessingEventName = nil
+	else
+		-- Regular rebuild for other changes
+		addon:RebuildMountGrouping()
+	end
+
+	-- ENHANCED: Build comprehensive reset message
 	local message = string.format(
 		"Reset %d family assignments, %d custom supergroups, and restored %d deleted supergroups",
-		resetStats.overrides, resetStats.definitions, resetStats.deletions)
+		resetStats.overrides, resetStats.definitions, resetStats.deletions
+	)
+	if resetType == "all" then
+		local additionalResets = {}
+		if resetStats.separatedMounts > 0 then
+			table.insert(additionalResets, resetStats.separatedMounts .. " separated mounts")
+		end
+
+		if resetStats.groupWeights > 0 then
+			table.insert(additionalResets, resetStats.groupWeights .. " weight settings")
+		end
+
+		if resetStats.traitOverrides > 0 then
+			table.insert(additionalResets, resetStats.traitOverrides .. " trait overrides")
+		end
+
+		if #additionalResets > 0 then
+			message = message .. "; also cleared " .. table.concat(additionalResets, ", ")
+		end
+	end
+
 	print("RMB_SUPERGROUP: " .. message)
+	return true, message
+end
+
+-- Reset mount separation only (reunite all separated mounts)
+function SuperGroupManager:ResetMountSeparationOnly()
+	if not addon.db or not addon.db.profile then
+		return false, "Database not available"
+	end
+
+	if not addon.db.profile.separatedMounts then
+		return false, "No separated mounts to reset"
+	end
+
+	local separatedCount = addon:CountTableEntries(addon.db.profile.separatedMounts)
+	if separatedCount == 0 then
+		return false, "No separated mounts found"
+	end
+
+	print("RMB_RESET_SEPARATION: Resetting " .. separatedCount .. " separated mounts...")
+	-- Clear separated mount family weight settings (but keep individual mount weights)
+	local clearedFamilyWeights = 0
+	if addon.db.profile.groupWeights then
+		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
+			local separatedFamilyName = separationData.familyName
+			if separatedFamilyName and addon.db.profile.groupWeights[separatedFamilyName] then
+				addon.db.profile.groupWeights[separatedFamilyName] = nil
+				clearedFamilyWeights = clearedFamilyWeights + 1
+			end
+		end
+	end
+
+	-- Clear separated family supergroup overrides
+	local clearedOverrides = 0
+	if addon.db.profile.superGroupOverrides then
+		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
+			local separatedFamilyName = separationData.familyName
+			if separatedFamilyName and addon.db.profile.superGroupOverrides[separatedFamilyName] then
+				addon.db.profile.superGroupOverrides[separatedFamilyName] = nil
+				clearedOverrides = clearedOverrides + 1
+			end
+		end
+	end
+
+	-- Clear separated family trait overrides
+	local clearedTraitOverrides = 0
+	if addon.db.profile.traitOverrides then
+		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
+			local separatedFamilyName = separationData.familyName
+			if separatedFamilyName and addon.db.profile.traitOverrides[separatedFamilyName] then
+				addon.db.profile.traitOverrides[separatedFamilyName] = nil
+				clearedTraitOverrides = clearedTraitOverrides + 1
+			end
+		end
+	end
+
+	-- Clear the separated mounts data
+	wipe(addon.db.profile.separatedMounts)
+	print("RMB_RESET_SEPARATION: Cleared separated mounts and " .. clearedFamilyWeights ..
+		" family weights, " .. clearedOverrides .. " supergroup overrides, " ..
+		clearedTraitOverrides .. " trait overrides")
+	-- Trigger complete data rebuild
+	addon.lastProcessingEventName = "reset_mount_separation"
+	addon:InitializeProcessedData()
+	addon.lastProcessingEventName = nil
+	-- Refresh all UIs
+	self:RefreshAllUIs()
+	local message = string.format(
+		"Reset %d separated mounts and reunited them with their original families",
+		separatedCount
+	)
+	if clearedFamilyWeights > 0 or clearedOverrides > 0 or clearedTraitOverrides > 0 then
+		message = message .. string.format(
+			" (also cleared %d family weights, %d supergroup assignments, %d trait overrides)",
+			clearedFamilyWeights, clearedOverrides, clearedTraitOverrides
+		)
+	end
+
+	print("RMB_RESET_SEPARATION: " .. message)
 	return true, message
 end
 

@@ -65,24 +65,6 @@ local rootOptionsTable = {
 			name = "General Configuration",
 		},
 
-		overrideBlizzardButton = {
-			order = 3,
-			type = "toggle",
-			name = "Override Blizzard's Random Button",
-			desc = "If checked, RMB will take over 'Summon Random Favorite Mount'.",
-			get = function() return addon:GetSetting("overrideBlizzardButton") end,
-			set = function(i, v) addon:SetSetting("overrideBlizzardButton", v) end,
-		},
-
-		useSuperGrouping = {
-			order = 4,
-			type = "toggle",
-			name = "Use Super-Grouping",
-			desc = "Group mounts by 'superGroup' by default.",
-			get = function() return addon:GetSetting("useSuperGrouping") end,
-			set = function(i, v) addon:SetSetting("useSuperGrouping", v) end,
-		},
-
 		contextualSummoning = {
 			order = 5,
 			type = "toggle",
@@ -91,6 +73,11 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("contextualSummoning") end,
 			set = function(i, v)
 				addon:SetSetting("contextualSummoning", v)
+				-- ENHANCED: Refresh mount pools since this affects mount selection logic
+				if addon.MountSummon and addon.MountSummon.RefreshMountPools then
+					addon.MountSummon:RefreshMountPools()
+					print("RMB_OPTIONS: Refreshed mount pools after contextual summoning change")
+				end
 			end,
 		},
 
@@ -114,6 +101,12 @@ local rootOptionsTable = {
 
 					print("RMB_DETERMINISTIC: Cache reset due to mode toggle")
 				end
+
+				-- ENHANCED: Refresh mount pools since this affects selection logic
+				if addon.MountSummon and addon.MountSummon.RefreshMountPools then
+					addon.MountSummon:RefreshMountPools()
+					print("RMB_OPTIONS: Refreshed mount pools after deterministic summoning change")
+				end
 			end,
 		},
 
@@ -136,6 +129,7 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("keepTravelFormActive") end,
 			set = function(i, v) addon:SetSetting("keepTravelFormActive", v) end,
 		},
+
 		useSmartFormSwitching = {
 			order = 8.5,
 			type = "toggle",
@@ -151,6 +145,7 @@ local rootOptionsTable = {
 				end
 			end,
 		},
+
 		useGhostWolfWhileMoving = {
 			order = 9,
 			type = "toggle",
@@ -159,6 +154,7 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("useGhostWolfWhileMoving") end,
 			set = function(i, v) addon:SetSetting("useGhostWolfWhileMoving", v) end,
 		},
+
 		keepGhostWolfActive = {
 			order = 9.1,
 			type = "toggle",
@@ -167,6 +163,7 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("keepGhostWolfActive") end,
 			set = function(i, v) addon:SetSetting("keepGhostWolfActive", v) end,
 		},
+
 		useZenFlightWhileMoving = {
 			order = 9.5,
 			type = "toggle",
@@ -176,6 +173,7 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("useZenFlightWhileMoving") end,
 			set = function(i, v) addon:SetSetting("useZenFlightWhileMoving", v) end,
 		},
+
 		keepZenFlightActive = {
 			order = 9.6,
 			type = "toggle",
@@ -184,7 +182,7 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("keepZenFlightActive") end,
 			set = function(i, v) addon:SetSetting("keepZenFlightActive", v) end,
 		},
-		-- Add after the existing Monk options
+
 		useSlowFallWhileFalling = {
 			order = 9.7,
 			type = "toggle",
@@ -193,6 +191,7 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("useSlowFallWhileFalling") end,
 			set = function(i, v) addon:SetSetting("useSlowFallWhileFalling", v) end,
 		},
+
 		useSlowFallOnOthers = {
 			order = 9.8,
 			type = "toggle",
@@ -201,6 +200,7 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("useSlowFallOnOthers") end,
 			set = function(i, v) addon:SetSetting("useSlowFallOnOthers", v) end,
 		},
+
 		useLevitateWhileFalling = {
 			order = 9.9,
 			type = "toggle",
@@ -209,6 +209,7 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("useLevitateWhileFalling") end,
 			set = function(i, v) addon:SetSetting("useLevitateWhileFalling", v) end,
 		},
+
 		useLevitateOnOthers = {
 			order = 10.0,
 			type = "toggle",
@@ -232,6 +233,13 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("treatMinorArmorAsDistinct") end,
 			set = function(i, v)
 				addon:SetSetting("treatMinorArmorAsDistinct", v)
+				-- ENHANCED: Explicitly refresh mount pools after trait changes
+				C_Timer.After(0.1, function()
+					if addon.RefreshMountPools then
+						addon:RefreshMountPools()
+						print("RMB_OPTIONS: Refreshed mount pools after trait distinctness change")
+					end
+				end)
 			end,
 			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
 		},
@@ -244,6 +252,13 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("treatMajorArmorAsDistinct") end,
 			set = function(i, v)
 				addon:SetSetting("treatMajorArmorAsDistinct", v)
+				-- ENHANCED: Explicitly refresh mount pools after trait changes
+				C_Timer.After(0.1, function()
+					if addon.RefreshMountPools then
+						addon:RefreshMountPools()
+						print("RMB_OPTIONS: Refreshed mount pools after trait distinctness change")
+					end
+				end)
 			end,
 			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
 		},
@@ -256,6 +271,13 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("treatModelVariantsAsDistinct") end,
 			set = function(i, v)
 				addon:SetSetting("treatModelVariantsAsDistinct", v)
+				-- ENHANCED: Explicitly refresh mount pools after trait changes
+				C_Timer.After(0.1, function()
+					if addon.RefreshMountPools then
+						addon:RefreshMountPools()
+						print("RMB_OPTIONS: Refreshed mount pools after trait distinctness change")
+					end
+				end)
 			end,
 			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
 		},
@@ -268,9 +290,17 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("treatUniqueEffectsAsDistinct") end,
 			set = function(i, v)
 				addon:SetSetting("treatUniqueEffectsAsDistinct", v)
+				-- ENHANCED: Explicitly refresh mount pools after trait changes
+				C_Timer.After(0.1, function()
+					if addon.RefreshMountPools then
+						addon:RefreshMountPools()
+						print("RMB_OPTIONS: Refreshed mount pools after trait distinctness change")
+					end
+				end)
 			end,
 			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
 		},
+
 		groupDos = {
 			order = 200,
 			type = "group",
@@ -322,6 +352,7 @@ local rootOptionsTable = {
 				},
 			},
 		},
+
 		favoriteSyncHeader = {
 			order = 16,
 			type = "header",
@@ -341,10 +372,15 @@ local rootOptionsTable = {
 					addon.FavoriteSync:SetSetting("enableFavoriteSync", v)
 				end
 
-				-- Refresh the Family Management UI to show/hide sync warnings
-				C_Timer.After(0.1, function()
+				-- ENHANCED: Refresh mount pools since this affects weight assignments
+				C_Timer.After(0.2, function()
+					if addon.RefreshMountPools then
+						addon:RefreshMountPools()
+						print("RMB_OPTIONS: Refreshed mount pools after FavoriteSync enable/disable")
+					end
+
+					-- Refresh the Family Management UI to show/hide sync warnings
 					if addon.PopulateFamilyManagementUI then
-						print("RMB_OPTIONS: Refreshing UI after FavoriteSync toggle change")
 						addon:PopulateFamilyManagementUI()
 					end
 				end)
@@ -358,7 +394,6 @@ local rootOptionsTable = {
 			name = "Sync on Login",
 			desc = "Automatically sync favorites when you log in (WARNING: May cause brief lag with large mount collections)",
 			get = function()
-				-- FIXED: Remove the "or true" that was causing it to be stuck on
 				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("syncOnLogin") or false
 			end,
 			set = function(i, v)
@@ -371,6 +406,7 @@ local rootOptionsTable = {
 			end,
 			width = 1.2,
 		},
+
 		favoriteWeight = {
 			order = 19,
 			type = "select",
@@ -392,6 +428,14 @@ local rootOptionsTable = {
 				if addon.FavoriteSync then
 					addon.FavoriteSync:SetSetting("favoriteWeight", v)
 				end
+
+				-- ENHANCED: Refresh mount pools since this affects weights
+				C_Timer.After(0.1, function()
+					if addon.RefreshMountPools then
+						addon:RefreshMountPools()
+						print("RMB_OPTIONS: Refreshed mount pools after favorite weight change")
+					end
+				end)
 			end,
 			disabled = function()
 				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
@@ -420,6 +464,14 @@ local rootOptionsTable = {
 				if addon.FavoriteSync then
 					addon.FavoriteSync:SetSetting("nonFavoriteWeight", v)
 				end
+
+				-- ENHANCED: Refresh mount pools since this affects weights
+				C_Timer.After(0.1, function()
+					if addon.RefreshMountPools then
+						addon:RefreshMountPools()
+						print("RMB_OPTIONS: Refreshed mount pools after non-favorite weight change")
+					end
+				end)
 			end,
 			disabled = function()
 				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
@@ -443,6 +495,14 @@ local rootOptionsTable = {
 				if addon.FavoriteSync then
 					addon.FavoriteSync:SetSetting("favoriteWeightMode", v)
 				end
+
+				-- ENHANCED: Refresh mount pools since this affects weight application
+				C_Timer.After(0.1, function()
+					if addon.RefreshMountPools then
+						addon:RefreshMountPools()
+						print("RMB_OPTIONS: Refreshed mount pools after weight mode change")
+					end
+				end)
 			end,
 			disabled = function()
 				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
@@ -463,10 +523,15 @@ local rootOptionsTable = {
 					addon.FavoriteSync:SetSetting("syncFamilyWeights", v)
 				end
 
-				-- Refresh the Family Management UI to show/hide family-level sync warnings
-				C_Timer.After(0.1, function()
+				-- ENHANCED: Refresh mount pools since this affects family-level weights
+				C_Timer.After(0.2, function()
+					if addon.RefreshMountPools then
+						addon:RefreshMountPools()
+						print("RMB_OPTIONS: Refreshed mount pools after family sync setting change")
+					end
+
+					-- Refresh the Family Management UI to show/hide family-level sync warnings
 					if addon.PopulateFamilyManagementUI then
-						print("RMB_OPTIONS: Refreshing UI after Family Sync toggle change")
 						addon:PopulateFamilyManagementUI()
 					end
 				end)
@@ -490,10 +555,15 @@ local rootOptionsTable = {
 					addon.FavoriteSync:SetSetting("syncSuperGroupWeights", v)
 				end
 
-				-- Refresh the Family Management UI to show/hide supergroup-level sync warnings
-				C_Timer.After(0.1, function()
+				-- ENHANCED: Refresh mount pools since this affects supergroup-level weights
+				C_Timer.After(0.2, function()
+					if addon.RefreshMountPools then
+						addon:RefreshMountPools()
+						print("RMB_OPTIONS: Refreshed mount pools after supergroup sync setting change")
+					end
+
+					-- Refresh the Family Management UI to show/hide supergroup-level sync warnings
 					if addon.PopulateFamilyManagementUI then
-						print("RMB_OPTIONS: Refreshing UI after SuperGroup Sync toggle change")
 						addon:PopulateFamilyManagementUI()
 					end
 				end)
@@ -503,6 +573,7 @@ local rootOptionsTable = {
 			end,
 			width = 1.2,
 		},
+
 		favoriteSyncControlsGroup = {
 			order = 24,
 			type = "group",
@@ -1090,6 +1161,7 @@ local importExportOptionsTable = {
 					overrides = 0,
 					definitions = 0,
 					deletions = 0,
+					separatedMounts = 0, -- ENHANCED: Track separated mounts
 				}
 				if addon.db and addon.db.profile then
 					if addon.db.profile.superGroupOverrides then
@@ -1107,11 +1179,16 @@ local importExportOptionsTable = {
 							end
 						end
 					end
+
+					-- ENHANCED: Count separated mounts
+					if addon.db.profile.separatedMounts then
+						stats.separatedMounts = addon:CountTableEntries(addon.db.profile.separatedMounts)
+					end
 				end
 
 				return string.format(
-					"Configuration Preview:\n• Family Assignments: %d\n• Custom/Renamed Supergroups: %d\n• Deleted Supergroups: %d",
-					stats.overrides, stats.definitions, stats.deletions)
+					"Configuration Preview:\n• Family Assignments: %d\n• Custom/Renamed Supergroups: %d\n• Deleted Supergroups: %d\n• Separated Mounts: %d",
+					stats.overrides, stats.definitions, stats.deletions, stats.separatedMounts)
 			end,
 			width = "full",
 		},
@@ -1119,14 +1196,23 @@ local importExportOptionsTable = {
 		export_button = {
 			order = 12,
 			type = "execute",
-			name = "Export to Clipboard",
-			desc = "Copy configuration to clipboard",
+			name = "Export Configuration",
+			desc = "Show configuration in a copyable popup window",
 			func = function()
 				if addon.SuperGroupManager then
+					-- ENHANCED: Include separated mounts in export
 					local config = addon.SuperGroupManager:ExportConfiguration()
-					-- TODO: Actually copy to clipboard (requires additional library)
-					print("RMB: Configuration exported (clipboard functionality requires additional implementation)")
-					print("Config length: " .. #config .. " characters")
+					if config then
+						-- Show the popup with the configuration string
+						StaticPopup_Show("RMB_EXPORT_CONFIG_POPUP", nil, nil, {
+							configString = config,
+						})
+						print("RMB: Configuration export popup opened - copy the text from the dialog")
+					else
+						print("RMB Error: Failed to generate configuration export")
+					end
+				else
+					print("RMB Error: SuperGroupManager not available")
 				end
 			end,
 			width = 1.0,
@@ -1239,6 +1325,16 @@ local importExportOptionsTable = {
 			end,
 			width = 1.5,
 		},
+		reset_separation = {
+			order = 35,
+			type = "execute",
+			name = "Reset Mount Separation Only",
+			desc = "Reunite all separated mounts with their original families but keep other settings",
+			func = function()
+				StaticPopup_Show("RMB_RESET_SEPARATION_CONFIRM")
+			end,
+			width = 1.5,
+		},
 	},
 }
 LibAceConfig:RegisterOptionsTable(importExport_InternalName, importExportOptionsTable)
@@ -1300,15 +1396,20 @@ StaticPopupDialogs["RMB_MERGE_SUPERGROUPS_CONFIRM"] = {
 }
 StaticPopupDialogs["RMB_RESET_ALL_CONFIRM"] = {
 	text =
-	"Reset all supergroup customizations?\n\nThis will:\n• Clear all family assignments\n• Remove all custom supergroups\n• Restore all deleted supergroups\n• Remove all renames\n\nThis cannot be undone!",
-	button1 = "Reset All",
+	"Reset ALL addon customizations?\n\nThis will:\n• Clear all family assignments\n• Remove all custom supergroups\n• Restore all deleted supergroups\n• Remove all renames\n• Reset ALL separated mounts\n• Clear ALL weight settings\n• Reset ALL trait overrides\n\nThis is a complete reset and cannot be undone!",
+	button1 = "Reset Everything",
 	button2 = "Cancel",
 	OnAccept = function()
 		if addon.SuperGroupManager then
 			local success, message = addon.SuperGroupManager:ResetToDefaults("all")
 			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
 			if success then
-				-- FIXED: Use enhanced refresh method that updates ALL UIs
+				-- ENHANCED: Also refresh Mount Separation UI since everything was reset
+				if addon.MountSeparationManager and addon.MountSeparationManager.PopulateSeparationManagementUI then
+					addon.MountSeparationManager:PopulateSeparationManagementUI()
+				end
+
+				-- Use enhanced refresh method that updates ALL UIs
 				addon.SuperGroupManager:RefreshAllUIs()
 			end
 		end
@@ -1350,6 +1451,54 @@ StaticPopupDialogs["RMB_RESET_CUSTOM_CONFIRM"] = {
 			if success then
 				-- FIXED: Use enhanced refresh method that updates ALL UIs
 				addon.SuperGroupManager:RefreshAllUIs()
+			end
+		end
+	end,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
+StaticPopupDialogs["RMB_EXPORT_CONFIG_POPUP"] = {
+	text = "Configuration Export\n\nCopy the text below:",
+	button1 = "Close",
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	hasEditBox = true,
+	editBoxWidth = 350,
+	OnShow = function(self, data)
+		if data and data.configString then
+			-- Set the edit box text and select all for easy copying
+			self.editBox:SetText(data.configString)
+			self.editBox:HighlightText()
+			self.editBox:SetFocus()
+		end
+	end,
+	EditBoxOnEnterPressed = function(self)
+		-- Just close when user presses enter
+		self:GetParent():Hide()
+	end,
+	EditBoxOnEscapePressed = function(self)
+		-- Close when user presses escape
+		self:GetParent():Hide()
+	end,
+	preferredIndex = 3,
+}
+StaticPopupDialogs["RMB_RESET_SEPARATION_CONFIRM"] = {
+	text =
+	"Reset mount separation?\n\nThis will:\n• Reunite all separated mounts with their original families\n• Clear weights and settings for separated families\n• Keep individual mount weights\n\nThis cannot be undone!",
+	button1 = "Reset Separation",
+	button2 = "Cancel",
+	OnAccept = function()
+		if addon.SuperGroupManager then
+			local success, message = addon.SuperGroupManager:ResetMountSeparationOnly()
+			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
+			if success then
+				-- Also refresh Mount Separation UI
+				if addon.MountSeparationManager and addon.MountSeparationManager.PopulateSeparationManagementUI then
+					addon.MountSeparationManager:PopulateSeparationManagementUI()
+				end
 			end
 		end
 	end,

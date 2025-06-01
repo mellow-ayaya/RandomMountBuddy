@@ -585,7 +585,6 @@ function addon:BuildFilterPanelArgs()
 		end
 	end
 
-	-- Display Options Section
 	filterArgs.display_header = {
 		order = order,
 		type = "header",
@@ -601,10 +600,42 @@ function addon:BuildFilterPanelArgs()
 		get = function() return self:GetSetting("showUncollectedMounts") end,
 		set = function(info, value)
 			self:SetSetting("showUncollectedMounts", value)
+			-- ENHANCED: Refresh mount pools since this affects which mounts are available
+			if self.RefreshMountPools then
+				self:RefreshMountPools()
+				print("RMB_OPTIONS: Refreshed mount pools after uncollected mounts setting change")
+			end
+
 			-- Trigger immediate UI refresh to show/hide uncollected items
 			if self.PopulateFamilyManagementUI then
 				self:PopulateFamilyManagementUI()
 			end
+		end,
+		width = "full",
+	}
+	order = order + 1
+	filterArgs.showAllUncollectedGroups = {
+		order = order,
+		type = "toggle",
+		name = "Show Families with Only Uncollected Mounts",
+		desc =
+		"If checked, families and supergroups that contain only uncollected mounts will be shown in the interface. Only available when 'Show Uncollected Mounts' is enabled.",
+		get = function() return self:GetSetting("showAllUncollectedGroups") end,
+		set = function(info, value)
+			self:SetSetting("showAllUncollectedGroups", value)
+			-- ENHANCED: Refresh mount pools since this affects which groups are available
+			if self.RefreshMountPools then
+				self:RefreshMountPools()
+				print("RMB_OPTIONS: Refreshed mount pools after uncollected groups setting change")
+			end
+
+			-- Trigger immediate UI refresh to show/hide uncollected groups
+			if self.PopulateFamilyManagementUI then
+				self:PopulateFamilyManagementUI()
+			end
+		end,
+		disabled = function()
+			return not self:GetSetting("showUncollectedMounts")
 		end,
 		width = "full",
 	}
