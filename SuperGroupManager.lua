@@ -62,7 +62,7 @@ function SuperGroupManager:RequestRefresh()
 	self.needsRefresh = true
 end
 
--- References for dynamic UI content (same pattern as Family & Groups)
+-- References for dynamic UI content (same pattern as Mount List)
 SuperGroupManager.existingListArgsRef = {}
 SuperGroupManager.familyListArgsRef = {}
 -- UI population functions (similar to PopulateFamilyManagementUI)
@@ -360,7 +360,7 @@ function SuperGroupManager:PopulateSuperGroupManagementUI()
 	local startTime = debugprofilestop()
 	-- Build new UI arguments
 	local newArgs = self:BuildSuperGroupManagementArgs()
-	-- Update the options table (same pattern as Family & Groups)
+	-- Update the options table (same pattern as Mount List)
 	wipe(addon.sgMgmtArgsRef)
 	for k, v in pairs(newArgs) do
 		addon.sgMgmtArgsRef[k] = v
@@ -683,7 +683,7 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 				args[keyBase .. "_separator"] = {
 					order = order + 0.31,
 					type = "description",
-					name = " |cffff9900→|r ",
+					name = " |cffff9900->|r ",
 					width = 0.1,
 				}
 				-- Confirm button
@@ -2364,7 +2364,7 @@ function SuperGroupManager:RefreshAllUIs()
 	-- Refresh SuperGroup Management UIs
 	self:PopulateSuperGroupManagementUI()
 	self:PopulateFamilyAssignmentUI()
-	-- Refresh main Family & Groups UI
+	-- Refresh main Mount List UI
 	if addon.PopulateFamilyManagementUI then
 		addon:PopulateFamilyManagementUI()
 	end
@@ -2862,21 +2862,21 @@ function SuperGroupManager:FormatValidationReport(report)
 				table.insert(lines, string.format("  %s Single-mount family '%s' weight mismatch: Family=%d, Mount=%d",
 					status, issue.familyName, issue.familyWeight, issue.mountWeight))
 				if issue.fixed then
-					table.insert(lines, string.format("    → Fixed to weight %d", issue.fixedWeight))
+					table.insert(lines, string.format("    -> Fixed to weight %d", issue.fixedWeight))
 				end
 			elseif issue.type == "separated_mount_desync" then
 				local status = issue.fixed and "|cff00ff00[FIXED]|r" or "|cffff0000[NEEDS FIX]|r"
 				table.insert(lines, string.format("  %s Separated family '%s' weight mismatch: Family=%d, Mount=%d",
 					status, issue.familyName, issue.familyWeight, issue.mountWeight))
 				if issue.fixed then
-					table.insert(lines, string.format("    → Fixed to weight %d", issue.fixedWeight))
+					table.insert(lines, string.format("    -> Fixed to weight %d", issue.fixedWeight))
 				end
 			elseif issue.type == "invalid_weight_range" then
 				local status = issue.fixed and "|cff00ff00[FIXED]|r" or "|cffff0000[NEEDS FIX]|r"
 				table.insert(lines, string.format("  %s Invalid weight for '%s': %s",
 					status, issue.groupKey, tostring(issue.invalidWeight)))
 				if issue.fixed then
-					table.insert(lines, string.format("    → Fixed to weight %d", issue.fixedWeight))
+					table.insert(lines, string.format("    -> Fixed to weight %d", issue.fixedWeight))
 				end
 			elseif issue.type == "missing_separated_weights" then
 				local status = issue.fixed and "|cff00ff00[FIXED]|r" or "|cffff0000[NEEDS FIX]|r"
@@ -2888,7 +2888,7 @@ function SuperGroupManager:FormatValidationReport(report)
 				table.insert(lines, string.format("  %s Missing %s weights for separated family '%s'",
 					status, table.concat(missing, " and "), issue.familyName))
 				if issue.fixed then
-					table.insert(lines, string.format("    → Set to weight %d", issue.fixedWeight))
+					table.insert(lines, string.format("    -> Set to weight %d", issue.fixedWeight))
 				end
 			end
 		end
@@ -2905,7 +2905,7 @@ function SuperGroupManager:FormatValidationReport(report)
 				table.insert(lines, string.format("  %s Orphaned weight setting: '%s' = %s",
 					status, issue.groupKey, tostring(issue.weight)))
 			elseif issue.type == "orphaned_supergroup_override" then
-				table.insert(lines, string.format("  %s Orphaned supergroup override: '%s' → %s",
+				table.insert(lines, string.format("  %s Orphaned supergroup override: '%s' -> %s",
 					status, issue.familyName, tostring(issue.override)))
 			elseif issue.type == "orphaned_trait_override" then
 				table.insert(lines, string.format("  %s Orphaned trait override: '%s'",
@@ -2925,13 +2925,13 @@ function SuperGroupManager:FormatValidationReport(report)
 				table.insert(lines, string.format("  %s Separated family name conflicts with original: '%s'",
 					status, issue.conflictingName))
 				if issue.fixed then
-					table.insert(lines, string.format("    → Renamed to '%s'", issue.newName))
+					table.insert(lines, string.format("    -> Renamed to '%s'", issue.newName))
 				end
 			elseif issue.type == "duplicate_separated_names" then
 				table.insert(lines, string.format("  %s Duplicate separated family name: '%s'",
 					status, issue.duplicateName))
 				if issue.fixed then
-					table.insert(lines, string.format("    → Renamed to '%s'", issue.newName))
+					table.insert(lines, string.format("    -> Renamed to '%s'", issue.newName))
 				end
 			end
 		end

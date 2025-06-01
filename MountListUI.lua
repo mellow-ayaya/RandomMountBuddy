@@ -143,6 +143,13 @@ function addon:BuildFamilyManagementArgs()
 		displayOrder = displayOrder + 1
 	end
 
+	pageArgs.search_spacer = {
+		order = displayOrder,
+		type = "description",
+		name = " ",
+		width = 0.05,
+	}
+	displayOrder = displayOrder + 1
 	pageArgs.search_input = {
 		order = displayOrder,
 		type = "input",
@@ -159,15 +166,15 @@ function addon:BuildFamilyManagementArgs()
 				self:ClearSearch()
 			end
 		end,
-		width = 0.82,
+		width = 1.05,
 	}
 	displayOrder = displayOrder + 1
 	-- BULK PRIORITY SECTION (NEW - between search and filter)
 	pageArgs.bulk_priority_description = {
 		order = displayOrder,
 		type = "description",
-		name = "|cffffd700  Bulk Priority:|r",
-		width = 0.28,
+		name = " ",
+		width = 0.01,
 	}
 	displayOrder = displayOrder + 1
 	pageArgs.bulk_priority_dropdown = {
@@ -193,22 +200,22 @@ function addon:BuildFamilyManagementArgs()
 			local pageCount = #(self:GetCurrentPageGroupKeys() or {})
 			local allCount = #(self:GetAllFilteredGroupKeys() or {})
 			return {
-				[""] = "Select Action...",
-				["page_0"] = string.format("Set Page Items (%d) to Never (0)", pageCount),
-				["page_1"] = string.format("Set Page Items (%d) to Occasional (1)", pageCount),
-				["page_2"] = string.format("Set Page Items (%d) to Uncommon (2)", pageCount),
-				["page_3"] = string.format("Set Page Items (%d) to Normal (3)", pageCount),
-				["page_4"] = string.format("Set Page Items (%d) to Common (4)", pageCount),
-				["page_5"] = string.format("Set Page Items (%d) to Often (5)", pageCount),
-				["page_6"] = string.format("Set Page Items (%d) to Always (6)", pageCount),
-				["separator1"] = "─────────────────────",
-				["all_0"] = string.format("Set %s (%d) to Never (0)", allItemsLabel, allCount),
-				["all_1"] = string.format("Set %s (%d) to Occasional (1)", allItemsLabel, allCount),
-				["all_2"] = string.format("Set %s (%d) to Uncommon (2)", allItemsLabel, allCount),
-				["all_3"] = string.format("Set %s (%d) to Normal (3)", allItemsLabel, allCount),
-				["all_4"] = string.format("Set %s (%d) to Common (4)", allItemsLabel, allCount),
-				["all_5"] = string.format("Set %s (%d) to Often (5)", allItemsLabel, allCount),
-				["all_6"] = string.format("Set %s (%d) to Always (6)", allItemsLabel, allCount),
+				[""] = "Adjust all..       ",
+				["0"] = string.format("visible to Never (0)", pageCount),
+				["1"] = string.format("visible to Occasional (1)", pageCount),
+				["2"] = string.format("visible to Uncommon (2)", pageCount),
+				["3"] = string.format("visible to Normal (3)", pageCount),
+				["4"] = string.format("visible to Common (4)", pageCount),
+				["5"] = string.format("visible to Often (5)", pageCount),
+				["6"] = string.format("visible to Always (6)", pageCount),
+				["7"] = "-------------------------",
+				["8"] = string.format("filtered to Never (0)", allItemsLabel, allCount),
+				["9"] = string.format("filtered to Occasional (1)", allItemsLabel, allCount),
+				["10"] = string.format("filtered to Uncommon (2)", allItemsLabel, allCount),
+				["11"] = string.format("filtered to Normal (3)", allItemsLabel, allCount),
+				["12"] = string.format("filtered to Common (4)", allItemsLabel, allCount),
+				["13"] = string.format("filtered to Often (5)", allItemsLabel, allCount),
+				["14"] = string.format("filtered to Always (6)", allItemsLabel, allCount),
 			}
 		end,
 		get = function() return "" end, -- Always show "Select Action..."
@@ -246,7 +253,7 @@ function addon:BuildFamilyManagementArgs()
 			local needsConfirmation = (#groupKeys > 50)
 			self:ApplyBulkPriorityChange(groupKeys, priority, not needsConfirmation)
 		end,
-		width = 0.82,
+		width = 0.9,
 	}
 	displayOrder = displayOrder + 1
 	-- FILTER SECTION (existing, moved after bulk priority)
@@ -276,7 +283,7 @@ function addon:BuildFamilyManagementArgs()
 		pageArgs.filter_reset = {
 			order = displayOrder,
 			type = "execute",
-			name = "Reset Filter",
+			name = "|TInterface\\BUTTONS\\UI-RefreshButton:18:18:0:-2|t",
 			desc = "Clear all active filters",
 			func = function()
 				self:ResetAllFilters()
@@ -305,7 +312,7 @@ function addon:BuildFamilyManagementArgs()
 			order = displayOrder,
 			type = "description",
 			name = "  |cff00ff00" .. searchStatus .. "|r",
-			width = 2.0,
+			width = 2.8,
 		}
 		displayOrder = displayOrder + 1
 		pageArgs.search_clear = {
@@ -316,7 +323,7 @@ function addon:BuildFamilyManagementArgs()
 			func = function()
 				self:ClearSearch()
 			end,
-			width = 0.6,
+			width = 0.8,
 		}
 		displayOrder = displayOrder + 1
 	end
@@ -567,7 +574,7 @@ function addon:BuildFilterPanelArgs()
 	filterArgs.chance_header = {
 		order = order,
 		type = "header",
-		name = "Summon Chance",
+		name = "Summon Chance/Weight",
 	}
 	order = order + 1
 	if self.FilterSystem then
@@ -594,7 +601,7 @@ function addon:BuildFilterPanelArgs()
 	filterArgs.showUncollectedMounts = {
 		order = order,
 		type = "toggle",
-		name = "Show Uncollected Mounts",
+		name = "Show Uncollected Mounts\n\n|cff888888This setting is also available in the main options|r",
 		desc =
 		"If checked, uncollected mounts will be shown in the interface. When disabled, also hides single-mount families that contain only an uncollected mount.",
 		get = function() return self:GetSetting("showUncollectedMounts") end,
@@ -617,7 +624,7 @@ function addon:BuildFilterPanelArgs()
 	filterArgs.showAllUncollectedGroups = {
 		order = order,
 		type = "toggle",
-		name = "Show Families with Only Uncollected Mounts",
+		name = "Show Families with Only Uncollected Mounts\n\n|cff888888This setting is also available in the main options|r",
 		desc =
 		"If checked, families and supergroups that contain only uncollected mounts will be shown in the interface. Only available when 'Show Uncollected Mounts' is enabled.",
 		get = function() return self:GetSetting("showAllUncollectedGroups") end,
@@ -640,24 +647,27 @@ function addon:BuildFilterPanelArgs()
 		width = "full",
 	}
 	order = order + 1
-	filterArgs.showAllUncollectedGroups = {
+	filterArgs.itemsPerPage = {
 		order = order,
-		type = "toggle",
-		name = "Show Families with Only Uncollected Mounts",
+		type = "select",
+		name = "Items per Page",
 		desc =
-		"If checked, families and supergroups that contain only uncollected mounts will be shown in the interface. Only available when 'Show Uncollected Mounts' is enabled.",
-		get = function() return self:GetSetting("showAllUncollectedGroups") end,
+		"Number of groups to show per page in Mount List\n\n|cff888888This setting is also available in the main options|r",
+		values = {
+			[14] = "14 (Default)",
+			[30] = "30",
+			[60] = "60",
+			[90] = "90",
+			[1000] = "All",
+		},
+		get = function()
+			return addon:FMG_GetItemsPerPage()
+		end,
 		set = function(info, value)
-			self:SetSetting("showAllUncollectedGroups", value)
-			-- Trigger immediate UI refresh to show/hide uncollected groups
-			if self.PopulateFamilyManagementUI then
-				self:PopulateFamilyManagementUI()
-			end
+			addon:FMG_SetItemsPerPage(value)
+			-- Note: FMG_SetItemsPerPage already handles UI refresh, so no additional refresh needed
 		end,
-		disabled = function()
-			return not self:GetSetting("showUncollectedMounts")
-		end,
-		width = "full",
+		width = 3,
 	}
 	order = order + 1
 	return filterArgs

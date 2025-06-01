@@ -243,7 +243,7 @@ function MountDataManager:ShouldShowTraits(groupKey, groupType)
 		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
 			if separationData.familyName == groupKey then
 				shouldShow = true
-				addon:DebugTraits("Showing traits for separated family: " .. groupKey)
+				addon:DebugUI("Showing traits for separated family: " .. groupKey)
 				self.cache.groupTypes[cacheKey] = shouldShow
 				return shouldShow
 			end

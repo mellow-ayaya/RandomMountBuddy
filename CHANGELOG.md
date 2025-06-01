@@ -1,3 +1,7 @@
+# 0.9.1
+UI overhaul stage 1/x.
+Overhauled main settings, separated class settings into their own tab, updated mount list UI.
+
 # 0.9.0
 Added debug toggle. Next time do this at the start of the project.
 

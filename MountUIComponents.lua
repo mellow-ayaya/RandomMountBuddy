@@ -146,7 +146,7 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 		previewButton = {
 			order = 0.2,
 			type = "execute",
-			name = "|TInterface\\UIEditorIcons\\UIEditorIcons:20:20:0:-1|t",
+			name = "|TInterface\\UIEditorIcons\\UIEditorIcons:19:19:0:-1|t",
 			desc = function()
 				return addon:GetMountPreviewTooltip(groupKey, groupData.type)
 			end,
@@ -204,7 +204,7 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 			width = 0.05,
 			image = weightProps.decrementImage,
 			imageWidth = 16,
-			imageHeight = 20,
+			imageHeight = 19,
 			desc = function()
 				local baseDesc = "Decrease weight"
 				if weightProps.warningTooltip then
@@ -254,7 +254,7 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 			width = 0.05,
 			image = weightProps.incrementImage,
 			imageWidth = 16,
-			imageHeight = 20,
+			imageHeight = 19,
 			desc = function()
 				local baseDesc = "Increase weight"
 				if weightProps.warningTooltip then
@@ -288,7 +288,7 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 			type = "toggle",
 			name = "|TInterface\\ICONS\\Garrison_GreenArmor:18:18:0:-2|t",
 			desc = function()
-				local baseDesc = "Small armor or ornaments"
+				local baseDesc = "Light/Small armor or ornaments"
 				local originalTraits = addon:GetOriginalTraits(groupKey)
 				local effectiveTraits = addon:GetEffectiveTraits(groupKey)
 				local isOverridden = (originalTraits.hasMinorArmor ~= effectiveTraits.hasMinorArmor)
@@ -324,7 +324,7 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 			type = "toggle",
 			name = "|TInterface\\ICONS\\Garrison_BlueArmor:18:18:0:-2|t",
 			desc = function()
-				local baseDesc = "Bulky armor or many ornaments"
+				local baseDesc = "Heavy/Bulky armor or many ornaments"
 				local originalTraits = addon:GetOriginalTraits(groupKey)
 				local effectiveTraits = addon:GetEffectiveTraits(groupKey)
 				local isOverridden = (originalTraits.hasMajorArmor ~= effectiveTraits.hasMajorArmor)
@@ -481,7 +481,7 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 			image = isExpanded and "Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonUpLargev11" or
 					"Interface\\AddOns\\RandomMountBuddy\\Media\\128RedButtonDownLargev11",
 			imageWidth = 40,
-			imageHeight = 20,
+			imageHeight = 19,
 		},
 	}
 	-- Add expanded content header if needed
@@ -689,7 +689,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			type = "toggle",
 			name = "|TInterface\\ICONS\\Garrison_GreenArmor:18:18:0:-2|t",
 			desc = function()
-				local baseDesc = "Small armor or ornaments"
+				local baseDesc = "Light/Small armor or ornaments"
 				if addon.GetOriginalTraits and addon.GetEffectiveTraits then
 					local originalTraits = addon:GetOriginalTraits(familyName)
 					local effectiveTraits = addon:GetEffectiveTraits(familyName)
@@ -731,7 +731,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			type = "toggle",
 			name = "|TInterface\\ICONS\\Garrison_BlueArmor:18:18:0:-2|t",
 			desc = function()
-				local baseDesc = "Bulky armor or ornaments"
+				local baseDesc = "Heavy/Bulky armor or ornaments"
 				if addon.GetOriginalTraits and addon.GetEffectiveTraits then
 					local originalTraits = addon:GetOriginalTraits(familyName)
 					local effectiveTraits = addon:GetEffectiveTraits(familyName)
@@ -861,7 +861,8 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 		resetTraits = {
 			order = order + 0.75,
 			type = "execute",
-			name = "",
+			name =
+			"|TInterface\\BUTTONS\\UI-RefreshButton:18:18:0:-2|t",
 			desc = "Reset traits to original values",
 			func = function()
 				if addon.ResetFamilyTraits then
@@ -879,9 +880,6 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			hidden = function()
 				return not shouldShowTraits or not (addon.HasTraitOverrides and addon:HasTraitOverrides(familyName))
 			end,
-			image = "Interface\\BUTTONS\\UI-RefreshButton",
-			imageWidth = 15,
-			imageHeight = 15,
 		},
 		-- Spacer when no reset
 		spacerNoReset = {

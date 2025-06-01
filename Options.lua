@@ -58,42 +58,17 @@ local rootOptionsTable = {
 	name = PARENT_ADDON_DISPLAY_NAME,
 	type = "group",
 	args = {
+
 		generalHeader = {
-			order = 1,
+			order = 30,
 			type = "header",
-			name = "General Configuration",
+			name = "Summon Configuration",
 		},
-		enableDebugMode = {
-			order = 2.1,
-			type = "toggle",
-			name = "Enable Debug Messages",
-			desc = "Show detailed debug information in chat. Useful for troubleshooting.",
-			get = function()
-				-- Direct database access to avoid any SetSetting loops
-				if addon.db and addon.db.profile then
-					return addon.db.profile.enableDebugMode or false
-				end
 
-				return false
-			end,
-			set = function(i, v)
-				-- Direct database write to avoid triggering other systems
-				if addon.db and addon.db.profile then
-					addon.db.profile.enableDebugMode = v
-				end
-
-				-- Simple direct print - don't use AlwaysPrint to avoid any loops
-				if v then
-					print("RMB: Debug mode enabled - you'll see detailed debug messages")
-				else
-					print("RMB: Debug mode disabled")
-				end
-			end,
-		},
 		contextualSummoning = {
-			order = 5,
+			order = 31,
 			type = "toggle",
-			name = "Enable Contextual Summoning",
+			name = "Contextual Summoning",
 			desc = "Automatically filter mounts based on location/situation.",
 			get = function() return addon:GetSetting("contextualSummoning") end,
 			set = function(i, v)
@@ -104,12 +79,13 @@ local rootOptionsTable = {
 					addon:DebugOptions("Refreshed mount pools after contextual summoning change")
 				end
 			end,
+			width = 1.4,
 		},
 
 		useDeterministicSummoning = {
-			order = 5.1,
+			order = 32,
 			type = "toggle",
-			name = "Use Deterministic Summoning",
+			name = "Improved randomness",
 			desc =
 			"When enabled, recently used mount groups become temporarily unavailable, ensuring more variety in mount selection. Groups become unavailable for a duration based on your collection size.",
 			get = function() return addon:GetSetting("useDeterministicSummoning") end,
@@ -133,127 +109,60 @@ local rootOptionsTable = {
 					addon:DebugOptions("Refreshed mount pools after deterministic summoning change")
 				end
 			end,
+			width = 1.2,
 		},
 
-		useTravelFormWhileMoving = {
-			order = 7,
+		enableDebugMode = {
+			order = 33,
 			type = "toggle",
-			name = "Use Travel Form While Moving",
-			desc = "If checked, the keybind will use Travel Form while moving (Druids only).",
-			get = function() return addon:GetSetting("useTravelFormWhileMoving") end,
-			set = function(i, v)
-				addon:SetSetting("useTravelFormWhileMoving", v)
+			name = "Debug Messages",
+			desc = "Show detailed debug information in chat. Useful for troubleshooting.",
+			get = function()
+				-- Direct database access to avoid any SetSetting loops
+				if addon.db and addon.db.profile then
+					return addon.db.profile.enableDebugMode or false
+				end
+
+				return false
 			end,
-		},
-
-		keepTravelFormActive = {
-			order = 8,
-			type = "toggle",
-			name = "Keep Travel Form When Already Active",
-			desc = "If checked, pressing the keybind while already in Travel Form won't cancel the form.",
-			get = function() return addon:GetSetting("keepTravelFormActive") end,
-			set = function(i, v) addon:SetSetting("keepTravelFormActive", v) end,
-		},
-
-		useSmartFormSwitching = {
-			order = 8.5,
-			type = "toggle",
-			name = "Use Smart Form Switching",
-			desc =
-			"If checked, intelligently switches between Travel Form (outdoors/swimming) and Cat Form (indoors) based on context.",
-			get = function() return addon:GetSetting("useSmartFormSwitching") end,
 			set = function(i, v)
-				addon:SetSetting("useSmartFormSwitching", v)
-				-- Force an update of the macros if not in combat
-				if not InCombatLockdown() then
-					RandomMountBuddy:UpdateShapeshiftMacros()
+				-- Direct database write to avoid triggering other systems
+				if addon.db and addon.db.profile then
+					addon.db.profile.enableDebugMode = v
+				end
+
+				-- Simple direct print - don't use AlwaysPrint to avoid any loops
+				if v then
+					print("RMB: Debug mode enabled - you'll see detailed debug messages")
+				else
+					print("RMB: Debug mode disabled")
 				end
 			end,
-		},
-
-		useGhostWolfWhileMoving = {
-			order = 9,
-			type = "toggle",
-			name = "Use Ghost Wolf While Moving",
-			desc = "If checked, the keybind will use Ghost Wolf while moving or in combat (Shamans only).",
-			get = function() return addon:GetSetting("useGhostWolfWhileMoving") end,
-			set = function(i, v) addon:SetSetting("useGhostWolfWhileMoving", v) end,
-		},
-
-		keepGhostWolfActive = {
-			order = 9.1,
-			type = "toggle",
-			name = "Keep Ghost Wolf When Already Active",
-			desc = "If checked, pressing the keybind while already in Ghost Wolf won't cancel the form.",
-			get = function() return addon:GetSetting("keepGhostWolfActive") end,
-			set = function(i, v) addon:SetSetting("keepGhostWolfActive", v) end,
-		},
-
-		useZenFlightWhileMoving = {
-			order = 9.5,
-			type = "toggle",
-			name = "Use Zen Flight While Moving or Falling",
-			desc =
-			"If checked, the keybind will use Zen Flight while moving or falling (Monks only). Will not cast in combat while falling.",
-			get = function() return addon:GetSetting("useZenFlightWhileMoving") end,
-			set = function(i, v) addon:SetSetting("useZenFlightWhileMoving", v) end,
-		},
-
-		keepZenFlightActive = {
-			order = 9.6,
-			type = "toggle",
-			name = "Keep Zen Flight When Already Active",
-			desc = "If checked, pressing the keybind while already using Zen Flight won't cancel it.",
-			get = function() return addon:GetSetting("keepZenFlightActive") end,
-			set = function(i, v) addon:SetSetting("keepZenFlightActive", v) end,
-		},
-
-		useSlowFallWhileFalling = {
-			order = 9.7,
-			type = "toggle",
-			name = "Use Slow Fall While Falling",
-			desc = "If checked, the keybind will use Slow Fall while falling (Mages only).",
-			get = function() return addon:GetSetting("useSlowFallWhileFalling") end,
-			set = function(i, v) addon:SetSetting("useSlowFallWhileFalling", v) end,
-		},
-
-		useSlowFallOnOthers = {
-			order = 9.8,
-			type = "toggle",
-			name = "Cast Slow Fall on Others",
-			desc = "If checked, Slow Fall will try to cast on your target or mouseover first, before falling back to yourself.",
-			get = function() return addon:GetSetting("useSlowFallOnOthers") end,
-			set = function(i, v) addon:SetSetting("useSlowFallOnOthers", v) end,
-		},
-
-		useLevitateWhileFalling = {
-			order = 9.9,
-			type = "toggle",
-			name = "Use Levitate While Falling",
-			desc = "If checked, the keybind will use Levitate while falling (Priests only).",
-			get = function() return addon:GetSetting("useLevitateWhileFalling") end,
-			set = function(i, v) addon:SetSetting("useLevitateWhileFalling", v) end,
-		},
-
-		useLevitateOnOthers = {
-			order = 10.0,
-			type = "toggle",
-			name = "Cast Levitate on Others",
-			desc = "If checked, Levitate will try to cast on your target or mouseover first, before falling back to yourself.",
-			get = function() return addon:GetSetting("useLevitateOnOthers") end,
-			set = function(i, v) addon:SetSetting("useLevitateOnOthers", v) end,
+			width = 1,
 		},
 
 		traitStrictnessHeader = {
-			order = 10.1,
+			order = 80,
 			type = "header",
-			name = "Trait-Based Strictness (if Super-Grouping is enabled)",
+			name = "Uniqueness Filter",
+		},
+
+		traitStrictnessDesc = {
+			order = 80.5,
+			type = "description",
+			name =
+					"|cffffd700How this works:|r Similar Families and Mounts are grouped together. When variants are separated via the below checkboxes, they get their own slot in the mount pool, increasing the overall chance of getting that mount type.\n\n" ..
+					"|cff00ff00Example:|r Swift Spectral Wolf normally groups with other wolves. When separated, the mount pool contains " ..
+					"'Wolf Family' + 'Swift Spectral Wolf' as separate entries, giving you more chances to get a wolf model.\n",
+			width = "full",
+			fontSize = "medium",
 		},
 
 		treatMinorArmorAsDistinct = {
-			order = 12,
+			order = 81,
 			type = "toggle",
-			name = "Minor Armor as Distinct",
+			name = "|TInterface\\ICONS\\Garrison_GreenArmor:18:18:0:-2|t Light Armor",
+			width = 0.9,
 			desc = "Consider minor armor differences significant enough to treat as separate families",
 			get = function() return addon:GetSetting("treatMinorArmorAsDistinct") end,
 			set = function(i, v)
@@ -270,9 +179,10 @@ local rootOptionsTable = {
 		},
 
 		treatMajorArmorAsDistinct = {
-			order = 13,
+			order = 82,
 			type = "toggle",
-			name = "Major Armor as Distinct",
+			name = "|TInterface\\ICONS\\Garrison_BlueArmor:18:18:0:-2|t Heavy armor",
+			width = 0.9,
 			desc = "Consider major armor differences significant enough to treat as separate families",
 			get = function() return addon:GetSetting("treatMajorArmorAsDistinct") end,
 			set = function(i, v)
@@ -289,9 +199,10 @@ local rootOptionsTable = {
 		},
 
 		treatModelVariantsAsDistinct = {
-			order = 14,
+			order = 83,
 			type = "toggle",
-			name = "Model Variants as Distinct",
+			name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:18:18:0:-2|t Updated texture",
+			width = 0.9,
 			desc = "Consider model variants significant enough to treat as separate families",
 			get = function() return addon:GetSetting("treatModelVariantsAsDistinct") end,
 			set = function(i, v)
@@ -308,9 +219,10 @@ local rootOptionsTable = {
 		},
 
 		treatUniqueEffectsAsDistinct = {
-			order = 15,
+			order = 84,
 			type = "toggle",
-			name = "Unique Effects/Skins as Distinct",
+			name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:18:18:0:-2|t Unique",
+			width = 0.8,
 			desc = "Consider unique effects/skins significant enough to treat as separate families",
 			get = function() return addon:GetSetting("treatUniqueEffectsAsDistinct") end,
 			set = function(i, v)
@@ -326,23 +238,354 @@ local rootOptionsTable = {
 			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
 		},
 
-		groupDos = {
-			order = 200,
+		syncSettings = {
+			name = "",
 			type = "group",
 			inline = true,
+			args = {
+				favoriteSyncHeader = {
+					order = 100,
+					type = "header",
+					name = "Favorite Mount sync",
+				},
+
+				enableFavoriteSync = {
+					order = 101,
+					type = "toggle",
+					name = "Enable Favorite Sync",
+					desc = "Automatically sync your WoW Mount Journal favorites with RMB mount weights",
+					get = function()
+						return addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync") or false
+					end,
+					set = function(i, v)
+						if addon.FavoriteSync then
+							addon.FavoriteSync:SetSetting("enableFavoriteSync", v)
+						end
+
+						-- ENHANCED: Refresh mount pools since this affects weight assignments
+						C_Timer.After(0.2, function()
+							if addon.RefreshMountPools then
+								addon:RefreshMountPools()
+								addon:DebugOptions("Refreshed mount pools after FavoriteSync enable/disable")
+							end
+
+							-- Refresh the Family Management UI to show/hide sync warnings
+							if addon.PopulateFamilyManagementUI then
+								addon:PopulateFamilyManagementUI()
+							end
+						end)
+					end,
+					width = 2,
+				},
+
+				weightPriority = {
+					order = 101.5,
+					type = "description",
+					name = "|cffcbcbcbWeight = Summon Chance|r",
+					width = 1,
+				},
+
+				syncOnLogin = {
+					order = 102,
+					type = "toggle",
+					name = "Sync on Login",
+					desc =
+					"Automatically sync favorites when you log in (WARNING: May cause brief lag with large mount collections)",
+					get = function()
+						return addon.FavoriteSync and addon.FavoriteSync:GetSetting("syncOnLogin") or false
+					end,
+					set = function(i, v)
+						if addon.FavoriteSync then
+							addon.FavoriteSync:SetSetting("syncOnLogin", v)
+						end
+					end,
+					disabled = function()
+						return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+					end,
+					width = 1.4,
+				},
+
+				syncFamilyWeights = {
+					order = 104,
+					type = "toggle",
+					name = "Sync Family Weights",
+					desc = "Also update the weights of families that contain favorite mounts",
+					get = function()
+						return addon.FavoriteSync and addon.FavoriteSync:GetSetting("syncFamilyWeights") or false
+					end,
+					set = function(i, v)
+						if addon.FavoriteSync then
+							addon.FavoriteSync:SetSetting("syncFamilyWeights", v)
+						end
+
+						-- ENHANCED: Refresh mount pools since this affects family-level weights
+						C_Timer.After(0.2, function()
+							if addon.RefreshMountPools then
+								addon:RefreshMountPools()
+								addon:DebugOptions("Refreshed mount pools after family sync setting change")
+							end
+
+							-- Refresh the Family Management UI to show/hide family-level sync warnings
+							if addon.PopulateFamilyManagementUI then
+								addon:PopulateFamilyManagementUI()
+							end
+						end)
+					end,
+					disabled = function()
+						return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+					end,
+					width = 1.2,
+				},
+
+				syncSuperGroupWeights = {
+					order = 105,
+					type = "toggle",
+					name = "Sync SuperGroup Weights",
+					desc = "Also update the weights of supergroups that contain favorite mounts",
+					get = function()
+						return addon.FavoriteSync and addon.FavoriteSync:GetSetting("syncSuperGroupWeights") or false
+					end,
+					set = function(i, v)
+						if addon.FavoriteSync then
+							addon.FavoriteSync:SetSetting("syncSuperGroupWeights", v)
+						end
+
+						-- ENHANCED: Refresh mount pools since this affects supergroup-level weights
+						C_Timer.After(0.2, function()
+							if addon.RefreshMountPools then
+								addon:RefreshMountPools()
+								addon:DebugOptions("Refreshed mount pools after supergroup sync setting change")
+							end
+
+							-- Refresh the Family Management UI to show/hide supergroup-level sync warnings
+							if addon.PopulateFamilyManagementUI then
+								addon:PopulateFamilyManagementUI()
+							end
+						end)
+					end,
+					disabled = function()
+						return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+					end,
+					width = 1,
+				},
+
+
+				favoriteWeightMode = {
+					order = 105,
+					type = "select",
+					name = "Weight Mode",
+					desc = "How to handle existing weights when syncing",
+					values = {
+						["set"] = "Replace current weights",
+						["minimum"] = "Only increase weights",
+					},
+					get = function()
+						return addon.FavoriteSync and addon.FavoriteSync:GetSetting("favoriteWeightMode") or "set"
+					end,
+					set = function(i, v)
+						if addon.FavoriteSync then
+							addon.FavoriteSync:SetSetting("favoriteWeightMode", v)
+						end
+
+						-- ENHANCED: Refresh mount pools since this affects weight application
+						C_Timer.After(0.1, function()
+							if addon.RefreshMountPools then
+								addon:RefreshMountPools()
+								addon:DebugOptions("Refreshed mount pools after weight mode change")
+							end
+						end)
+					end,
+					disabled = function()
+						return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+					end,
+					width = 1.2,
+				},
+
+				favoriteWeight = {
+					order = 106,
+					type = "select",
+					name = "Favorite Mount Weight",
+					desc = "What weight to assign to your favorite mounts",
+					values = {
+						[0] = "Never (0)",
+						[1] = "Occasional (1)",
+						[2] = "Uncommon (2)",
+						[3] = "Normal (3)",
+						[4] = "Common (4)",
+						[5] = "Often (5)",
+						[6] = "Always (6)",
+					},
+					get = function()
+						return addon.FavoriteSync and addon.FavoriteSync:GetSetting("favoriteWeight") or 4
+					end,
+					set = function(i, v)
+						if addon.FavoriteSync then
+							addon.FavoriteSync:SetSetting("favoriteWeight", v)
+						end
+
+						-- ENHANCED: Refresh mount pools since this affects weights
+						C_Timer.After(0.1, function()
+							if addon.RefreshMountPools then
+								addon:RefreshMountPools()
+								addon:DebugOptions("Refreshed mount pools after favorite weight change")
+							end
+						end)
+					end,
+					disabled = function()
+						return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+					end,
+					width = 1.2,
+				},
+
+				nonFavoriteWeight = {
+					order = 107,
+					type = "select",
+					name = "Non-Favorite Mount Weight",
+					desc = "What weight to assign to non-favorite mounts (set to Normal to leave unchanged)",
+					values = {
+						[0] = "Never (0)",
+						[1] = "Occasional (1)",
+						[2] = "Uncommon (2)",
+						[3] = "Normal (3) - No Change",
+						[4] = "Common (4)",
+						[5] = "Often (5)",
+						[6] = "Always (6)",
+					},
+					get = function()
+						return addon.FavoriteSync and addon.FavoriteSync:GetSetting("nonFavoriteWeight") or 3
+					end,
+					set = function(i, v)
+						if addon.FavoriteSync then
+							addon.FavoriteSync:SetSetting("nonFavoriteWeight", v)
+						end
+
+						-- ENHANCED: Refresh mount pools since this affects weights
+						C_Timer.After(0.1, function()
+							if addon.RefreshMountPools then
+								addon:RefreshMountPools()
+								addon:DebugOptions("Refreshed mount pools after non-favorite weight change")
+							end
+						end)
+					end,
+					disabled = function()
+						return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+					end,
+					width = 1.2,
+				},
+
+				favoriteSyncControlsGroup = {
+					order = 108,
+					type = "group",
+					inline = true,
+					name = "",
+					args = {
+
+						manualSyncButton = {
+							order = 2,
+							type = "execute",
+							name = "Sync Now",
+							desc = "Manually trigger favorite mount sync",
+							func = function()
+								if addon.FavoriteSync then
+									addon.FavoriteSync:ManualSync()
+								end
+							end,
+							disabled = function()
+								return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+							end,
+							width = 0.8,
+						},
+						spacer = {
+							order = 3,
+							type = "description",
+							name = " ",
+							width = 0.1,
+						},
+						syncStats = {
+							order = 4,
+							type = "description",
+							name = function()
+								if not addon.FavoriteSync then
+									return ""
+								end
+
+								local stats = addon.FavoriteSync:GetSyncStatistics()
+								return string.format("Stats: %d favorite, %d usable mounts | Last sync: %s",
+									stats.favoriteMountCount, stats.totalMountCount, stats.lastSyncTimeFormatted)
+							end,
+							width = 3,
+						},
+					},
+				},
+			},
+		},
+		mountListSettings = {
+			order = 999,
 			name = "",
+			type = "group",
+			inline = true,
 			args = {
 				displaySettingsHeader = {
 					order = 9,
 					type = "header",
-					name = "Display Settings",
+					name = "Mount List Settings",
+				},
+
+				showUncollectedMounts = {
+					order = 10,
+					type = "toggle",
+					name = "Show Uncollected Mounts",
+					desc =
+					"If checked, uncollected mounts will be shown in the interface. When disabled, also hides single-mount families that contain only an uncollected mount.\n\n|cff888888This setting is also available in the filter panel|r",
+					get = function() return addon:GetSetting("showUncollectedMounts") end,
+					set = function(i, value)
+						addon:SetSetting("showUncollectedMounts", value)
+						-- ENHANCED: Refresh mount pools since this affects which mounts are available
+						if addon.RefreshMountPools then
+							addon:RefreshMountPools()
+							print("RMB_OPTIONS: Refreshed mount pools after uncollected mounts setting change")
+						end
+
+						-- Trigger immediate UI refresh to show/hide uncollected items
+						if addon.PopulateFamilyManagementUI then
+							addon:PopulateFamilyManagementUI()
+						end
+					end,
+					width = 1.6,
+				},
+
+				showAllUncollectedGroups = {
+					order = 11,
+					type = "toggle",
+					name = "Show Families with Only Uncollected Mounts",
+					desc =
+					"If checked, families and supergroups that contain only uncollected mounts will be shown in the interface. Only available when 'Show Uncollected Mounts' is enabled.\n\n|cff888888This setting is also available in the filter panel|r",
+					get = function() return addon:GetSetting("showAllUncollectedGroups") end,
+					set = function(i, value)
+						addon:SetSetting("showAllUncollectedGroups", value)
+						-- ENHANCED: Refresh mount pools since this affects which groups are available
+						if addon.RefreshMountPools then
+							addon:RefreshMountPools()
+							print("RMB_OPTIONS: Refreshed mount pools after uncollected groups setting change")
+						end
+
+						-- Trigger immediate UI refresh to show/hide uncollected groups
+						if addon.PopulateFamilyManagementUI then
+							addon:PopulateFamilyManagementUI()
+						end
+					end,
+					disabled = function()
+						return not addon:GetSetting("showUncollectedMounts")
+					end,
+					width = 2,
 				},
 
 				itemsPerPage = {
-					order = 9.1,
+					order = 12,
 					type = "select",
 					name = "Items per Page",
-					desc = "Number of groups to show per page in Family & Groups",
+					desc =
+					"Number of groups to show per page in Mount List\n\n|cff888888This setting is also available in the filter panel|r",
 					values = {
 						[14] = "14 (Default)",
 						[30] = "30",
@@ -356,11 +599,11 @@ local rootOptionsTable = {
 					set = function(info, value)
 						addon:FMG_SetItemsPerPage(value)
 					end,
-					width = 1.5,
+					width = 3.6,
 				},
 
 				currentTotalInfo = {
-					order = 9.2,
+					order = 13,
 					type = "description",
 					name = function()
 						if not addon.RMB_DataReadyForUI then
@@ -372,284 +615,6 @@ local rootOptionsTable = {
 						local itemsPerPage = addon:FMG_GetItemsPerPage()
 						local totalPages = math.max(1, math.ceil(totalGroups / itemsPerPage))
 						return string.format("Currently: %d total groups across %d pages", totalGroups, totalPages)
-					end,
-					width = "full",
-				},
-			},
-		},
-
-		favoriteSyncHeader = {
-			order = 16,
-			type = "header",
-			name = "Favorite Mount Synchronization",
-		},
-
-		enableFavoriteSync = {
-			order = 17,
-			type = "toggle",
-			name = "Enable Favorite Sync",
-			desc = "Automatically sync your WoW Mount Journal favorites with RMB mount weights",
-			get = function()
-				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync") or false
-			end,
-			set = function(i, v)
-				if addon.FavoriteSync then
-					addon.FavoriteSync:SetSetting("enableFavoriteSync", v)
-				end
-
-				-- ENHANCED: Refresh mount pools since this affects weight assignments
-				C_Timer.After(0.2, function()
-					if addon.RefreshMountPools then
-						addon:RefreshMountPools()
-						addon:DebugOptions("Refreshed mount pools after FavoriteSync enable/disable")
-					end
-
-					-- Refresh the Family Management UI to show/hide sync warnings
-					if addon.PopulateFamilyManagementUI then
-						addon:PopulateFamilyManagementUI()
-					end
-				end)
-			end,
-			width = "full",
-		},
-
-		syncOnLogin = {
-			order = 18,
-			type = "toggle",
-			name = "Sync on Login",
-			desc = "Automatically sync favorites when you log in (WARNING: May cause brief lag with large mount collections)",
-			get = function()
-				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("syncOnLogin") or false
-			end,
-			set = function(i, v)
-				if addon.FavoriteSync then
-					addon.FavoriteSync:SetSetting("syncOnLogin", v)
-				end
-			end,
-			disabled = function()
-				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
-			end,
-			width = 1.2,
-		},
-
-		favoriteWeight = {
-			order = 19,
-			type = "select",
-			name = "Favorite Mount Weight",
-			desc = "What weight to assign to your favorite mounts",
-			values = {
-				[0] = "Never (0)",
-				[1] = "Occasional (1)",
-				[2] = "Uncommon (2)",
-				[3] = "Normal (3)",
-				[4] = "Common (4)",
-				[5] = "Often (5)",
-				[6] = "Always (6)",
-			},
-			get = function()
-				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("favoriteWeight") or 4
-			end,
-			set = function(i, v)
-				if addon.FavoriteSync then
-					addon.FavoriteSync:SetSetting("favoriteWeight", v)
-				end
-
-				-- ENHANCED: Refresh mount pools since this affects weights
-				C_Timer.After(0.1, function()
-					if addon.RefreshMountPools then
-						addon:RefreshMountPools()
-						addon:DebugOptions("Refreshed mount pools after favorite weight change")
-					end
-				end)
-			end,
-			disabled = function()
-				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
-			end,
-			width = 1.2,
-		},
-
-		nonFavoriteWeight = {
-			order = 20,
-			type = "select",
-			name = "Non-Favorite Mount Weight",
-			desc = "What weight to assign to non-favorite mounts (set to Normal to leave unchanged)",
-			values = {
-				[0] = "Never (0)",
-				[1] = "Occasional (1)",
-				[2] = "Uncommon (2)",
-				[3] = "Normal (3) - No Change",
-				[4] = "Common (4)",
-				[5] = "Often (5)",
-				[6] = "Always (6)",
-			},
-			get = function()
-				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("nonFavoriteWeight") or 3
-			end,
-			set = function(i, v)
-				if addon.FavoriteSync then
-					addon.FavoriteSync:SetSetting("nonFavoriteWeight", v)
-				end
-
-				-- ENHANCED: Refresh mount pools since this affects weights
-				C_Timer.After(0.1, function()
-					if addon.RefreshMountPools then
-						addon:RefreshMountPools()
-						addon:DebugOptions("Refreshed mount pools after non-favorite weight change")
-					end
-				end)
-			end,
-			disabled = function()
-				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
-			end,
-			width = 1.2,
-		},
-
-		favoriteWeightMode = {
-			order = 21,
-			type = "select",
-			name = "Weight Mode",
-			desc = "How to handle existing weights when syncing",
-			values = {
-				["set"] = "Set Exact Weight - Replace current weights",
-				["minimum"] = "Set Minimum Weight - Only increase weights",
-			},
-			get = function()
-				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("favoriteWeightMode") or "set"
-			end,
-			set = function(i, v)
-				if addon.FavoriteSync then
-					addon.FavoriteSync:SetSetting("favoriteWeightMode", v)
-				end
-
-				-- ENHANCED: Refresh mount pools since this affects weight application
-				C_Timer.After(0.1, function()
-					if addon.RefreshMountPools then
-						addon:RefreshMountPools()
-						addon:DebugOptions("Refreshed mount pools after weight mode change")
-					end
-				end)
-			end,
-			disabled = function()
-				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
-			end,
-			width = "full",
-		},
-
-		syncFamilyWeights = {
-			order = 22,
-			type = "toggle",
-			name = "Sync Family Weights",
-			desc = "Also update the weights of families that contain favorite mounts",
-			get = function()
-				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("syncFamilyWeights") or false
-			end,
-			set = function(i, v)
-				if addon.FavoriteSync then
-					addon.FavoriteSync:SetSetting("syncFamilyWeights", v)
-				end
-
-				-- ENHANCED: Refresh mount pools since this affects family-level weights
-				C_Timer.After(0.2, function()
-					if addon.RefreshMountPools then
-						addon:RefreshMountPools()
-						addon:DebugOptions("Refreshed mount pools after family sync setting change")
-					end
-
-					-- Refresh the Family Management UI to show/hide family-level sync warnings
-					if addon.PopulateFamilyManagementUI then
-						addon:PopulateFamilyManagementUI()
-					end
-				end)
-			end,
-			disabled = function()
-				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
-			end,
-			width = 1.2,
-		},
-
-		syncSuperGroupWeights = {
-			order = 23,
-			type = "toggle",
-			name = "Sync SuperGroup Weights",
-			desc = "Also update the weights of supergroups that contain favorite mounts",
-			get = function()
-				return addon.FavoriteSync and addon.FavoriteSync:GetSetting("syncSuperGroupWeights") or false
-			end,
-			set = function(i, v)
-				if addon.FavoriteSync then
-					addon.FavoriteSync:SetSetting("syncSuperGroupWeights", v)
-				end
-
-				-- ENHANCED: Refresh mount pools since this affects supergroup-level weights
-				C_Timer.After(0.2, function()
-					if addon.RefreshMountPools then
-						addon:RefreshMountPools()
-						addon:DebugOptions("Refreshed mount pools after supergroup sync setting change")
-					end
-
-					-- Refresh the Family Management UI to show/hide supergroup-level sync warnings
-					if addon.PopulateFamilyManagementUI then
-						addon:PopulateFamilyManagementUI()
-					end
-				end)
-			end,
-			disabled = function()
-				return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
-			end,
-			width = 1.2,
-		},
-
-		favoriteSyncControlsGroup = {
-			order = 24,
-			type = "group",
-			inline = true,
-			name = "",
-			args = {
-				syncPreview = {
-					order = 1,
-					type = "description",
-					name = function()
-						if not addon.FavoriteSync then
-							return "Favorite sync system not loaded."
-						end
-
-						if not addon.FavoriteSync:GetSetting("enableFavoriteSync") then
-							return "Enable favorite sync to see preview."
-						end
-
-						return addon.FavoriteSync:PreviewSync() or "Error generating preview."
-					end,
-					width = "full",
-					fontSize = "medium",
-				},
-
-				manualSyncButton = {
-					order = 2,
-					type = "execute",
-					name = "Sync Now",
-					desc = "Manually trigger favorite mount synchronization",
-					func = function()
-						if addon.FavoriteSync then
-							addon.FavoriteSync:ManualSync()
-						end
-					end,
-					disabled = function()
-						return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
-					end,
-					width = 0.8,
-				},
-
-				syncStats = {
-					order = 3,
-					type = "description",
-					name = function()
-						if not addon.FavoriteSync then
-							return ""
-						end
-
-						local stats = addon.FavoriteSync:GetSyncStatistics()
-						return string.format("Stats: %d favorite, %d total mounts | Last sync: %s",
-							stats.favoriteMountCount, stats.totalMountCount, stats.lastSyncTimeFormatted)
 					end,
 					width = "full",
 				},
@@ -799,7 +764,7 @@ end
     2. Family & Group Management Page
 -------------------------------------------------------------------------------]]
 local familyManagement_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_FamilyManagement"
-local familyManagement_DisplayName = "Family & Groups"
+local familyManagement_DisplayName = "Mount List"
 local initialFamilyManagementArgs = {
 	_placeholder_header_fmg = {
 		order = 0,
@@ -860,48 +825,189 @@ if familyPanel then
 	}
 	addon:DebugOptions("Registered '" .. familyManagement_DisplayName .. "' page.")
 else
-	addon:DebugOptions("FAILED Family & Groups AddToBliz.")
+	addon:DebugOptions("FAILED Mount List AddToBliz.")
 end
 
 --[[-----------------------------------------------------------------------------
-    3. Mount Inspector Page
+    3. Class Settings
 -------------------------------------------------------------------------------]]
-local mountInspector_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_MountInspector"
-local mountInspector_DisplayName = "Mount Inspector"
+local classSettings_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_ClassSettings"
+local classSettings_DisplayName = "Class Settings"
 local favoriteMountsArgsTable = (addon.GetFavoriteMountsForOptions and addon:GetFavoriteMountsForOptions()) or
 		{ err = { order = 1, type = "description", name = "Error." } }
-local mountInspectorOptionsTable = {
-	name = mountInspector_DisplayName,
+local classSettingsOptionsTable = {
+	name = classSettings_DisplayName,
 	handler = addon,
 	type = "group",
 	order = 3,
 	args = {
-		header_inspector = {
-			order = 1,
-			type = "header",
-			name = "Favorite Mounts Overview",
-		},
-
-		desc_inspector = {
-			order = 2,
-			type = "description",
-			name = "Lists your favorite mounts and their assigned family name.",
-			fontSize = "medium",
-		},
-
-		mount_list_container = {
-			order = 3,
+		druidHeader = {
+			order = 10,
 			type = "group",
-			name = " ",
+			name = "Druid",
 			inline = true,
-			args = favoriteMountsArgsTable,
+			args = {
+				useTravelFormWhileMoving = {
+					order = 11,
+					type = "toggle",
+					name = "Cast Travel Form While Moving",
+					desc = "If checked, the keybind will use Travel Form while moving (Druids only).",
+					get = function() return addon:GetSetting("useTravelFormWhileMoving") end,
+					set = function(i, v)
+						addon:SetSetting("useTravelFormWhileMoving", v)
+					end,
+					width = 1.4,
+				},
+
+				keepTravelFormActive = {
+					order = 12,
+					type = "toggle",
+					name = "Don't cancel form",
+					desc = "If checked, pressing the keybind while already in Travel Form won't cancel the form.",
+					get = function() return addon:GetSetting("keepTravelFormActive") end,
+					set = function(i, v) addon:SetSetting("keepTravelFormActive", v) end,
+					width = 1,
+				},
+
+				useSmartFormSwitching = {
+					order = 13,
+					type = "toggle",
+					name = "Smart Form Switching",
+					desc =
+					"If checked, intelligently switches between Travel Form (outdoors/swimming) and Cat Form (indoors) based on context.",
+					get = function() return addon:GetSetting("useSmartFormSwitching") end,
+					set = function(i, v)
+						addon:SetSetting("useSmartFormSwitching", v)
+						-- Force an update of the macros if not in combat
+						if not InCombatLockdown() then
+							RandomMountBuddy:UpdateShapeshiftMacros()
+						end
+					end,
+					width = 1.2,
+				},
+			},
+		},
+
+		shamanHeader = {
+			order = 20,
+			type = "group",
+			name = "Shaman",
+			inline = true,
+			args = {
+				useGhostWolfWhileMoving = {
+					order = 21,
+					type = "toggle",
+					name = "Cast Ghost Wolf While Moving",
+					desc = "If checked, the keybind will use Ghost Wolf while moving or in combat (Shamans only).",
+					get = function() return addon:GetSetting("useGhostWolfWhileMoving") end,
+					set = function(i, v) addon:SetSetting("useGhostWolfWhileMoving", v) end,
+					width = 1.4,
+				},
+
+				keepGhostWolfActive = {
+					order = 22,
+					type = "toggle",
+					name = "Don't cancel form",
+					desc = "If checked, pressing the keybind while already in Ghost Wolf won't cancel the form.",
+					get = function() return addon:GetSetting("keepGhostWolfActive") end,
+					set = function(i, v) addon:SetSetting("keepGhostWolfActive", v) end,
+					width = 1,
+				},
+			},
+		},
+
+		monkHeader = {
+			order = 30,
+			type = "group",
+			name = "Monk",
+			inline = true,
+			args = {
+				useZenFlightWhileMoving = {
+					order = 31,
+					type = "toggle",
+					name = "Cast ZF While Moving/Falling",
+					desc =
+					"If checked, the keybind will use Zen Flight while moving or falling (Monks only). Will not cast in combat while falling.",
+					get = function() return addon:GetSetting("useZenFlightWhileMoving") end,
+					set = function(i, v) addon:SetSetting("useZenFlightWhileMoving", v) end,
+					width = 1.4,
+				},
+
+				keepZenFlightActive = {
+					order = 32,
+					type = "toggle",
+					name = "Don't cancel ZF",
+					desc = "If checked, pressing the keybind while already using Zen Flight won't cancel it.",
+					get = function() return addon:GetSetting("keepZenFlightActive") end,
+					set = function(i, v) addon:SetSetting("keepZenFlightActive", v) end,
+					width = 1,
+				},
+			},
+		},
+
+		mageHeader = {
+			order = 40,
+			type = "group",
+			name = "Mage",
+			inline = true,
+			args = {
+				useSlowFallWhileFalling = {
+					order = 41,
+					type = "toggle",
+					name = "Cast Slow Fall While Falling",
+					desc = "If checked, the keybind will use Slow Fall while falling (Mages only).",
+					get = function() return addon:GetSetting("useSlowFallWhileFalling") end,
+					set = function(i, v) addon:SetSetting("useSlowFallWhileFalling", v) end,
+					width = 1.4,
+				},
+
+				useSlowFallOnOthers = {
+					order = 42,
+					type = "toggle",
+					name = "Cast Slow Fall on Others",
+					desc =
+					"If checked, Slow Fall will try to cast on your target or mouseover first, before falling back to yourself.",
+					get = function() return addon:GetSetting("useSlowFallOnOthers") end,
+					set = function(i, v) addon:SetSetting("useSlowFallOnOthers", v) end,
+					width = 1.2,
+				},
+			},
+		},
+
+		priestHeader = {
+			order = 50,
+			type = "group",
+			name = "Priest",
+			inline = true,
+			args = {
+				useLevitateWhileFalling = {
+					order = 51,
+					type = "toggle",
+					name = "Cast Levitate While Falling",
+					desc = "If checked, the keybind will use Levitate while falling (Priests only).",
+					get = function() return addon:GetSetting("useLevitateWhileFalling") end,
+					set = function(i, v) addon:SetSetting("useLevitateWhileFalling", v) end,
+					width = 1.4,
+				},
+
+				useLevitateOnOthers = {
+					order = 52,
+					type = "toggle",
+					name = "Cast Levitate on Others",
+					desc =
+					"If checked, Levitate will try to cast on your target or mouseover first, before falling back to yourself.",
+					get = function() return addon:GetSetting("useLevitateOnOthers") end,
+					set = function(i, v) addon:SetSetting("useLevitateOnOthers", v) end,
+					width = 1.2,
+				},
+			},
 		},
 	},
 }
-LibAceConfig:RegisterOptionsTable(mountInspector_InternalName, mountInspectorOptionsTable)
+LibAceConfig:RegisterOptionsTable(classSettings_InternalName, classSettingsOptionsTable)
 local inspPanel, inspCatID = LibAceConfigDialog:AddToBlizOptions(
-	mountInspector_InternalName,
-	mountInspector_DisplayName,
+	classSettings_InternalName,
+	classSettings_DisplayName,
 	actualParentCategoryKey
 )
 if inspPanel then
@@ -909,9 +1015,9 @@ if inspPanel then
 		frame = inspPanel,
 		id = inspCatID or inspPanel.name,
 	}
-	addon:DebugOptions("Registered '" .. mountInspector_DisplayName .. "' page.")
+	addon:DebugOptions("Registered '" .. classSettings_DisplayName .. "' page.")
 else
-	addon:DebugOptions("FAILED Mount Inspector AddToBliz.")
+	addon:DebugOptions("FAILED Class Settings AddToBliz.")
 end
 
 --[[-----------------------------------------------------------------------------
@@ -955,7 +1061,7 @@ end
 -- Page 1: Supergroup Management
 local superGroupMgmt_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_SuperGroupMgmt"
 local superGroupMgmt_DisplayName = "Supergroup Management"
--- Create initial args table (same pattern as Family & Groups)
+-- Create initial args table (same pattern as Mount List)
 local initialSuperGroupMgmtArgs = {
 	header_mgmt = {
 		order = 1,
@@ -1084,7 +1190,7 @@ local importExportOptionsTable = {
 			order = 6,
 			type = "description",
 			name =
-			"Check for and fix common data integrity issues including weight synchronization problems, orphaned settings, and name conflicts.",
+			"Check for and fix common data integrity issues including weight sync problems, orphaned settings, and name conflicts.",
 			fontSize = "medium",
 		},
 

@@ -2239,7 +2239,7 @@ function addon:SetFamilyTrait(familyName, traitName, value)
 		self.db.profile.traitOverrides[familyName][traitName] = value
 	end
 
-	addon:DebugTraits("Set " .. familyName .. "." .. traitName .. " = " .. tostring(value))
+	addon:DebugUI("Set " .. familyName .. "." .. traitName .. " = " .. tostring(value))
 	-- Notify modules of trait changes
 	self:NotifyModulesTraitChanged(familyName, traitName, value)
 	-- Trigger regrouping since traits affect grouping
@@ -2313,7 +2313,7 @@ function addon:ResetFamilyTraits(familyName)
 	end
 
 	self.db.profile.traitOverrides[familyName] = nil
-	addon:DebugTraits("Reset traits for " .. familyName .. " to original values")
+	addon:DebugUI("Reset traits for " .. familyName .. " to original values")
 	-- Notify modules
 	self:NotifyModulesTraitChanged(familyName, "all", nil)
 	-- Trigger regrouping
@@ -2322,7 +2322,7 @@ end
 
 -- New notification system for trait changes
 function addon:NotifyModulesTraitChanged(familyName, traitName, value)
-	addon:DebugTraits("Notifying modules of trait change for " .. familyName)
+	addon:DebugUI("Notifying modules of trait change for " .. familyName)
 	-- Notify MountDataManager to invalidate cache
 	if self.MountDataManager and self.MountDataManager.InvalidateTraitCache then
 		self.MountDataManager:InvalidateTraitCache(familyName)
@@ -2337,7 +2337,7 @@ function addon:NotifyModulesTraitChanged(familyName, traitName, value)
 
 		self.traitChangeTimer = C_Timer.NewTimer(0.5, function()
 			self.MountSummon:RefreshMountPools()
-			addon:DebugTraits("Refreshed mount pools after trait changes")
+			addon:DebugUI("Refreshed mount pools after trait changes")
 		end)
 	end
 

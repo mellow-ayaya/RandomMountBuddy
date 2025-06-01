@@ -668,7 +668,7 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 									self.uiState.customSeparationName = ""
 									addon:AlwaysPrint(" " .. message)
 									self:PopulateSeparationManagementUI()
-									-- Also refresh the main Family & Groups UI
+									-- Also refresh the main Mount List UI
 									if addon.PopulateFamilyManagementUI then
 										addon:PopulateFamilyManagementUI()
 									end
@@ -728,7 +728,7 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 				mountHeader2 = {
 					order = 2,
 					type = "description",
-					name = "   |cffffd700Mount → New Family|r",
+					name = "   |cffffd700Mount -> New Family|r",
 					width = 1.8,
 				},
 				actionHeader2 = {
@@ -771,7 +771,7 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 							local status = mountData.isCollected and "" or "|cff9d9d9d"
 							local endColor = mountData.isCollected and "" or "|r"
 							return status .. "|cff1eff00[M]|r " .. mountData.mountName ..
-									" → " .. mountData.newFamilyName ..
+									" -> " .. mountData.newFamilyName ..
 									" |cff888888(was: " .. mountData.originalFamily .. ")|r" .. endColor
 						end,
 						width = 1.8,
@@ -788,7 +788,7 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 							if success then
 								addon:AlwaysPrint(" " .. message)
 								self:PopulateSeparationManagementUI()
-								-- Also refresh the main Family & Groups UI
+								-- Also refresh the main Mount List UI
 								if addon.PopulateFamilyManagementUI then
 									addon:PopulateFamilyManagementUI()
 								end
