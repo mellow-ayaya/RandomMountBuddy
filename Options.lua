@@ -977,7 +977,100 @@ local importExportOptionsTable = {
 			name = "Share your supergroup configurations with others or reset to default settings.",
 			fontSize = "medium",
 		},
+		-- Validation Section
+		validation_header = {
+			order = 5,
+			type = "header",
+			name = "Data Validation & Repair",
+		},
 
+		validation_desc = {
+			order = 6,
+			type = "description",
+			name =
+			"Check for and fix common data integrity issues including weight synchronization problems, orphaned settings, and name conflicts.",
+			fontSize = "medium",
+		},
+
+		validation_check_button = {
+			order = 7,
+			type = "execute",
+			name = "Run Validation Check",
+			desc = "Scan for data integrity issues without fixing them",
+			func = function()
+				if addon.SuperGroupManager then
+					local success, report = addon.SuperGroupManager:RunDataValidation(false)
+					if success then
+						local reportText = addon.SuperGroupManager:FormatValidationReport(report)
+						addon.SuperGroupManager.lastValidationReport = reportText
+						print("RMB: Validation check completed")
+						-- Refresh UI to show the report
+						if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then
+							LibStub("AceConfigRegistry-3.0"):NotifyChange("RandomMountBuddy")
+						end
+					else
+						print("RMB Error: " .. tostring(report))
+					end
+				end
+			end,
+			width = 1.0,
+		},
+
+		validation_fix_button = {
+			order = 8,
+			type = "execute",
+			name = "Run Validation & Auto-Fix",
+			desc = "Scan for data integrity issues and automatically fix safe issues",
+			func = function()
+				if addon.SuperGroupManager then
+					local success, report = addon.SuperGroupManager:RunDataValidation(true)
+					if success then
+						local reportText = addon.SuperGroupManager:FormatValidationReport(report)
+						addon.SuperGroupManager.lastValidationReport = reportText
+						print("RMB: Validation and auto-fix completed")
+						-- If any issues were fixed, trigger a data refresh
+						if report.totalFixed > 0 then
+							print("RMB: " .. report.totalFixed .. " issues were fixed, refreshing data...")
+							-- Trigger data rebuild to apply fixes
+							addon:RebuildMountGrouping()
+							-- Refresh all UIs
+							if addon.SuperGroupManager.RefreshAllUIs then
+								addon.SuperGroupManager:RefreshAllUIs()
+							end
+						end
+
+						-- Refresh UI to show the report
+						if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then
+							LibStub("AceConfigRegistry-3.0"):NotifyChange("RandomMountBuddy")
+						end
+					else
+						print("RMB Error: " .. tostring(report))
+					end
+				end
+			end,
+			width = 1.0,
+		},
+
+		validation_report = {
+			order = 9,
+			type = "description",
+			name = function()
+				if addon.SuperGroupManager and addon.SuperGroupManager.lastValidationReport then
+					return addon.SuperGroupManager.lastValidationReport
+				else
+					return "|cff888888Click 'Run Validation Check' to scan for data integrity issues.|r"
+				end
+			end,
+			width = "full",
+			fontSize = "medium",
+		},
+
+		validation_spacer = {
+			order = 9.5,
+			type = "description",
+			name = "",
+			width = "full",
+		},
 		-- Export Section
 		export_header = {
 			order = 10,
