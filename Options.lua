@@ -1179,6 +1179,7 @@ local importExportOptionsTable = {
 			name = "Share your supergroup configurations with others or reset to default settings.",
 			fontSize = "medium",
 		},
+
 		-- Validation Section
 		validation_header = {
 			order = 5,
@@ -1200,11 +1201,12 @@ local importExportOptionsTable = {
 			name = "Run Validation Check",
 			desc = "Scan for data integrity issues without fixing them",
 			func = function()
-				if addon.SuperGroupManager then
-					local success, report = addon.SuperGroupManager:RunDataValidation(false)
+				-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+				if addon.ConfigurationManager then
+					local success, report = addon.ConfigurationManager:RunDataValidation(false)
 					if success then
-						local reportText = addon.SuperGroupManager:FormatValidationReport(report)
-						addon.SuperGroupManager.lastValidationReport = reportText
+						local reportText = addon.ConfigurationManager:FormatValidationReport(report)
+						addon.ConfigurationManager.lastValidationReport = reportText
 						addon:AlwaysPrint(" Validation check completed")
 						-- Refresh UI to show the report
 						if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then
@@ -1224,20 +1226,21 @@ local importExportOptionsTable = {
 			name = "Run Validation & Auto-Fix",
 			desc = "Scan for data integrity issues and automatically fix safe issues",
 			func = function()
-				if addon.SuperGroupManager then
-					local success, report = addon.SuperGroupManager:RunDataValidation(true)
+				-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+				if addon.ConfigurationManager then
+					local success, report = addon.ConfigurationManager:RunDataValidation(true)
 					if success then
-						local reportText = addon.SuperGroupManager:FormatValidationReport(report)
-						addon.SuperGroupManager.lastValidationReport = reportText
+						local reportText = addon.ConfigurationManager:FormatValidationReport(report)
+						addon.ConfigurationManager.lastValidationReport = reportText
 						addon:AlwaysPrint(" Validation and auto-fix completed")
 						-- If any issues were fixed, trigger a data refresh
 						if report.totalFixed > 0 then
 							addon:AlwaysPrint(" " .. report.totalFixed .. " issues were fixed, refreshing data...")
 							-- Trigger data rebuild to apply fixes
 							addon:RebuildMountGrouping()
-							-- Refresh all UIs
-							if addon.SuperGroupManager.RefreshAllUIs then
-								addon.SuperGroupManager:RefreshAllUIs()
+							-- Refresh all UIs - CHANGED: Use ConfigurationManager
+							if addon.ConfigurationManager.RefreshAllUIs then
+								addon.ConfigurationManager:RefreshAllUIs()
 							end
 						end
 
@@ -1257,8 +1260,9 @@ local importExportOptionsTable = {
 			order = 9,
 			type = "description",
 			name = function()
-				if addon.SuperGroupManager and addon.SuperGroupManager.lastValidationReport then
-					return addon.SuperGroupManager.lastValidationReport
+				-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+				if addon.ConfigurationManager and addon.ConfigurationManager.lastValidationReport then
+					return addon.ConfigurationManager.lastValidationReport
 				else
 					return "|cff888888Click 'Run Validation Check' to scan for data integrity issues.|r"
 				end
@@ -1267,12 +1271,6 @@ local importExportOptionsTable = {
 			fontSize = "medium",
 		},
 
-		validation_spacer = {
-			order = 9.5,
-			type = "description",
-			name = "",
-			width = "full",
-		},
 		-- Export Section
 		export_header = {
 			order = 10,
@@ -1284,8 +1282,9 @@ local importExportOptionsTable = {
 			order = 11,
 			type = "description",
 			name = function()
-				if not addon.SuperGroupManager then
-					return "SuperGroup Manager not initialized"
+				-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+				if not addon.ConfigurationManager then
+					return "Configuration Manager not initialized"
 				end
 
 				local stats = {
@@ -1330,9 +1329,10 @@ local importExportOptionsTable = {
 			name = "Export Configuration",
 			desc = "Show configuration in a copyable popup window",
 			func = function()
-				if addon.SuperGroupManager then
+				-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+				if addon.ConfigurationManager then
 					-- ENHANCED: Include separated mounts in export
-					local config = addon.SuperGroupManager:ExportConfiguration()
+					local config = addon.ConfigurationManager:ExportConfiguration()
 					if config then
 						-- Show the popup with the configuration string
 						StaticPopup_Show("RMB_EXPORT_CONFIG_POPUP", nil, nil, {
@@ -1343,7 +1343,7 @@ local importExportOptionsTable = {
 						addon:AlwaysPrint(" Failed to generate configuration export")
 					end
 				else
-					addon:AlwaysPrint(" SuperGroupManager not available")
+					addon:AlwaysPrint(" ConfigurationManager not available")
 				end
 			end,
 			width = 1.0,
@@ -1363,10 +1363,11 @@ local importExportOptionsTable = {
 			desc = "Paste exported configuration here",
 			multiline = true,
 			width = "full",
-			get = function() return addon.SuperGroupManager and addon.SuperGroupManager.pendingImportString or "" end,
+			-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+			get = function() return addon.ConfigurationManager and addon.ConfigurationManager.pendingImportString or "" end,
 			set = function(info, value)
-				if addon.SuperGroupManager then
-					addon.SuperGroupManager.pendingImportString = value
+				if addon.ConfigurationManager then
+					addon.ConfigurationManager.pendingImportString = value
 				end
 			end,
 		},
@@ -1380,10 +1381,11 @@ local importExportOptionsTable = {
 				["replace"] = "Replace All - Clear existing configuration first",
 				["merge"] = "Merge - Keep existing, add new",
 			},
-			get = function() return addon.SuperGroupManager and addon.SuperGroupManager.pendingImportMode or "replace" end,
+			-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+			get = function() return addon.ConfigurationManager and addon.ConfigurationManager.pendingImportMode or "replace" end,
 			set = function(info, value)
-				if addon.SuperGroupManager then
-					addon.SuperGroupManager.pendingImportMode = value
+				if addon.ConfigurationManager then
+					addon.ConfigurationManager.pendingImportMode = value
 				end
 			end,
 			width = 1.5,
@@ -1395,12 +1397,13 @@ local importExportOptionsTable = {
 			name = "Import Configuration",
 			desc = "Apply the imported configuration",
 			func = function()
-				if addon.SuperGroupManager then
-					local configString = addon.SuperGroupManager.pendingImportString or ""
-					local importMode = addon.SuperGroupManager.pendingImportMode or "replace"
-					local success, message = addon.SuperGroupManager:ImportConfiguration(configString, importMode)
+				-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+				if addon.ConfigurationManager then
+					local configString = addon.ConfigurationManager.pendingImportString or ""
+					local importMode = addon.ConfigurationManager.pendingImportMode or "replace"
+					local success, message = addon.ConfigurationManager:ImportConfiguration(configString, importMode)
 					if success then
-						addon.SuperGroupManager.pendingImportString = ""
+						addon.ConfigurationManager.pendingImportString = ""
 						addon:AlwaysPrint(" " .. message)
 					else
 						addon:AlwaysPrint(" " .. message)
@@ -1456,6 +1459,7 @@ local importExportOptionsTable = {
 			end,
 			width = 1.5,
 		},
+
 		reset_separation = {
 			order = 35,
 			type = "execute",
@@ -1531,8 +1535,9 @@ StaticPopupDialogs["RMB_RESET_ALL_CONFIRM"] = {
 	button1 = "Reset Everything",
 	button2 = "Cancel",
 	OnAccept = function()
-		if addon.SuperGroupManager then
-			local success, message = addon.SuperGroupManager:ResetToDefaults("all")
+		-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+		if addon.ConfigurationManager then
+			local success, message = addon.ConfigurationManager:ResetToDefaults("all")
 			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
 			if success then
 				-- ENHANCED: Also refresh Mount Separation UI since everything was reset
@@ -1541,7 +1546,9 @@ StaticPopupDialogs["RMB_RESET_ALL_CONFIRM"] = {
 				end
 
 				-- Use enhanced refresh method that updates ALL UIs
-				addon.SuperGroupManager:RefreshAllUIs()
+				if addon.ConfigurationManager.RefreshAllUIs then
+					addon.ConfigurationManager:RefreshAllUIs()
+				end
 			end
 		end
 	end,
@@ -1556,12 +1563,15 @@ StaticPopupDialogs["RMB_RESET_ASSIGNMENTS_CONFIRM"] = {
 	button1 = "Reset Assignments",
 	button2 = "Cancel",
 	OnAccept = function()
-		if addon.SuperGroupManager then
-			local success, message = addon.SuperGroupManager:ResetToDefaults("assignments")
+		-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+		if addon.ConfigurationManager then
+			local success, message = addon.ConfigurationManager:ResetToDefaults("assignments")
 			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
 			if success then
 				-- FIXED: Use enhanced refresh method that updates ALL UIs
-				addon.SuperGroupManager:RefreshAllUIs()
+				if addon.ConfigurationManager.RefreshAllUIs then
+					addon.ConfigurationManager:RefreshAllUIs()
+				end
 			end
 		end
 	end,
@@ -1576,12 +1586,15 @@ StaticPopupDialogs["RMB_RESET_CUSTOM_CONFIRM"] = {
 	button1 = "Reset Custom",
 	button2 = "Cancel",
 	OnAccept = function()
-		if addon.SuperGroupManager then
-			local success, message = addon.SuperGroupManager:ResetToDefaults("custom")
+		-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+		if addon.ConfigurationManager then
+			local success, message = addon.ConfigurationManager:ResetToDefaults("custom")
 			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
 			if success then
 				-- FIXED: Use enhanced refresh method that updates ALL UIs
-				addon.SuperGroupManager:RefreshAllUIs()
+				if addon.ConfigurationManager.RefreshAllUIs then
+					addon.ConfigurationManager:RefreshAllUIs()
+				end
 			end
 		end
 	end,
@@ -1622,8 +1635,9 @@ StaticPopupDialogs["RMB_RESET_SEPARATION_CONFIRM"] = {
 	button1 = "Reset Separation",
 	button2 = "Cancel",
 	OnAccept = function()
-		if addon.SuperGroupManager then
-			local success, message = addon.SuperGroupManager:ResetMountSeparationOnly()
+		-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+		if addon.ConfigurationManager then
+			local success, message = addon.ConfigurationManager:ResetMountSeparationOnly()
 			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
 			if success then
 				-- Also refresh Mount Separation UI

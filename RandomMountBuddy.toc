@@ -1,7 +1,7 @@
 ## Interface: 110105, 110107
 ## Title: Random Mount Buddy
 ## Author: mellow_ayaya
-## Version: # 0.9.1
+## Version: # 0.9.2
 ## Notes: Enhances random mount summoning with intelligent grouping and caching.
 ## SavedVariables: RandomMountBuddy_SavedVars
 
@@ -25,24 +25,24 @@ Data\MountID_to_MountTypeID.lua
 Core.lua
 
 # Mount System Files
-MountDataManager.lua
-MountUIComponents.lua
-MountTooltips.lua
-MountPreview.lua
-MountListUI.lua
-SearchSystem.lua
-FilterSystem.lua
-FavoriteSync.lua
-
-# SuperGroup, Family and Mount Management Files
-SuperGroupManager.lua
-MountSeparationManager.lua
+Modules\MountDataManager.lua
+Modules\MountUIComponents.lua
+Modules\MountTooltips.lua
+Modules\MountPreview.lua
+Modules\MountListUI.lua
+Modules\SearchSystem.lua
+Modules\FilterSystem.lua
+Modules\FavoriteSync.lua
+Modules\SuperGroupManager.lua
+Modules\FamilyAssignment.lua
+Modules\ConfigurationManager.lua
+Modules\MountSeparationManager.lua
 
 # Mount Summon Files
-MountSummon.lua
+Modules\MountSummon.lua
 
 # Secure Handlers
-SecureHandlers.lua
+Modules\SecureHandlers.lua
 
 # Options Interface
 Options.lua

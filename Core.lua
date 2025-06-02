@@ -349,12 +349,12 @@ function addon:InitializeProcessedData()
 	addon:DebugData(" StandaloneFams:" .. fnC)
 	addon:DebugData(" Init COMPLETE.")
 	-- ENHANCED: Run automatic orphaned settings cleanup at startup
-	if self.SuperGroupManager then
+	if self.ConfigurationManager then
 		addon:DebugCore(" Running automatic orphaned settings cleanup...")
-		local canRun, reason = self.SuperGroupManager:CanRunValidation()
+		local canRun, reason = self.ConfigurationManager:CanRunValidation() -- CHANGED
 		if canRun then
 			-- Run validation with auto-fix enabled, but only for orphaned settings
-			local success, report = self.SuperGroupManager:RunDataValidation(true)
+			local success, report = self.ConfigurationManager:RunDataValidation(true) -- CHANGED
 			if success then
 				local orphanedCount = #(report.orphanedSettings or {})
 				local fixedCount = 0
@@ -376,7 +376,7 @@ function addon:InitializeProcessedData()
 			addon:DebugCore(" Skipped orphaned settings cleanup: " .. tostring(reason))
 		end
 	else
-		addon:DebugCore(" SuperGroupManager not available for orphaned settings cleanup")
+		addon:DebugCore(" ConfigurationManager not available for orphaned settings cleanup") -- CHANGED
 	end
 
 	self.RMB_DataReadyForUI = true
@@ -706,15 +706,23 @@ function addon:InitializeAllMountModules()
 		self:InitializeFavoriteSync()
 	end
 
-	-- Initialize SuperGroupManager AFTER core systems are ready
+	-- UPDATED: Initialize the three supergroup modules in the correct order
+	-- 1. SuperGroupManager first (core supergroup operations)
 	if self.InitializeSuperGroupManager then
 		self:InitializeSuperGroupManager()
-		self:DebugCore(" SuperGroupManager initialized in proper order")
+		self:DebugCore(" SuperGroupManager initialized")
 	end
 
-	if self.InitializeMountSeparationManager then
-		self:InitializeMountSeparationManager()
-		self:DebugCore(" MountSeparationManager initialized in proper order")
+	-- 2. FamilyAssignment next (depends on SuperGroupManager)
+	if self.InitializeFamilyAssignment then
+		self:InitializeFamilyAssignment()
+		self:DebugCore(" FamilyAssignment initialized")
+	end
+
+	-- 3. ConfigurationManager last (may need both above modules)
+	if self.InitializeConfigurationManager then
+		self:InitializeConfigurationManager()
+		self:DebugCore(" ConfigurationManager initialized")
 	end
 
 	-- UI components come last as they depend on everything else
@@ -2670,7 +2678,11 @@ function addon:NotifyModulesDataReady()
 		-- Use a small delay to ensure all other modules are ready
 		C_Timer.After(0.1, function()
 			self.SuperGroupManager:PopulateSuperGroupManagementUI()
-			self.SuperGroupManager:PopulateFamilyAssignmentUI()
+			-- UPDATED: Also refresh FamilyAssignment UI
+			if self.FamilyAssignment and self.FamilyAssignment.PopulateFamilyAssignmentUI then
+				self.FamilyAssignment:PopulateFamilyAssignmentUI()
+			end
+
 			self:DebugCore(" SuperGroup Manager UI refreshed")
 		end)
 	end

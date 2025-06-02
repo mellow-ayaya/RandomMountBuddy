@@ -1,3 +1,7 @@
+# 0.9.2
+Split SuperGroupManager into SuperGroupManager, FamilyAssignments and ConfigurationManager.
+Tidied up files directories a bit.
+
 # 0.9.1
 UI overhaul stage 1/x.
 Overhauled main settings, separated class settings into their own tab, updated mount list UI.
