@@ -14,6 +14,7 @@ function SuperGroupManager:Initialize()
 	self.uiState = {
 		currentPage = 1,
 		searchTerm = "",
+		itemsPerPage = 20,
 		selectedFamilies = {},
 		pendingSummon = { source = nil, target = nil },
 	}
@@ -58,6 +59,186 @@ end
 
 -- References for dynamic UI content (same pattern as Mount List)
 SuperGroupManager.existingListArgsRef = {}
+-- NEW: Pagination helper methods
+function SuperGroupManager:GetCurrentPage()
+	return self.uiState.currentPage or 1
+end
+
+function SuperGroupManager:SetCurrentPage(page)
+	self.uiState.currentPage = page or 1
+end
+
+function SuperGroupManager:GetItemsPerPage()
+	return self.uiState.itemsPerPage or 20
+end
+
+function SuperGroupManager:GoToPage(pageNumber)
+	local filteredSGs = self:GetFilteredSuperGroups()
+	local totalPages = math.max(1, math.ceil(#filteredSGs / self:GetItemsPerPage()))
+	local targetPage = tonumber(pageNumber)
+	if targetPage and targetPage >= 1 and targetPage <= totalPages then
+		self:SetCurrentPage(targetPage)
+		self:PopulateSuperGroupManagementUI()
+		addon:DebugSupergr(" Jumped to page " .. targetPage)
+	end
+end
+
+function SuperGroupManager:NextPage()
+	local filteredSGs = self:GetFilteredSuperGroups()
+	local totalPages = math.max(1, math.ceil(#filteredSGs / self:GetItemsPerPage()))
+	local currentPage = self:GetCurrentPage()
+	if currentPage < totalPages then
+		self:SetCurrentPage(currentPage + 1)
+		self:PopulateSuperGroupManagementUI()
+	end
+end
+
+function SuperGroupManager:PrevPage()
+	local currentPage = self:GetCurrentPage()
+	if currentPage > 1 then
+		self:SetCurrentPage(currentPage - 1)
+		self:PopulateSuperGroupManagementUI()
+	end
+end
+
+-- NEW: Search and filtering methods
+function SuperGroupManager:GetFilteredSuperGroups()
+	local allSGs = self:GetAllSuperGroups()
+	local searchTerm = self.uiState.searchTerm or ""
+	if searchTerm == "" then
+		return allSGs
+	end
+
+	local filteredSGs = {}
+	local lowerSearchTerm = searchTerm:lower()
+	for _, sgInfo in ipairs(allSGs) do
+		local displayName = sgInfo.displayName:lower()
+		local originalName = sgInfo.name:lower()
+		if displayName:find(lowerSearchTerm, 1, true) or originalName:find(lowerSearchTerm, 1, true) then
+			table.insert(filteredSGs, sgInfo)
+		end
+	end
+
+	return filteredSGs
+end
+
+-- NEW: Pagination controls creation
+function SuperGroupManager:CreateSuperGroupPaginationControls(currentPage, totalPages, order)
+	if totalPages <= 1 then
+		return {}
+	end
+
+	-- Calculate which pages to show
+	local pageRange = self:CalculatePageRange(currentPage, totalPages)
+	local paginationArgs = {}
+	local buttonOrder = 1
+	local pageButtonWidth = 0.15
+	local maxButtons = 23
+	-- Add centering spacer if we have fewer than maxButtons pages
+	if totalPages < maxButtons then
+		local missingPages = maxButtons - totalPages
+		local spacerWidth = (missingPages / 2) * pageButtonWidth
+		paginationArgs["centering_spacer"] = {
+			order = buttonOrder,
+			type = "description",
+			name = "",
+			width = spacerWidth,
+		}
+		buttonOrder = buttonOrder + 1
+	end
+
+	-- Add page number buttons
+	for _, pageNum in ipairs(pageRange) do
+		if pageNum == "..." then
+			-- Add ellipsis
+			paginationArgs["ellipsis_" .. buttonOrder] = {
+				order = buttonOrder,
+				type = "description",
+				name = "...",
+				width = 0.1,
+			}
+		else
+			-- Add page number button
+			local isCurrentPage = (pageNum == currentPage)
+			paginationArgs["page_" .. pageNum] = {
+				order = buttonOrder,
+				type = "execute",
+				name = isCurrentPage and ("|cffffd700" .. pageNum .. "|r") or tostring(pageNum),
+				desc = isCurrentPage and "Current page" or "",
+				func = function()
+					self:GoToPage(pageNum)
+				end,
+				width = pageButtonWidth,
+				image = "Interface\\AddOns\\RandomMountBuddy\\Media\\Empty",
+				imageWidth = 1,
+				imageHeight = 1,
+			}
+		end
+
+		buttonOrder = buttonOrder + 1
+	end
+
+	return {
+		supergroup_pagination = {
+			order = order,
+			type = "group",
+			inline = true,
+			name = "",
+			args = paginationArgs,
+		},
+	}
+end
+
+-- NEW: Page range calculation function
+function SuperGroupManager:CalculatePageRange(currentPage, totalPages)
+	local maxButtons = 23 -- Maximum page buttons to show
+	local range = {}
+	if totalPages <= maxButtons then
+		-- Show all pages if total is small
+		for i = 1, totalPages do
+			table.insert(range, i)
+		end
+	else
+		-- Smart range calculation for larger page counts
+		local halfRange = math.floor((maxButtons - 3) / 2) -- Reserve space for 1, ..., last
+		-- Always show page 1
+		table.insert(range, 1)
+		-- Calculate start and end of middle range
+		local rangeStart = math.max(2, currentPage - halfRange)
+		local rangeEnd = math.min(totalPages - 1, currentPage + halfRange)
+		-- Adjust range if it's too close to beginning or end
+		if rangeStart <= 3 then
+			rangeEnd = math.min(totalPages - 1, maxButtons - 1)
+			rangeStart = 2
+		elseif rangeEnd >= totalPages - 2 then
+			rangeStart = math.max(2, totalPages - maxButtons + 2)
+			rangeEnd = totalPages - 1
+		end
+
+		-- Add ellipsis before middle range if needed
+		if rangeStart > 2 then
+			table.insert(range, "...")
+		end
+
+		-- Add middle range
+		for i = rangeStart, rangeEnd do
+			table.insert(range, i)
+		end
+
+		-- Add ellipsis after middle range if needed
+		if rangeEnd < totalPages - 1 then
+			table.insert(range, "...")
+		end
+
+		-- Always show last page (if different from first)
+		if totalPages > 1 then
+			table.insert(range, totalPages)
+		end
+	end
+
+	return range
+end
+
 -- UI population functions (similar to PopulateFamilyManagementUI)
 function SuperGroupManager:PopulateExistingSuperGroupsList()
 	addon:DebugSupergr(" Populating existing supergroups list")
@@ -293,209 +474,279 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 		width = 0.8,
 	}
 	order = order + 1
-	-- Existing Supergroups Section
+	-- Search Section
+	args.search_label = {
+		order = order,
+		type = "description",
+		name = "|cffffd700Search Supergroups:|r",
+		width = 0.4,
+	}
+	order = order + 1
+	args.search_input = {
+		order = order,
+		type = "input",
+		name = "",
+		desc = "Search supergroup names (press Enter to search)",
+		get = function() return self.uiState.searchTerm or "" end,
+		set = function(info, value)
+			self.uiState.searchTerm = value or ""
+			self.uiState.currentPage = 1 -- Reset to first page
+			self:PopulateSuperGroupManagementUI()
+		end,
+		width = 1.6,
+	}
+	order = order + 1
+	-- Existing Supergroups Section with Pagination
+	local allSGs = self:GetFilteredSuperGroups()
+	local totalSGs = #allSGs
+	local searchTerm = self.uiState.searchTerm or ""
+	local searchIndicator = searchTerm ~= "" and (" matching '" .. searchTerm .. "'") or ""
 	args.existing_header = {
 		order = order,
 		type = "header",
-		name = "Existing Supergroups (" .. #self:GetAllSuperGroups() .. " total)",
+		name = "Existing Supergroups (" .. totalSGs .. " total" .. searchIndicator .. ")",
 	}
 	order = order + 1
-	-- Add supergroup entries with better conflict checking on renames
-	local allSGs = self:GetAllSuperGroups()
-	for _, sgInfo in ipairs(allSGs) do
-		local keyBase = "sg_" .. sgInfo.name:gsub("[^%w]", "_")
-		-- Supergroup name display with original name info
-		args[keyBase .. "_name"] = {
-			order = order,
-			type = "description",
-			name = function()
-				local indicator = sgInfo.isCustom and "|cff00ff00[Custom]|r" or
-						sgInfo.isDeleted and "|cffff0000[Deleted]|r" or
-						sgInfo.isRenamed and "|cffffff00[Renamed]|r" or
-						"|cffa335ee[G]|r"
-				local displayText = indicator .. " " .. sgInfo.displayName
-				-- Show original name if it's been renamed
-				if sgInfo.isRenamed and not sgInfo.isCustom then
-					local originalName = self:GetOriginalSuperGroupName(sgInfo.name)
-					if originalName ~= sgInfo.displayName then
-						displayText = displayText .. " |cff888888(was: " .. originalName .. ")|r"
-					end
-				end
-
-				return displayText
-			end,
-			width = sgInfo.isRenamed and not sgInfo.isCustom and 1.8 or 1.2,
-		}
-		-- Rename input with validation
-		if not sgInfo.isDeleted then
-			args[keyBase .. "_rename"] = {
-				order = order + 0.1,
-				type = "input",
-				name = "",
-				desc = "New display name",
-				get = function() return "" end,
-				set = function(info, value)
-					if value and value:trim() ~= "" then
-						local success, message = self:RenameSuperGroup(sgInfo.name, value)
-						print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
-						if success then
-							self:PopulateSuperGroupManagementUI()
-						end
-					end
-				end,
-				width = 0.6,
-			}
-			-- Show validation for rename input
-			args[keyBase .. "_rename_validation"] = {
-				order = order + 0.12,
-				type = "description",
-				name = function()
-					-- This would need to track per-supergroup input state for real-time validation
-					-- For now, validation happens on submit
-					return ""
-				end,
-				width = 0.1,
-			}
-			-- Restore original name button (only for renamed original supergroups)
-			if sgInfo.isRenamed and not sgInfo.isCustom then
-				args[keyBase .. "_restore_name"] = {
-					order = order + 0.15,
-					type = "execute",
-					name = "Restore Name",
-					desc = "Restore original supergroup name",
-					func = function()
-						local success, message = self:RestoreOriginalName(sgInfo.name)
-						print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
-						if success then
-							self:PopulateSuperGroupManagementUI()
-						end
-					end,
-					width = 0.6,
-				}
-			end
-
-			-- Check if this supergroup is in confirmation mode
-			local inConfirmMode = self.deleteConfirmation and self.deleteConfirmation[sgInfo.name]
-			if not inConfirmMode then
-				-- Normal state - show delete button
-				args[keyBase .. "_delete"] = {
-					order = order + 0.3,
-					type = "execute",
-					name = "Delete",
-					desc = "Delete this supergroup (families will become standalone)",
-					func = function()
-						-- Enter confirmation mode
-						if not self.deleteConfirmation then
-							self.deleteConfirmation = {}
-						end
-
-						self.deleteConfirmation[sgInfo.name] = true
-						addon:AlwaysPrint(" Confirm deletion of '" .. sgInfo.displayName .. "'")
-						-- Refresh UI to show confirmation buttons
-						self:PopulateSuperGroupManagementUI()
-						-- Auto-cancel after 10 seconds
-						C_Timer.After(10, function()
-							if self.deleteConfirmation and self.deleteConfirmation[sgInfo.name] then
-								self.deleteConfirmation[sgInfo.name] = nil
-								self:PopulateSuperGroupManagementUI()
-								addon:AlwaysPrint(" Delete confirmation timed out for '" .. sgInfo.displayName .. "'")
-							end
-						end)
-					end,
-					width = 0.4,
-				}
-			else
-				-- Confirmation mode - show delete button (disabled) and confirm/cancel buttons
-				args[keyBase .. "_delete_disabled"] = {
-					order = order + 0.3,
-					type = "execute",
-					name = "|cff666666Delete|r",
-					desc = "Confirming deletion...",
-					func = function() end, -- Do nothing
-					disabled = true,
-					width = 0.4,
-				}
-				-- Visual separator
-				args[keyBase .. "_separator"] = {
-					order = order + 0.31,
-					type = "description",
-					name = " |cffff9900->|r ",
-					width = 0.1,
-				}
-				-- Confirm button
-				args[keyBase .. "_confirm"] = {
-					order = order + 0.32,
-					type = "execute",
-					name = "|cffff0000Confirm|r",
-					desc = "Confirm deletion of '" .. sgInfo.displayName .. "'",
-					func = function()
-						-- Actually delete the supergroup
-						local success, message = self:DeleteSuperGroup(sgInfo.name)
-						if success then
-							addon:AlwaysPrint(" " .. message)
-							self.deleteConfirmation[sgInfo.name] = nil
-							-- Refresh all UIs
-							self:PopulateSuperGroupManagementUI()
-							if addon.FamilyAssignment then
-								addon.FamilyAssignment:PopulateFamilyAssignmentUI()
-							end
-
-							if addon.PopulateFamilyManagementUI then
-								addon:PopulateFamilyManagementUI()
-							end
-						else
-							addon:AlwaysPrint(" " .. message)
-							-- Clear confirmation mode on error
-							self.deleteConfirmation[sgInfo.name] = nil
-							self:PopulateSuperGroupManagementUI()
-						end
-					end,
-					width = 0.25,
-				}
-				-- Cancel button
-				args[keyBase .. "_cancel"] = {
-					order = order + 0.33,
-					type = "execute",
-					name = "Cancel",
-					desc = "Cancel deletion",
-					func = function()
-						-- Exit confirmation mode
-						self.deleteConfirmation[sgInfo.name] = nil
-						self:PopulateSuperGroupManagementUI()
-						addon:AlwaysPrint(" Delete cancelled for '" .. sgInfo.displayName .. "'")
-					end,
-					width = 0.25,
-				}
-			end
-		else
-			-- Restore deleted supergroup button
-			args[keyBase .. "_restore"] = {
-				order = order + 0.3,
-				type = "execute",
-				name = "Restore",
-				desc = "Restore this deleted supergroup to original state",
-				func = function()
-					local success, message = self:RestoreSuperGroup(sgInfo.name)
-					print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
-					if success then
-						self:PopulateSuperGroupManagementUI()
-					end
-				end,
-				width = 0.4,
-			}
+	if totalSGs == 0 then
+		local message = "No supergroups found"
+		if searchTerm ~= "" then
+			message = "No supergroups found matching search: " .. searchTerm
 		end
 
-		-- Line break
-		args[keyBase .. "_break"] = {
-			order = order + 0.9,
+		args.no_supergroups_msg = {
+			order = order,
 			type = "description",
-			name = "",
-			width = "full",
+			name = message,
 		}
 		order = order + 1
+	else
+		-- Apply pagination
+		local itemsPerPage = self:GetItemsPerPage()
+		local totalPages = math.max(1, math.ceil(totalSGs / itemsPerPage))
+		local currentPage = math.max(1, math.min(self:GetCurrentPage(), totalPages))
+		local startIndex = (currentPage - 1) * itemsPerPage + 1
+		local endIndex = math.min(startIndex + itemsPerPage - 1, totalSGs)
+		-- Page info
+		if totalPages > 1 then
+			args.page_info = {
+				order = order,
+				type = "description",
+				name = string.format("Page %d of %d (%d supergroups)", currentPage, totalPages, totalSGs),
+				width = "full",
+			}
+			order = order + 1
+		end
+
+		-- Add supergroup entries for current page
+		for i = startIndex, endIndex do
+			local sgInfo = allSGs[i]
+			if sgInfo then
+				local keyBase = "sg_" .. sgInfo.name:gsub("[^%w]", "_")
+				-- Supergroup name display with original name info
+				args[keyBase .. "_name"] = {
+					order = order,
+					type = "description",
+					name = function()
+						local indicator = sgInfo.isCustom and "|cff00ff00[Custom]|r" or
+								sgInfo.isDeleted and "|cffff0000[Deleted]|r" or
+								sgInfo.isRenamed and "|cffffff00[Renamed]|r" or
+								"|cffa335ee[G]|r"
+						local displayText = indicator .. " " .. sgInfo.displayName
+						-- Show original name if it's been renamed
+						if sgInfo.isRenamed and not sgInfo.isCustom then
+							local originalName = self:GetOriginalSuperGroupName(sgInfo.name)
+							if originalName ~= sgInfo.displayName then
+								displayText = displayText .. " |cff888888(was: " .. originalName .. ")|r"
+							end
+						end
+
+						return displayText
+					end,
+					width = sgInfo.isRenamed and not sgInfo.isCustom and 1.8 or 1.2,
+				}
+				-- Rename input with validation
+				if not sgInfo.isDeleted then
+					args[keyBase .. "_rename"] = {
+						order = order + 0.1,
+						type = "input",
+						name = "",
+						desc = "New display name",
+						get = function() return "" end,
+						set = function(info, value)
+							if value and value:trim() ~= "" then
+								local success, message = self:RenameSuperGroup(sgInfo.name, value)
+								print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
+								if success then
+									self:PopulateSuperGroupManagementUI()
+								end
+							end
+						end,
+						width = 0.6,
+					}
+					-- Show validation for rename input
+					args[keyBase .. "_rename_validation"] = {
+						order = order + 0.12,
+						type = "description",
+						name = function()
+							-- This would need to track per-supergroup input state for real-time validation
+							-- For now, validation happens on submit
+							return ""
+						end,
+						width = 0.1,
+					}
+					-- Restore original name button (only for renamed original supergroups)
+					if sgInfo.isRenamed and not sgInfo.isCustom then
+						args[keyBase .. "_restore_name"] = {
+							order = order + 0.15,
+							type = "execute",
+							name = "Restore Name",
+							desc = "Restore original supergroup name",
+							func = function()
+								local success, message = self:RestoreOriginalName(sgInfo.name)
+								print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
+								if success then
+									self:PopulateSuperGroupManagementUI()
+								end
+							end,
+							width = 0.6,
+						}
+					end
+
+					-- Check if this supergroup is in confirmation mode
+					local inConfirmMode = self.deleteConfirmation and self.deleteConfirmation[sgInfo.name]
+					if not inConfirmMode then
+						-- Normal state - show delete button
+						args[keyBase .. "_delete"] = {
+							order = order + 0.3,
+							type = "execute",
+							name = "Delete",
+							desc = "Delete this supergroup (families will become standalone)",
+							func = function()
+								-- Enter confirmation mode
+								if not self.deleteConfirmation then
+									self.deleteConfirmation = {}
+								end
+
+								self.deleteConfirmation[sgInfo.name] = true
+								addon:AlwaysPrint(" Confirm deletion of '" .. sgInfo.displayName .. "'")
+								-- Refresh UI to show confirmation buttons
+								self:PopulateSuperGroupManagementUI()
+								-- Auto-cancel after 10 seconds
+								C_Timer.After(10, function()
+									if self.deleteConfirmation and self.deleteConfirmation[sgInfo.name] then
+										self.deleteConfirmation[sgInfo.name] = nil
+										self:PopulateSuperGroupManagementUI()
+										addon:AlwaysPrint(" Delete confirmation timed out for '" .. sgInfo.displayName .. "'")
+									end
+								end)
+							end,
+							width = 0.4,
+						}
+					else
+						-- Confirmation mode - show delete button (disabled) and confirm/cancel buttons
+						args[keyBase .. "_delete_disabled"] = {
+							order = order + 0.3,
+							type = "execute",
+							name = "|cff666666Delete|r",
+							desc = "Confirming deletion...",
+							func = function() end, -- Do nothing
+							disabled = true,
+							width = 0.4,
+						}
+						-- Visual separator
+						args[keyBase .. "_separator"] = {
+							order = order + 0.31,
+							type = "description",
+							name = " |cffff9900->|r ",
+							width = 0.1,
+						}
+						-- Confirm button
+						args[keyBase .. "_confirm"] = {
+							order = order + 0.32,
+							type = "execute",
+							name = "|cffff0000Confirm|r",
+							desc = "Confirm deletion of '" .. sgInfo.displayName .. "'",
+							func = function()
+								-- Actually delete the supergroup
+								local success, message = self:DeleteSuperGroup(sgInfo.name)
+								if success then
+									addon:AlwaysPrint(" " .. message)
+									self.deleteConfirmation[sgInfo.name] = nil
+									-- Refresh all UIs
+									self:PopulateSuperGroupManagementUI()
+									if addon.FamilyAssignment then
+										addon.FamilyAssignment:PopulateFamilyAssignmentUI()
+									end
+
+									if addon.PopulateFamilyManagementUI then
+										addon:PopulateFamilyManagementUI()
+									end
+								else
+									addon:AlwaysPrint(" " .. message)
+									-- Clear confirmation mode on error
+									self.deleteConfirmation[sgInfo.name] = nil
+									self:PopulateSuperGroupManagementUI()
+								end
+							end,
+							width = 0.25,
+						}
+						-- Cancel button
+						args[keyBase .. "_cancel"] = {
+							order = order + 0.33,
+							type = "execute",
+							name = "Cancel",
+							desc = "Cancel deletion",
+							func = function()
+								-- Exit confirmation mode
+								self.deleteConfirmation[sgInfo.name] = nil
+								self:PopulateSuperGroupManagementUI()
+								addon:AlwaysPrint(" Delete cancelled for '" .. sgInfo.displayName .. "'")
+							end,
+							width = 0.25,
+						}
+					end
+				else
+					-- Restore deleted supergroup button
+					args[keyBase .. "_restore"] = {
+						order = order + 0.3,
+						type = "execute",
+						name = "Restore",
+						desc = "Restore this deleted supergroup to original state",
+						func = function()
+							local success, message = self:RestoreSuperGroup(sgInfo.name)
+							print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
+							if success then
+								self:PopulateSuperGroupManagementUI()
+							end
+						end,
+						width = 0.4,
+					}
+				end
+
+				-- Line break
+				args[keyBase .. "_break"] = {
+					order = order + 0.9,
+					type = "description",
+					name = "",
+					width = "full",
+				}
+				order = order + 1
+			end
+		end
+
+		-- Add pagination controls
+		if totalPages > 1 then
+			local paginationComponents = self:CreateSuperGroupPaginationControls(
+				currentPage, totalPages, order)
+			for k, v in pairs(paginationComponents) do
+				args[k] = v
+			end
+
+			order = order + 1
+		end
 	end
 
-	addon:DebugSupergr(" Built management UI with " .. #allSGs .. " supergroups")
+	addon:DebugSupergr(" Built management UI with " .. totalSGs .. " supergroups")
 	return args
 end
 
@@ -536,7 +787,7 @@ function SuperGroupManager:GetAllSuperGroups()
 	-- Add custom supergroups
 	if addon.db and addon.db.profile and addon.db.profile.superGroupDefinitions then
 		addon:DebugSupergr(" Found " ..
-		addon:CountTableEntries(addon.db.profile.superGroupDefinitions) .. " supergroup definitions")
+			addon:CountTableEntries(addon.db.profile.superGroupDefinitions) .. " supergroup definitions")
 		for sgName, definition in pairs(addon.db.profile.superGroupDefinitions) do
 			if definition.isCustom then
 				table.insert(allSuperGroups, {
@@ -903,7 +1154,7 @@ function SuperGroupManager:MergeSuperGroups(sourceSG, targetSG)
 	local deleteSuccess, deleteMessage = self:DeleteSuperGroup(sourceSG)
 	if deleteSuccess then
 		addon:DebugSupergr(" Merged '" ..
-		sourceDisplayName .. "' into '" .. targetDisplayName .. "' (" .. movedFamilies .. " families moved)")
+			sourceDisplayName .. "' into '" .. targetDisplayName .. "' (" .. movedFamilies .. " families moved)")
 		return true,
 				"Merged " .. movedFamilies .. " families from '" .. sourceDisplayName .. "' to '" .. targetDisplayName .. "'"
 	else

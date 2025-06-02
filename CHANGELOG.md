@@ -1,3 +1,8 @@
+# 0.9.3
+UI overhaul stage 2/x.
+Moved Supergroup Manager, Family Assignments and Mount Separate under a new expandable menu: Advanced settings.
+Added paging and search to Supergroup Manager.
+
 # 0.9.2
 Split SuperGroupManager into SuperGroupManager, FamilyAssignments and ConfigurationManager.
 Tidied up files directories a bit.

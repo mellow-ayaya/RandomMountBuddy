@@ -637,131 +637,7 @@ end
 -- The key used by AddToBlizOptions for 'parent' is the *display name* if a specific ID isn't returned or known.
 local actualParentCategoryKey = rootCategoryID or (rootPanel and rootPanel.name) or PARENT_ADDON_DISPLAY_NAME
 --[[-----------------------------------------------------------------------------
-    1. Main Settings Page
--------------------------------------------------------------------------------]]
---[[
-local mainSettings_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_MainSettings"
-local mainSettings_DisplayName = "Main Settings"
-local mainSettingsOptionsArgs = {
-	generalHeader = {
-		order = 1,
-		type = "header",
-		name = "General Configuration",
-	},
-
-	overrideBlizzardButton = {
-		order = 3,
-		type = "toggle",
-		name = "Override Blizzard's Random Button",
-		desc = "If checked, RMB will take over 'Summon Random Favorite Mount'.",
-		get = function() return addon:GetSetting("overrideBlizzardButton") end,
-		set = function(i, v) addon:SetSetting("overrideBlizzardButton", v) end,
-	},
-
-	useSuperGrouping = {
-		order = 4,
-		type = "toggle",
-		name = "Use Super-Grouping",
-		desc = "Group mounts by 'superGroup' by default.",
-		get = function() return addon:GetSetting("useSuperGrouping") end,
-		set = function(i, v) addon:SetSetting("useSuperGrouping", v) end,
-	},
-
-	contextualSummoning = {
-		order = 5,
-		type = "toggle",
-		name = "Enable Contextual Summoning",
-		desc = "Automatically filter mounts based on location/situation.",
-		get = function() return addon:GetSetting("contextualSummoning") end,
-		set = function(i, v) addon:SetSetting("contextualSummoning", v) end,
-	},
-
-	-- New checkbox for showing uncollected mounts
-	showUncollectedMounts = {
-		order = 6,
-		type = "toggle",
-		name = "Show Uncollected Mounts",
-		desc = "If checked, uncollected mounts will be shown in the interface.",
-		get = function() return addon:GetSetting("showUncollectedMounts") end,
-		set = function(i, v)
-			addon:SetSetting("showUncollectedMounts", v)
-			-- Refresh the Family Management UI to reflect the new setting
-			if addon.PopulateFamilyManagementUI then
-				addon:PopulateFamilyManagementUI()
-			else
-				addon:DebugOptions("Cannot refresh mount list - PopulateFamilyManagementUI missing")
-			end
-		end,
-	},
-
-	traitStrictnessHeader = {
-		order = 10,
-		type = "header",
-		name = "Trait-Based Strictness (if Super-Grouping is enabled)",
-	},
-
-	treatMinorArmorAsDistinct = {
-		order = 12,
-		type = "toggle",
-		name = "Minor Armor as Distinct",
-		get = function() return addon:GetSetting("treatMinorArmorAsDistinct") end,
-		set = function(i, v) addon:SetSetting("treatMinorArmorAsDistinct", v) end,
-		disabled = function() return not addon:GetSetting("useSuperGrouping") end,
-	},
-
-	treatMajorArmorAsDistinct = {
-		order = 13,
-		type = "toggle",
-		name = "Major Armor as Distinct",
-		get = function() return addon:GetSetting("treatMajorArmorAsDistinct") end,
-		set = function(i, v) addon:SetSetting("treatMajorArmorAsDistinct", v) end,
-		disabled = function() return not addon:GetSetting("useSuperGrouping") end,
-	},
-
-	treatModelVariantsAsDistinct = {
-		order = 14,
-		type = "toggle",
-		name = "Model Variants as Distinct",
-		get = function() return addon:GetSetting("treatModelVariantsAsDistinct") end,
-		set = function(i, v) addon:SetSetting("treatModelVariantsAsDistinct", v) end,
-		disabled = function() return not addon:GetSetting("useSuperGrouping") end,
-	},
-
-	treatUniqueEffectsAsDistinct = {
-		order = 15,
-		type = "toggle",
-		name = "Unique Effects/Skins as Distinct",
-		get = function() return addon:GetSetting("treatUniqueEffectsAsDistinct") end,
-		set = function(i, v) addon:SetSetting("treatUniqueEffectsAsDistinct", v) end,
-		disabled = function() return not addon:GetSetting("useSuperGrouping") end,
-	},
-}
-local mainSettingsOptionsTable = {
-	name = mainSettings_DisplayName,
-	handler = addon,
-	type = "group",
-	order = 1,
-	args = mainSettingsOptionsArgs,
-}
-LibAceConfig:RegisterOptionsTable(mainSettings_InternalName, mainSettingsOptionsTable)
-local mainPanel, mainCatID = LibAceConfigDialog:AddToBlizOptions(
-	mainSettings_InternalName,
-	mainSettings_DisplayName,
-	actualParentCategoryKey
-)
-if mainPanel then
-	addon.optionsPanel_Main = {
-		frame = mainPanel,
-		id = mainCatID or mainPanel.name,
-	}
-	addon.optionsPanelObject = addon.optionsPanel_Main
-	addon:DebugOptions("Registered '" .. mainSettings_DisplayName .. "' page.")
-else
-	addon:DebugOptions("FAILED Main Settings AddToBliz.")
-end
---]]
---[[-----------------------------------------------------------------------------
-    2. Family & Group Management Page
+    1. Mount List Page
 -------------------------------------------------------------------------------]]
 local familyManagement_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_FamilyManagement"
 local familyManagement_DisplayName = "Mount List"
@@ -829,7 +705,7 @@ else
 end
 
 --[[-----------------------------------------------------------------------------
-    3. Class Settings
+    2. Class Settings
 -------------------------------------------------------------------------------]]
 local classSettings_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_ClassSettings"
 local classSettings_DisplayName = "Class Settings"
@@ -1021,151 +897,169 @@ else
 end
 
 --[[-----------------------------------------------------------------------------
-    4. Group Weights Page
+    3. Advanced Settings (Parent Category) - NEW EXPANDABLE STRUCTURE
 -------------------------------------------------------------------------------]]
-local groupWeights_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_GroupWeights"
-local groupWeights_DisplayName = "Group Weights"
-local groupWeightsOptionsTable = {
-	name = "",
+-- Initialize references for dynamic content if they don't exist
+if not addon.sgMgmtArgsRef then
+	addon.sgMgmtArgsRef = {
+		loading_placeholder = {
+			order = 1,
+			type = "description",
+			name = "Loading supergroup data...",
+		},
+	}
+end
+
+if not addon.sgFamilyArgsRef then
+	addon.sgFamilyArgsRef = {
+		loading_placeholder = {
+			order = 1,
+			type = "description",
+			name = "Loading family assignment data...",
+		},
+	}
+end
+
+if not addon.separationArgsRef then
+	addon.separationArgsRef = {
+		loading_placeholder = {
+			order = 1,
+			type = "description",
+			name = "Loading mount separation data...",
+		},
+	}
+end
+
+-- Create Advanced Settings parent category
+local advancedSettings_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_AdvancedSettings"
+local advancedSettings_DisplayName = "Advanced Settings"
+local advancedSettingsOptionsTable = {
+	name = advancedSettings_DisplayName,
 	handler = addon,
 	type = "group",
 	order = 4,
 	args = {
-		desc_weights = {
+		description = {
 			order = 1,
 			type = "description",
-			name = "Assign weights to groups. This feature will be available in a future update.",
+			name = "Advanced mount management tools. Use the sub-menus below to access detailed configuration options.",
+			fontSize = "medium",
 		},
 	},
 }
-LibAceConfig:RegisterOptionsTable(groupWeights_InternalName, groupWeightsOptionsTable)
-local weightsPanel, weightsCatID = LibAceConfigDialog:AddToBlizOptions(
-	groupWeights_InternalName,
-	groupWeights_DisplayName,
+LibAceConfig:RegisterOptionsTable(advancedSettings_InternalName, advancedSettingsOptionsTable)
+local advancedPanel, advancedCatID = LibAceConfigDialog:AddToBlizOptions(
+	advancedSettings_InternalName,
+	advancedSettings_DisplayName,
 	actualParentCategoryKey
 )
-if weightsPanel then
-	addon.optionsPanel_Weights = {
-		frame = weightsPanel,
-		id = weightsCatID or weightsPanel.name,
+if advancedPanel then
+	addon.optionsPanel_AdvancedSettings = {
+		frame = advancedPanel,
+		id = advancedCatID or advancedPanel.name,
 	}
-	addon:DebugOptions("Registered '" .. groupWeights_DisplayName .. "' page.")
+	addon:DebugOptions("Registered '" .. advancedSettings_DisplayName .. "' parent category.")
 else
-	addon:DebugOptions("FAILED Group Weights AddToBliz.")
+	addon:DebugOptions("FAILED Advanced Settings parent category AddToBliz.")
 end
 
+-- Get the Advanced Settings category key for use as parent
+local advancedSettingsParentKey = advancedCatID or (advancedPanel and advancedPanel.name) or advancedSettings_DisplayName
+-- Now create the three sub-menus under Advanced Settings
 --[[-----------------------------------------------------------------------------
-    5. Supergroup Management Pages
+    3a. Supergroup Management (Child of Advanced Settings)
 -------------------------------------------------------------------------------]]
-
--- Page 1: Supergroup Management
 local superGroupMgmt_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_SuperGroupMgmt"
 local superGroupMgmt_DisplayName = "Supergroup Management"
--- Create initial args table (same pattern as Mount List)
-local initialSuperGroupMgmtArgs = {
-	header_mgmt = {
-		order = 1,
-		type = "header",
-		name = "Create, Rename, Delete & Merge Supergroups",
-	},
-
-	desc_mgmt = {
-		order = 2,
-		type = "description",
-		name =
-		"Manage your supergroup structure. Create custom supergroups, rename existing ones, or merge similar groups together.",
-		fontSize = "medium",
-	},
-
-	loading_placeholder = {
-		order = 3,
-		type = "description",
-		name = "Loading supergroup data...",
-	},
-}
--- Set reference on addon object (same pattern as fmArgsRef)
-addon.sgMgmtArgsRef = initialSuperGroupMgmtArgs
 local superGroupMgmtOptionsTable = {
 	name = superGroupMgmt_DisplayName,
 	handler = addon,
 	type = "group",
-	order = 5,
-	args = initialSuperGroupMgmtArgs, -- Direct reference
+	order = 1,
+	args = addon.sgMgmtArgsRef, -- Direct reference to dynamic content
 }
 LibAceConfig:RegisterOptionsTable(superGroupMgmt_InternalName, superGroupMgmtOptionsTable)
 local mgmtPanel, mgmtCatID = LibAceConfigDialog:AddToBlizOptions(
 	superGroupMgmt_InternalName,
 	superGroupMgmt_DisplayName,
-	actualParentCategoryKey
+	advancedSettingsParentKey -- Child of Advanced Settings
 )
 if mgmtPanel then
 	addon.optionsPanel_SuperGroupMgmt = {
 		frame = mgmtPanel,
 		id = mgmtCatID or mgmtPanel.name,
 	}
-	addon:DebugOptions("Registered '" .. superGroupMgmt_DisplayName .. "' page.")
+	addon:DebugOptions("Registered '" .. superGroupMgmt_DisplayName .. "' as child of Advanced Settings.")
 else
 	addon:DebugOptions("FAILED Supergroup Management AddToBliz.")
 end
 
--- Page 2: Family Assignment
+--[[-----------------------------------------------------------------------------
+    3b. Family Assignment (Child of Advanced Settings)
+-------------------------------------------------------------------------------]]
 local familyAssign_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_FamilyAssign"
 local familyAssign_DisplayName = "Family Assignment"
--- Create initial args table
-local initialFamilyAssignArgs = {
-	header_assign = {
-		order = 1,
-		type = "header",
-		name = "Assign Families to Supergroups",
-	},
-
-	desc_assign = {
-		order = 2,
-		type = "description",
-		name =
-		"Move families between supergroups or make them standalone. Use search and bulk operations to manage large collections efficiently.",
-		fontSize = "medium",
-	},
-
-	loading_placeholder = {
-		order = 3,
-		type = "description",
-		name = "Loading family assignment data...",
-	},
-}
--- Set reference on addon object
-addon.sgFamilyArgsRef = initialFamilyAssignArgs
 local familyAssignOptionsTable = {
 	name = familyAssign_DisplayName,
 	handler = addon,
 	type = "group",
-	order = 6,
-	args = initialFamilyAssignArgs, -- Direct reference
+	order = 2,
+	args = addon.sgFamilyArgsRef, -- Direct reference to dynamic content
 }
 LibAceConfig:RegisterOptionsTable(familyAssign_InternalName, familyAssignOptionsTable)
 local assignPanel, assignCatID = LibAceConfigDialog:AddToBlizOptions(
 	familyAssign_InternalName,
 	familyAssign_DisplayName,
-	actualParentCategoryKey
+	advancedSettingsParentKey -- Child of Advanced Settings
 )
 if assignPanel then
 	addon.optionsPanel_FamilyAssign = {
 		frame = assignPanel,
 		id = assignCatID or assignPanel.name,
 	}
-	addon:DebugOptions("Registered '" .. familyAssign_DisplayName .. "' page.")
+	addon:DebugOptions("Registered '" .. familyAssign_DisplayName .. "' as child of Advanced Settings.")
 else
 	addon:DebugOptions("FAILED Family Assignment AddToBliz.")
 end
 
--- Page 3: Import/Export
+--[[-----------------------------------------------------------------------------
+    3c. Mount Separation (Child of Advanced Settings)
+-------------------------------------------------------------------------------]]
+local mountSeparation_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_MountSeparation"
+local mountSeparation_DisplayName = "Mount Separation"
+local mountSeparationOptionsTable = {
+	name = mountSeparation_DisplayName,
+	handler = addon,
+	type = "group",
+	order = 3,
+	args = addon.separationArgsRef, -- Direct reference to dynamic content
+}
+LibAceConfig:RegisterOptionsTable(mountSeparation_InternalName, mountSeparationOptionsTable)
+local separationPanel, separationCatID = LibAceConfigDialog:AddToBlizOptions(
+	mountSeparation_InternalName,
+	mountSeparation_DisplayName,
+	advancedSettingsParentKey -- Child of Advanced Settings
+)
+if separationPanel then
+	addon.optionsPanel_MountSeparation = {
+		frame = separationPanel,
+		id = separationCatID or separationPanel.name,
+	}
+	addon:DebugOptions("Registered '" .. mountSeparation_DisplayName .. "' as child of Advanced Settings.")
+else
+	addon:DebugOptions("FAILED Mount Separation AddToBliz.")
+end
+
+--[[-----------------------------------------------------------------------------
+    4. Import/Export Page (updated order)
+-------------------------------------------------------------------------------]]
 local importExport_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_ImportExport"
 local importExport_DisplayName = "Import/Export"
 local importExportOptionsTable = {
 	name = importExport_DisplayName,
 	handler = addon,
 	type = "group",
-	order = 7,
+	order = 10,
 	args = {
 		header_ie = {
 			order = 1,
@@ -1652,47 +1546,3 @@ StaticPopupDialogs["RMB_RESET_SEPARATION_CONFIRM"] = {
 	hideOnEscape = true,
 	preferredIndex = 3,
 }
--- Mount Separation Page
-local mountSeparation_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_MountSeparation"
-local mountSeparation_DisplayName = "Mount Separation"
-local initialMountSeparationArgs = {
-	header = {
-		order = 1,
-		type = "header",
-		name = "Mount Separation Management",
-	},
-	desc = {
-		order = 2,
-		type = "description",
-		name = "Separate individual mounts from their families to create custom single-mount families.",
-		fontSize = "medium",
-	},
-	loading_placeholder = {
-		order = 3,
-		type = "description",
-		name = "Loading mount separation data...",
-	},
-}
-addon.separationArgsRef = initialMountSeparationArgs
-local mountSeparationOptionsTable = {
-	name = mountSeparation_DisplayName,
-	handler = addon,
-	type = "group",
-	order = 8,
-	args = initialMountSeparationArgs,
-}
-LibAceConfig:RegisterOptionsTable(mountSeparation_InternalName, mountSeparationOptionsTable)
-local separationPanel, separationCatID = LibAceConfigDialog:AddToBlizOptions(
-	mountSeparation_InternalName,
-	mountSeparation_DisplayName,
-	actualParentCategoryKey
-)
-if separationPanel then
-	addon.optionsPanel_MountSeparation = {
-		frame = separationPanel,
-		id = separationCatID or separationPanel.name,
-	}
-	addon:DebugOptions("Registered '" .. mountSeparation_DisplayName .. "' page.")
-else
-	addon:DebugOptions("FAILED Mount Separation AddToBliz.")
-end
