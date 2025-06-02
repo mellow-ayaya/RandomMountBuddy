@@ -1,3 +1,8 @@
+# 0.9.5
+Fixed assigned families not revealing traits when needed.
+Fixed minor UI issues.
+Fixed debug errors.
+
 # 0.9.4
 UI overhaul stage 3/x.
 Overhauled Supergroup Manager, Family Assignments and Mount Separate.

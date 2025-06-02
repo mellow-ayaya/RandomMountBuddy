@@ -1232,6 +1232,17 @@ local importExportOptionsTable = {
 					if success then
 						addon.ConfigurationManager.pendingImportString = ""
 						addon:AlwaysPrint("" .. message)
+						-- ADDED: Force refresh of all UIs including this options page
+						if addon.ConfigurationManager.RefreshAllUIs then
+							addon.ConfigurationManager:RefreshAllUIs()
+						end
+
+						-- ADDED: Force refresh of the Import/Export options page
+						if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then
+							C_Timer.After(0.1, function()
+								LibStub("AceConfigRegistry-3.0"):NotifyChange("RandomMountBuddy")
+							end)
+						end
 					else
 						addon:AlwaysPrint("" .. message)
 					end
@@ -1423,30 +1434,6 @@ StaticPopupDialogs["RMB_DELETE_SUPERGROUP_CONFIRM"] = {
 	hideOnEscape = true,
 	preferredIndex = 3,
 }
-StaticPopupDialogs["RMB_MERGE_SUPERGROUPS_CONFIRM"] = {
-	text =
-	"Merge '%s' into '%s'?\n\nAll families from the first supergroup will be moved to the second, and the first supergroup will be deleted.",
-	button1 = "Merge",
-	button2 = "Cancel",
-	OnAccept = function(self, data)
-		if addon.SuperGroupManager and data then
-			local success, message = addon.SuperGroupManager:MergeSuperGroups(data.source, data.target)
-			if success then
-				addon.SuperGroupManager.pendingMergeSource = ""
-				addon.SuperGroupManager.pendingMergeTarget = ""
-				addon:AlwaysPrint("" .. message)
-				-- FIXED: Use enhanced refresh method that updates ALL UIs
-				addon.SuperGroupManager:RefreshAllUIs()
-			else
-				addon:AlwaysPrint("" .. message)
-			end
-		end
-	end,
-	timeout = 0,
-	whileDead = true,
-	hideOnEscape = true,
-	preferredIndex = 3,
-}
 StaticPopupDialogs["RMB_RESET_ALL_CONFIRM"] = {
 	text =
 	"Reset ALL addon customizations?\n\nThis will:\n• Clear all family assignments\n• Remove all custom supergroups\n• Restore all deleted supergroups\n• Remove all renames\n• Reset ALL separated mounts\n• Clear ALL weight settings\n• Reset ALL trait overrides\n\nThis is a complete reset and cannot be undone!",
@@ -1521,6 +1508,29 @@ StaticPopupDialogs["RMB_RESET_CUSTOM_CONFIRM"] = {
 	hideOnEscape = true,
 	preferredIndex = 3,
 }
+StaticPopupDialogs["RMB_RESET_SEPARATION_CONFIRM"] = {
+	text =
+	"Reset mount separation?\n\nThis will:\n• Reunite all separated mounts with their original families\n• Clear weights and settings for separated families\n• Keep individual mount weights\n\nThis cannot be undone!",
+	button1 = "Reset Separation",
+	button2 = "Cancel",
+	OnAccept = function()
+		-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+		if addon.ConfigurationManager then
+			local success, message = addon.ConfigurationManager:ResetMountSeparationOnly()
+			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
+			if success then
+				-- Also refresh Mount Separation UI
+				if addon.MountSeparationManager and addon.MountSeparationManager.PopulateSeparationManagementUI then
+					addon.MountSeparationManager:PopulateSeparationManagementUI()
+				end
+			end
+		end
+	end,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
 StaticPopupDialogs["RMB_EXPORT_CONFIG_POPUP"] = {
 	text = "Configuration Export\n\nCopy the text below:",
 	button1 = "Close",
@@ -1545,28 +1555,5 @@ StaticPopupDialogs["RMB_EXPORT_CONFIG_POPUP"] = {
 		-- Close when user presses escape
 		self:GetParent():Hide()
 	end,
-	preferredIndex = 3,
-}
-StaticPopupDialogs["RMB_RESET_SEPARATION_CONFIRM"] = {
-	text =
-	"Reset mount separation?\n\nThis will:\n• Reunite all separated mounts with their original families\n• Clear weights and settings for separated families\n• Keep individual mount weights\n\nThis cannot be undone!",
-	button1 = "Reset Separation",
-	button2 = "Cancel",
-	OnAccept = function()
-		-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
-		if addon.ConfigurationManager then
-			local success, message = addon.ConfigurationManager:ResetMountSeparationOnly()
-			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
-			if success then
-				-- Also refresh Mount Separation UI
-				if addon.MountSeparationManager and addon.MountSeparationManager.PopulateSeparationManagementUI then
-					addon.MountSeparationManager:PopulateSeparationManagementUI()
-				end
-			end
-		end
-	end,
-	timeout = 0,
-	whileDead = true,
-	hideOnEscape = true,
 	preferredIndex = 3,
 }

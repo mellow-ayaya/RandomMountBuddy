@@ -88,7 +88,7 @@ function ConfigurationManager:ImportConfiguration(configString, importMode)
 	-- Check version for compatibility
 	local configVersion = config.version or "1.0"
 	local hasSeparatedMounts = config.separatedMounts ~= nil
-	addon:DebugImport("Importing configuration version " .. configVersion ..
+	addon:DebugOptions("Importing configuration version " .. configVersion ..
 		(hasSeparatedMounts and " (with separated mounts)" or " (no separated mounts)"))
 	-- Initialize database structures if needed
 	if not addon.db.profile.superGroupOverrides then
@@ -121,7 +121,7 @@ function ConfigurationManager:ImportConfiguration(configString, importMode)
 		wipe(addon.db.profile.deletedSuperGroups)
 		-- ENHANCED: Clear separated mounts in replace mode
 		wipe(addon.db.profile.separatedMounts)
-		addon:DebugImport("Cleared existing configuration for replace mode")
+		addon:DebugOptions("Cleared existing configuration for replace mode")
 	end
 
 	-- Import overrides
@@ -160,14 +160,14 @@ function ConfigurationManager:ImportConfiguration(configString, importMode)
 
 				importStats.separatedMounts = importStats.separatedMounts + 1
 			else
-				addon:DebugImport("Skipped invalid separated mount data for mount " .. mountID)
+				addon:DebugOptions("Skipped invalid separated mount data for mount " .. mountID)
 			end
 		end
 	end
 
 	-- Trigger complete data rebuild since separated mounts affect the data structure
 	if importStats.separatedMounts > 0 then
-		addon:DebugImport("Rebuilding data due to separated mounts import...")
+		addon:DebugOptions("Rebuilding data due to separated mounts import...")
 		addon.lastProcessingEventName = "import_with_separated_mounts"
 		addon:InitializeProcessedData()
 		addon.lastProcessingEventName = nil
@@ -222,11 +222,18 @@ function ConfigurationManager:ResetToDefaults(resetType)
 				end
 			end
 		end
+
+		-- FIXED: Also restore deleted supergroups when resetting custom
+		-- This makes "Reset Supergroup Manager" actually restore deleted supergroups
+		if addon.db.profile.deletedSuperGroups then
+			resetStats.deletions = addon:CountTableEntries(addon.db.profile.deletedSuperGroups)
+			wipe(addon.db.profile.deletedSuperGroups)
+		end
 	end
 
 	if resetType == "all" or resetType == "deletions" then
-		-- Clear deleted supergroups (restore all)
-		if addon.db.profile.deletedSuperGroups then
+		-- Clear deleted supergroups (restore all) - this is now also handled by "custom" above
+		if addon.db.profile.deletedSuperGroups and resetType == "deletions" then
 			resetStats.deletions = addon:CountTableEntries(addon.db.profile.deletedSuperGroups)
 			wipe(addon.db.profile.deletedSuperGroups)
 		end
@@ -316,7 +323,7 @@ function ConfigurationManager:ResetMountSeparationOnly()
 		return false, "No separated mounts found"
 	end
 
-	addon:DebugImport("Resetting " .. separatedCount .. " separated mounts...")
+	addon:DebugOptions("Resetting " .. separatedCount .. " separated mounts...")
 	-- Clear separated mount family weight settings (but keep individual mount weights)
 	local clearedFamilyWeights = 0
 	if addon.db.profile.groupWeights then
@@ -355,7 +362,7 @@ function ConfigurationManager:ResetMountSeparationOnly()
 
 	-- Clear the separated mounts data
 	wipe(addon.db.profile.separatedMounts)
-	addon:DebugImport("Cleared separated mounts and " .. clearedFamilyWeights ..
+	addon:DebugOptions("Cleared separated mounts and " .. clearedFamilyWeights ..
 		" family weights, " .. clearedOverrides .. " supergroup overrides, " ..
 		clearedTraitOverrides .. " trait overrides")
 	-- Trigger complete data rebuild
@@ -375,7 +382,7 @@ function ConfigurationManager:ResetMountSeparationOnly()
 		)
 	end
 
-	addon:DebugImport("" .. message)
+	addon:DebugOptions("" .. message)
 	return true, message
 end
 

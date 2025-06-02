@@ -16,7 +16,6 @@ function SuperGroupManager:Initialize()
 		searchTerm = "",
 		itemsPerPage = 14,
 		selectedFamilies = {},
-		pendingSummon = { source = nil, target = nil },
 	}
 	-- ADDED: Refresh flag system for popup callbacks
 	self.needsRefresh = false
@@ -1137,62 +1136,6 @@ function SuperGroupManager:RestoreSuperGroup(sgName)
 	-- Trigger rebuild
 	addon:RebuildMountGrouping()
 	return true, "Supergroup restored to original state"
-end
-
--- Merge supergroups
-function SuperGroupManager:MergeSuperGroups(sourceSG, targetSG)
-	if not sourceSG or not targetSG or sourceSG == targetSG then
-		return false, "Invalid supergroup selection"
-	end
-
-	if not self:SuperGroupExists(sourceSG) or not self:SuperGroupExists(targetSG) then
-		return false, "One or both supergroups do not exist"
-	end
-
-	-- Get display names for better user feedback
-	local sourceDisplayName = addon:GetSuperGroupDisplayName(sourceSG)
-	local targetDisplayName = addon:GetSuperGroupDisplayName(targetSG)
-	-- Initialize database structures if needed
-	if not addon.db.profile.superGroupOverrides then
-		addon.db.profile.superGroupOverrides = {}
-	end
-
-	local movedFamilies = 0
-	-- Find all families currently in source supergroup and move them to target
-	local allFamilyNames = {}
-	-- Collect all family names
-	if addon.processedData and addon.processedData.allCollectedMountFamilyInfo then
-		for _, mountInfo in pairs(addon.processedData.allCollectedMountFamilyInfo) do
-			allFamilyNames[mountInfo.familyName] = true
-		end
-	end
-
-	if addon.processedData and addon.processedData.allUncollectedMountFamilyInfo then
-		for _, mountInfo in pairs(addon.processedData.allUncollectedMountFamilyInfo) do
-			allFamilyNames[mountInfo.familyName] = true
-		end
-	end
-
-	-- Check each family to see if it's currently in the source supergroup
-	for familyName, _ in pairs(allFamilyNames) do
-		local currentSG = addon:GetEffectiveSuperGroup(familyName)
-		if currentSG == sourceSG then
-			-- Move this family to target supergroup
-			addon.db.profile.superGroupOverrides[familyName] = targetSG
-			movedFamilies = movedFamilies + 1
-		end
-	end
-
-	-- Delete the source supergroup
-	local deleteSuccess, deleteMessage = self:DeleteSuperGroup(sourceSG)
-	if deleteSuccess then
-		addon:DebugSupergr("Merged '" ..
-			sourceDisplayName .. "' into '" .. targetDisplayName .. "' (" .. movedFamilies .. " families moved)")
-		return true,
-				"Merged " .. movedFamilies .. " families from '" .. sourceDisplayName .. "' to '" .. targetDisplayName .. "'"
-	else
-		return false, "Merge failed: " .. deleteMessage
-	end
 end
 
 -- Helper function to check if supergroup exists

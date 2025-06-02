@@ -250,6 +250,15 @@ function MountDataManager:ShouldShowTraits(groupKey, groupType)
 		end
 	end
 
+	-- ENHANCED: Check if family is assigned to a supergroup via user override
+	local effectiveSG = addon:GetEffectiveSuperGroup(groupKey)
+	if effectiveSG then
+		shouldShow = true
+		addon:DebugUI("Showing traits for family assigned to supergroup: " .. groupKey .. " -> " .. effectiveSG)
+		self.cache.groupTypes[cacheKey] = shouldShow
+		return shouldShow
+	end
+
 	-- Check if this family originally belonged to a supergroup
 	local mountIDs = addon.processedData.familyToMountIDsMap and
 			addon.processedData.familyToMountIDsMap[groupKey]
@@ -268,7 +277,7 @@ function MountDataManager:ShouldShowTraits(groupKey, groupType)
 		end
 
 		if mountInfo then
-			-- Check if it has original superGroup OR if it's a separated family
+			-- Check if it has original superGroup
 			if mountInfo.superGroup then
 				shouldShow = true
 			end

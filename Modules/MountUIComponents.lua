@@ -861,8 +861,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 		resetTraits = {
 			order = order + 0.75,
 			type = "execute",
-			name =
-			"|TInterface\\BUTTONS\\UI-RefreshButton:18:18:0:-2|t",
+			name = "",
 			desc = "Reset traits to original values",
 			func = function()
 				if addon.ResetFamilyTraits then
@@ -880,6 +879,9 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			hidden = function()
 				return not shouldShowTraits or not (addon.HasTraitOverrides and addon:HasTraitOverrides(familyName))
 			end,
+			image = "Interface\\BUTTONS\\UI-RefreshButton",
+			imageWidth = 15,
+			imageHeight = 15,
 		},
 		-- Spacer when no reset
 		spacerNoReset = {
