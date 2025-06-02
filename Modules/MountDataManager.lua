@@ -10,7 +10,7 @@ local MountDataManager = {}
 addon.MountDataManager = MountDataManager
 -- Initialize the data manager
 function MountDataManager:Initialize()
-	addon:DebugData(" Initializing...")
+	addon:DebugData("Initializing...")
 	-- Cache system
 	self.cache = {
 		familyTraits = {},
@@ -45,25 +45,25 @@ function MountDataManager:Initialize()
 		displayOrder = {}, -- Sorted array for UI display
 		lastBuilt = 0,   -- When this was last built
 	}
-	addon:DebugData(" Initialized successfully")
+	addon:DebugData("Initialized successfully")
 end
 
 function MountDataManager:OnMountCollectionChanged()
-	addon:DebugData(" Mount collection changed, invalidating caches...")
+	addon:DebugData("Mount collection changed, invalidating caches...")
 	-- Clear all caches since mount collection has changed
 	self:InvalidateCache("mount_collection_changed")
 	-- Rebuild unified group system
 	self:BuildUnifiedGroupSystem()
-	addon:DebugData(" Cache invalidation completed")
+	addon:DebugData("Cache invalidation completed")
 end
 
 -- ============================================================================
 -- UNIFIED GROUP PROCESSING (replaces multiple family systems)
 -- ============================================================================
 function MountDataManager:BuildUnifiedGroupSystem()
-	addon:DebugData(" Building unified group system...")
+	addon:DebugData("Building unified group system...")
 	if not addon.processedData then
-		addon:DebugData(" No processed data available")
+		addon:DebugData("No processed data available")
 		return
 	end
 
@@ -138,7 +138,7 @@ function MountDataManager:BuildUnifiedGroupSystem()
 		return (a.displayName or "") < (b.displayName or "")
 	end)
 	self.unifiedGroups.lastBuilt = GetTime()
-	addon:DebugData(" Built unified group system - " ..
+	addon:DebugData("Built unified group system - " ..
 		#self.unifiedGroups.displayOrder .. " total groups")
 end
 
@@ -214,7 +214,7 @@ function MountDataManager:InvalidateTraitCache(familyName)
 	if familyName then
 		local cacheKey = familyName .. "_effective"
 		self.cache.familyTraits[cacheKey] = nil
-		addon:DebugData(" Invalidated trait cache for " .. familyName)
+		addon:DebugData("Invalidated trait cache for " .. familyName)
 	else
 		-- Clear all trait caches
 		for k, v in pairs(self.cache.familyTraits) do
@@ -223,7 +223,7 @@ function MountDataManager:InvalidateTraitCache(familyName)
 			end
 		end
 
-		addon:DebugData(" Invalidated all effective trait caches")
+		addon:DebugData("Invalidated all effective trait caches")
 	end
 end
 
@@ -365,7 +365,7 @@ end
 -- MOUNT SELECTION (optimized)
 -- ============================================================================
 function MountDataManager:GetRandomMountFromGroup(groupKey, groupType, includeUncollected)
-	addon:DebugData(" GetRandomMountFromGroup called for " .. tostring(groupKey))
+	addon:DebugData("GetRandomMountFromGroup called for " .. tostring(groupKey))
 	if not groupKey then
 		return nil
 	end
@@ -513,7 +513,7 @@ function MountDataManager:GetGroupTypeFromKey(groupKey)
 end
 
 function MountDataManager:InvalidateCache(reason)
-	addon:DebugData(" Invalidating cache - " .. tostring(reason))
+	addon:DebugData("Invalidating cache - " .. tostring(reason))
 	self.cache:clear()
 	-- Also invalidate unified group system if settings changed
 	if reason == "settings_changed" then
@@ -537,12 +537,12 @@ end
 -- Initialize when addon loads
 function addon:InitializeMountDataManager()
 	if not self.MountDataManager then
-		addon:DebugData(" ERROR - MountDataManager not found!")
+		addon:DebugData("ERROR - MountDataManager not found!")
 		return
 	end
 
 	self.MountDataManager:Initialize()
-	addon:DebugData(" Integration complete")
+	addon:DebugData("Integration complete")
 end
 
 addon:DebugCore("MountDataManager.lua END.")

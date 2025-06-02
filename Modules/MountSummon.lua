@@ -11,7 +11,7 @@ addon.MountSummon = MountSummon
 -- INITIALIZATION
 -- ============================================================================
 function MountSummon:Initialize()
-	addon:DebugSummon(" Initializing mount summoning system...")
+	addon:DebugSummon("Initializing mount summoning system...")
 	-- Flight style tracking
 	self.isInSkyridingMode = false
 	-- Initialize mount pools
@@ -38,17 +38,17 @@ function MountSummon:Initialize()
 	-- Set up flight style tracking
 	self:CheckCurrentFlightStyle()
 	self:RegisterFlightStyleEvents()
-	addon:DebugSummon(" Initialized successfully")
+	addon:DebugSummon("Initialized successfully")
 end
 
 function MountSummon:OnMountCollectionChanged()
-	addon:DebugSummon(" Mount collection changed, rebuilding pools...")
+	addon:DebugSummon("Mount collection changed, rebuilding pools...")
 	-- Rebuild pools if data is ready
 	if addon.RMB_DataReadyForUI and addon.processedData then
 		self:BuildMountPools()
-		addon:DebugSummon(" Mount pools rebuilt successfully")
+		addon:DebugSummon("Mount pools rebuilt successfully")
 	else
-		addon:DebugSummon(" Skipping pool rebuild - data not ready")
+		addon:DebugSummon("Skipping pool rebuild - data not ready")
 	end
 end
 
@@ -141,7 +141,7 @@ function MountSummon:RegisterFlightStyleEvents()
 						-- Check if this is a mount summon spell (NEW)
 						local isMountSpell, mountID = self:IsMountSummonSpell(spellID)
 						if isMountSpell and mountID then
-							addon:DebugSummon(" Detected successful mount summon - Spell: " .. spellID .. ", Mount: " .. mountID)
+							addon:DebugSummon("Detected successful mount summon - Spell: " .. spellID .. ", Mount: " .. mountID)
 							-- Find which pool this summon was from by checking pending summons
 							local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
 							if deterministicCache then
@@ -225,7 +225,7 @@ function MountSummon:GetCurrentContext()
 	-- NEW: Cache the result
 	self.cachedContext = context
 	self.lastContextCheck = currentTime
-	addon:DebugSummon(" Current context:",
+	addon:DebugSummon("Current context:",
 		"canFly =", context.canFly,
 		"canDragonride =", context.canDragonride,
 		"isInSkyridingMode =", context.isInSkyridingMode,
@@ -239,10 +239,10 @@ end
 -- ============================================================================
 -- Initialize deterministic summoning system
 function MountSummon:InitializeDeterministicSystem()
-	addon:DebugSummon(" Initializing deterministic summoning system...")
+	addon:DebugSummon("Initializing deterministic summoning system...")
 	-- Ensure cache structure exists
 	if not addon.db or not addon.db.profile then
-		addon:DebugSummon(" No database available, skipping initialization")
+		addon:DebugSummon("No database available, skipping initialization")
 		return
 	end
 
@@ -254,7 +254,7 @@ function MountSummon:InitializeDeterministicSystem()
 		}
 	end
 
-	addon:DebugSummon(" System initialized")
+	addon:DebugSummon("System initialized")
 end
 
 -- Check if deterministic mode is enabled
@@ -373,7 +373,7 @@ function MountSummon:CalculateUnavailabilityDuration(poolName, groupKey, groupTy
 	local totalGroups = self:GetTotalGroupsInPool(poolName) -- Now uses fixed counting
 	-- SAFEGUARD: Don't use deterministic mode for very small pools
 	if totalGroups < 3 then
-		addon:DebugSummon(" Pool " .. poolName .. " has only " .. totalGroups ..
+		addon:DebugSummon("Pool " .. poolName .. " has only " .. totalGroups ..
 			" selectable groups, disabling deterministic summoning")
 		return 0
 	end
@@ -386,7 +386,7 @@ function MountSummon:CalculateUnavailabilityDuration(poolName, groupKey, groupTy
 	local adjustedDuration = math.floor(baseDuration * (1 - reduction))
 	-- Always at least 1 summon ban
 	adjustedDuration = math.max(1, adjustedDuration)
-	addon:DebugSummon(" Pool " .. poolName .. " (" .. totalGroups .. " selectable groups) - " ..
+	addon:DebugSummon("Pool " .. poolName .. " (" .. totalGroups .. " selectable groups) - " ..
 		"Base: " .. baseDuration .. ", Weight " .. groupWeight .. " group '" .. groupKey ..
 		"' banned for " .. adjustedDuration .. " summons")
 	return adjustedDuration
@@ -425,7 +425,7 @@ function MountSummon:FilterPoolForDeterministic(pool, poolName)
 
 	-- EMERGENCY SAFEGUARD: If filtering would leave us with very few groups, reduce ban durations
 	if availableGroupCount <= 1 then
-		addon:DebugSummon(" WARNING - Only " .. availableGroupCount ..
+		addon:DebugSummon("WARNING - Only " .. availableGroupCount ..
 			" groups would remain after filtering in " .. poolName .. " pool, reducing all ban durations")
 		-- Emergency reduction: cut all ban durations in half
 		for groupKey, count in pairs(cache.unavailableGroups) do
@@ -466,7 +466,7 @@ function MountSummon:FilterPoolForDeterministic(pool, poolName)
 		if not unavailableCount or unavailableCount <= 0 then
 			filteredPool.superGroups[sgName] = families
 		else
-			addon:DebugSummon(" Filtered out supergroup " .. sgName ..
+			addon:DebugSummon("Filtered out supergroup " .. sgName ..
 				" (unavailable for " .. unavailableCount .. " more summons)")
 		end
 	end
@@ -477,7 +477,7 @@ function MountSummon:FilterPoolForDeterministic(pool, poolName)
 		if not unavailableCount or unavailableCount <= 0 then
 			filteredPool.families[familyName] = true
 		else
-			addon:DebugSummon(" Filtered out family " .. familyName ..
+			addon:DebugSummon("Filtered out family " .. familyName ..
 				" (unavailable for " .. unavailableCount .. " more summons)")
 		end
 	end
@@ -493,14 +493,14 @@ function MountSummon:MarkGroupUnavailable(poolName, groupKey, groupType)
 
 	local duration = self:CalculateUnavailabilityDuration(poolName, groupKey, groupType) -- Added parameters
 	if duration <= 0 then
-		addon:DebugSummon(" Duration is 0, not marking group unavailable")
+		addon:DebugSummon("Duration is 0, not marking group unavailable")
 		return
 	end
 
 	local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
 	local cache = deterministicCache and deterministicCache[poolName]
 	if not cache then
-		addon:DebugSummon(" No cache for pool " .. poolName)
+		addon:DebugSummon("No cache for pool " .. poolName)
 		return
 	end
 
@@ -509,7 +509,7 @@ function MountSummon:MarkGroupUnavailable(poolName, groupKey, groupType)
 	end
 
 	cache.unavailableGroups[groupKey] = duration
-	addon:DebugSummon(" Marked " ..
+	addon:DebugSummon("Marked " ..
 		groupKey .. " unavailable for " .. duration .. " summons in " .. poolName .. " pool")
 end
 
@@ -540,7 +540,7 @@ function MountSummon:DecrementUnavailabilityCounters(poolName)
 	-- Clean up groups that are no longer unavailable
 	for _, groupKey in ipairs(groupsToRemove) do
 		cache.unavailableGroups[groupKey] = nil
-		addon:DebugSummon(" " .. groupKey .. " is now available again in " .. poolName .. " pool")
+		addon:DebugSummon("" .. groupKey .. " is now available again in " .. poolName .. " pool")
 	end
 end
 
@@ -562,7 +562,7 @@ function MountSummon:StorePendingSummon(poolName, groupKey, groupType, mountID)
 		mountID = mountID,
 		timestamp = GetTime(),
 	}
-	addon:DebugSummon(" Stored pending summon - Group: " .. groupKey .. ", Mount: " .. mountID)
+	addon:DebugSummon("Stored pending summon - Group: " .. groupKey .. ", Mount: " .. mountID)
 end
 
 -- Process successful summon
@@ -578,7 +578,7 @@ function MountSummon:ProcessSuccessfulSummon(poolName)
 
 	local pending = cache.pendingSummon
 	if not pending or not pending.groupKey or not pending.groupType then
-		addon:DebugSummon(" Invalid pending summon data")
+		addon:DebugSummon("Invalid pending summon data")
 		cache.pendingSummon = nil
 		return
 	end
@@ -589,7 +589,7 @@ function MountSummon:ProcessSuccessfulSummon(poolName)
 	-- The decrement should happen BEFORE filtering, not after successful summon
 	-- Clear pending summon
 	cache.pendingSummon = nil
-	addon:DebugSummon(" Processed successful summon for " .. pending.groupKey)
+	addon:DebugSummon("Processed successful summon for " .. pending.groupKey)
 end
 
 -- Check if a spell is a mount summon spell
@@ -614,7 +614,7 @@ end
 -- ============================================================================
 -- Build mount pools for different contexts
 function MountSummon:BuildMountPools()
-	addon:DebugSummon(" Building context-based mount pools")
+	addon:DebugSummon("Building context-based mount pools")
 	-- Reset the pools
 	for poolName, pool in pairs(self.mountPools) do
 		pool.superGroups = {}
@@ -668,7 +668,7 @@ function MountSummon:BuildMountPools()
 		end
 	end
 
-	addon:DebugSummon(" Processed " .. mountsProcessed .. " mounts into context pools")
+	addon:DebugSummon("Processed " .. mountsProcessed .. " mounts into context pools")
 	-- Apply family and supergroup weights to all pools
 	self:ApplyFamilyAndSuperGroupWeights()
 	-- Log pool sizes
@@ -714,7 +714,7 @@ function MountSummon:ApplyFamilyAndSuperGroupWeights()
 			if familyHasUsableMounts or familyWeight > 0 then
 				familiesWithUsableMounts[familyName] = true
 			else
-				addon:DebugSummon(" Family " .. familyName .. " in " .. poolName ..
+				addon:DebugSummon("Family " .. familyName .. " in " .. poolName ..
 					" pool has no usable mounts and weight 0, skipping")
 			end
 		end
@@ -752,16 +752,16 @@ function MountSummon:ApplyFamilyAndSuperGroupWeights()
 						local familyWeight = addon:GetGroupWeight(familyName)
 						if familyWeight > 0 then
 							table.insert(pool.superGroups[superGroup], familyName)
-							--addon:DebugSummon(" Added family " .. familyName ..
+							--addon:DebugSummon("Added family " .. familyName ..
 							--	" to supergroup " .. superGroup .. " in " .. poolName .. " pool")
 						else
-							addon:DebugSummon(" Family " .. familyName ..
+							addon:DebugSummon("Family " .. familyName ..
 								" in supergroup " .. superGroup ..
 								" has weight 0, not adding to " .. poolName .. " pool")
 						end
 					end
 				else
-					addon:DebugSummon(" Supergroup " .. superGroup ..
+					addon:DebugSummon("Supergroup " .. superGroup ..
 						" has weight 0, not adding to " .. poolName .. " pool")
 				end
 			end
@@ -771,7 +771,7 @@ end
 
 -- Validate mount pools to remove empty groups
 function MountSummon:ValidateMountPools()
-	addon:DebugSummon(" Validating mount pools to remove empty groups")
+	addon:DebugSummon("Validating mount pools to remove empty groups")
 	for poolName, pool in pairs(self.mountPools) do
 		-- Remove supergroups with no valid families
 		local invalidSuperGroups = {}
@@ -791,7 +791,7 @@ function MountSummon:ValidateMountPools()
 
 		-- Remove invalid supergroups
 		for _, sgName in ipairs(invalidSuperGroups) do
-			addon:DebugSummon(" Removing invalid supergroup from " .. poolName .. " pool: " .. sgName)
+			addon:DebugSummon("Removing invalid supergroup from " .. poolName .. " pool: " .. sgName)
 			pool.superGroups[sgName] = nil
 		end
 
@@ -805,7 +805,7 @@ function MountSummon:ValidateMountPools()
 
 		-- Remove invalid families
 		for _, familyName in ipairs(invalidFamilies) do
-			addon:DebugSummon(" Removing invalid family from " .. poolName .. " pool: " .. familyName)
+			addon:DebugSummon("Removing invalid family from " .. poolName .. " pool: " .. familyName)
 			pool.families[familyName] = nil
 		end
 	end
@@ -837,7 +837,7 @@ function MountSummon:LogPoolStats()
 			totalMounts = totalMounts + #mounts
 		end
 
-		addon:DebugSummon(" " .. poolName .. " pool has " .. superGroupCount ..
+		addon:DebugSummon("" .. poolName .. " pool has " .. superGroupCount ..
 			" supergroups with " .. familiesInSuperGroups .. " families, " ..
 			standaloneFamilies .. " standalone families, and " ..
 			totalMounts .. " total mounts")
@@ -873,7 +873,7 @@ function MountSummon:SummonMount(mountID)
 	end
 
 	local name = C_MountJournal.GetMountInfoByID(mountID)
-	addon:DebugSummon(" Summoning mount:", name, "ID:", mountID)
+	addon:DebugSummon("Summoning mount:", name, "ID:", mountID)
 	-- Use Blizzard's function to summon the mount
 	C_MountJournal.SummonByID(mountID)
 	return true
@@ -881,10 +881,10 @@ end
 
 -- Main function to pick and summon a random mount
 function MountSummon:SummonRandomMount(useContext)
-	addon:DebugSummon(" SummonRandomMount called with useContext:", useContext)
+	addon:DebugSummon("SummonRandomMount called with useContext:", useContext)
 	-- FIX: Check if player is already mounted - if so, just dismount and return
 	if IsMounted() then
-		addon:DebugSummon(" Player is mounted, dismounting instead of summoning new mount")
+		addon:DebugSummon("Player is mounted, dismounting instead of summoning new mount")
 		Dismount() -- or C_MountJournal.Dismiss() in newer versions
 		return true -- Return true to indicate successful action (dismounting)
 	end
@@ -897,26 +897,26 @@ function MountSummon:SummonRandomMount(useContext)
 		if context.isUnderwater then
 			-- Underwater context
 			poolName = "underwater"
-			addon:DebugSummon(" Using underwater pool based on context")
+			addon:DebugSummon("Using underwater pool based on context")
 		elseif context.canFly then
 			-- Flying context - determine which type
 			poolName = "flying"
 			if context.isInSkyridingMode and context.canDragonride then
 				-- Player is in skyriding mode and can dragonride in this zone
 				mountTypeFilter = "skyriding"
-				addon:DebugSummon(" Using flying pool with skyriding filter based on context")
+				addon:DebugSummon("Using flying pool with skyriding filter based on context")
 			else
 				-- Player is in steady flight mode or can't dragonride here
 				mountTypeFilter = "steadyflight"
-				addon:DebugSummon(" Using flying pool with steady flight filter based on context")
+				addon:DebugSummon("Using flying pool with steady flight filter based on context")
 			end
 		else
 			-- Ground-only context
 			poolName = "ground"
-			addon:DebugSummon(" Using ground pool based on context")
+			addon:DebugSummon("Using ground pool based on context")
 		end
 	else
-		addon:DebugSummon(" Using unified pool (contextual summoning disabled)")
+		addon:DebugSummon("Using unified pool (contextual summoning disabled)")
 	end
 
 	-- Select mount from the appropriate pool with proper deterministic integration
@@ -924,7 +924,7 @@ function MountSummon:SummonRandomMount(useContext)
 	if mountID then
 		return self:SummonMount(mountID)
 	else
-		addon:DebugSummon(" No eligible mounts found in " .. poolName .. " pool" ..
+		addon:DebugSummon("No eligible mounts found in " .. poolName .. " pool" ..
 			(mountTypeFilter and (" with " .. mountTypeFilter .. " filter") or ""))
 		return false
 	end
@@ -932,7 +932,7 @@ end
 
 -- New method that integrates deterministic filtering with mount type filtering:
 function MountSummon:SelectMountFromPoolWithFilter(poolName, mountTypeFilter)
-	addon:DebugSummon(" === Pool selection: " .. poolName ..
+	addon:DebugSummon("=== Pool selection: " .. poolName ..
 		(mountTypeFilter and (" + " .. mountTypeFilter) or " (no filter)") .. " ===")
 	local originalPool = self.mountPools[poolName]
 	if not originalPool then
@@ -956,7 +956,7 @@ function MountSummon:SelectMountFromPoolWithFilter(poolName, mountTypeFilter)
 	end
 
 	if not hasGroups then
-		addon:DebugSummon(" No available groups after filtering, falling back to random mode")
+		addon:DebugSummon("No available groups after filtering, falling back to random mode")
 		pool = originalPool          -- Fall back to original pool
 		isDeterministicFallback = true -- Flag that we're in fallback mode
 	end
@@ -976,7 +976,7 @@ function MountSummon:SelectMountFromPoolWithFilter(poolName, mountTypeFilter)
 end
 
 function MountSummon:SelectSpecificMountTypeFromFilteredPoolIgnoreWeights(pool, poolName, mountType)
-	addon:DebugSummon(" SelectSpecificMountType (IGNORE WEIGHTS) for", mountType, "in", poolName, "pool")
+	addon:DebugSummon("SelectSpecificMountType (IGNORE WEIGHTS) for", mountType, "in", poolName, "pool")
 	-- Build list of ALL groups regardless of weight
 	local allGroups = {}
 	-- Add ALL supergroups
@@ -1047,13 +1047,13 @@ function MountSummon:SelectSpecificMountTypeFromFilteredPoolIgnoreWeights(pool, 
 			-- If eligible mounts found, pick one randomly
 			if #eligibleMounts > 0 then
 				local selectedMount = eligibleMounts[math.random(#eligibleMounts)]
-				addon:DebugSummon(" Selected " .. mountType .. " mount (IGNORE WEIGHTS):", selectedMount.name)
+				addon:DebugSummon("Selected " .. mountType .. " mount (IGNORE WEIGHTS):", selectedMount.name)
 				return selectedMount.id, selectedMount.name
 			end
 		end
 	end
 
-	addon:DebugSummon(" No eligible " .. mountType .. " mounts found even ignoring weights")
+	addon:DebugSummon("No eligible " .. mountType .. " mounts found even ignoring weights")
 	return nil, nil
 end
 
@@ -1062,7 +1062,7 @@ function MountSummon:SelectMountFromFilteredPool(pool, poolName)
 	-- Step 1: Select group (supergroup or standalone family)
 	local groupName, groupType = self:SelectGroupFromPool(pool)
 	if not groupName then
-		addon:DebugSummon(" No groups available in", poolName, "pool")
+		addon:DebugSummon("No groups available in", poolName, "pool")
 		return nil, nil
 	end
 
@@ -1071,7 +1071,7 @@ function MountSummon:SelectMountFromFilteredPool(pool, poolName)
 	if groupType == "superGroup" then
 		familyName = self:SelectFamilyFromPoolSuperGroup(pool, groupName)
 		if not familyName then
-			addon:DebugSummon(" No families available in supergroup", groupName)
+			addon:DebugSummon("No families available in supergroup", groupName)
 			return nil, nil
 		end
 	else
@@ -1136,7 +1136,7 @@ function MountSummon:SelectSpecificMountTypeFromFilteredPool(pool, poolName, mou
 		end
 	end
 
-	addon:DebugSummon(" Eligible groups: " .. (#eligibleGroups + #priority6Groups) ..
+	addon:DebugSummon("Eligible groups: " .. (#eligibleGroups + #priority6Groups) ..
 		" (P6:" .. #priority6Groups .. ", Regular:" .. #eligibleGroups .. ")")
 	-- Combine groups
 	local groupsToCheck = {}
@@ -1211,14 +1211,14 @@ function MountSummon:SelectSpecificMountTypeFromFilteredPool(pool, poolName, mou
 
 			-- Log family results only if interesting
 			if typeMatches > 0 or totalMounts > 0 then
-				addon:DebugSummon(" " .. family.name .. " - " .. totalMounts .. " mounts, " ..
+				addon:DebugSummon("" .. family.name .. " - " .. totalMounts .. " mounts, " ..
 					typeMatches .. " " .. mountType .. ", " .. (#eligibleMounts + #priority6Mounts) .. " eligible")
 			end
 
 			-- Make selection if eligible mounts found
 			if #priority6Mounts > 0 then
 				local selectedMount = priority6Mounts[math.random(#priority6Mounts)]
-				addon:DebugSummon(" SUCCESS - P6 " .. selectedMount.name)
+				addon:DebugSummon("SUCCESS - P6 " .. selectedMount.name)
 				self:StorePendingSummon(poolName, group.name, group.type, selectedMount.id)
 				return selectedMount.id, selectedMount.name
 			elseif #eligibleMounts > 0 then
@@ -1233,7 +1233,7 @@ function MountSummon:SelectSpecificMountTypeFromFilteredPool(pool, poolName, mou
 					for _, mount in ipairs(eligibleMounts) do
 						currentSum = currentSum + mount.weight
 						if roll <= currentSum then
-							addon:DebugSummon(" SUCCESS - " .. mount.name)
+							addon:DebugSummon("SUCCESS - " .. mount.name)
 							self:StorePendingSummon(poolName, group.name, group.type, mount.id)
 							return mount.id, mount.name
 						end
@@ -1265,7 +1265,7 @@ end
 function MountSummon:HookRandomFavoriteButton()
 	-- Only hook if the setting is enabled
 	if not addon:GetSetting("overrideBlizzardButton") then
-		addon:DebugSummon(" Not hooking random favorite button (setting disabled).")
+		addon:DebugSummon("Not hooking random favorite button (setting disabled).")
 		return
 	end
 
@@ -1284,9 +1284,9 @@ function MountSummon:HookRandomFavoriteButton()
 				return true
 			end
 		end)
-		addon:DebugSummon(" Successfully hooked random favorite mount button.")
+		addon:DebugSummon("Successfully hooked random favorite mount button.")
 	else
-		addon:DebugSummon(" Could not find random favorite mount button to hook.")
+		addon:DebugSummon("Could not find random favorite mount button to hook.")
 	end
 end
 
@@ -1295,7 +1295,7 @@ end
 -- ============================================================================
 -- Called when data is ready
 function MountSummon:OnDataReady()
-	addon:DebugSummon(" Data ready, building mount pools")
+	addon:DebugSummon("Data ready, building mount pools")
 	self:BuildMountPools()
 end
 
@@ -1304,14 +1304,14 @@ function MountSummon:OnSettingChanged(key, value)
 	-- Refresh mount pools if needed
 	if key == "contextualSummoning" or
 			key:find("treat") and key:find("AsDistinct") then
-		addon:DebugSummon(" Setting changed, refreshing mount pools")
+		addon:DebugSummon("Setting changed, refreshing mount pools")
 		self:BuildMountPools()
 	end
 end
 
 -- Refresh mount pools when needed
 function MountSummon:RefreshMountPools()
-	addon:DebugSummon(" Refreshing mount pools")
+	addon:DebugSummon("Refreshing mount pools")
 	self:BuildMountPools()
 end
 
@@ -1328,7 +1328,7 @@ end
 -- Auto-initialize when addon loads
 function addon:InitializeMountSummon()
 	if not self.MountSummon then
-		addon:DebugSummon(" ERROR - MountSummon not found!")
+		addon:DebugSummon("ERROR - MountSummon not found!")
 		return
 	end
 
@@ -1342,7 +1342,7 @@ function addon:InitializeMountSummon()
 		end)
 	end
 
-	addon:DebugSummon(" Integration complete")
+	addon:DebugSummon("Integration complete")
 end
 
 addon:DebugCore("MountSummon.lua END (Updated Weight 6 Logic).")
@@ -1383,10 +1383,10 @@ function MountSummon:SelectGroupFromPool(pool)
 						totalWeight = totalWeight + probWeight
 					end
 
-					addon:DebugSummon(" Added eligible supergroup:", sgName, "Weight:", groupWeight)
+					addon:DebugSummon("Added eligible supergroup:", sgName, "Weight:", groupWeight)
 				end
 			else
-				addon:DebugSummon(" Skipping supergroup with no valid families:", sgName)
+				addon:DebugSummon("Skipping supergroup with no valid families:", sgName)
 			end
 		end
 	end
@@ -1414,34 +1414,34 @@ function MountSummon:SelectGroupFromPool(pool)
 					totalWeight = totalWeight + probWeight
 				end
 
-				addon:DebugSummon(" Added eligible standalone family:", familyName, "Weight:", groupWeight)
+				addon:DebugSummon("Added eligible standalone family:", familyName, "Weight:", groupWeight)
 			end
 		else
-			addon:DebugSummon(" Skipping family with no valid mounts:", familyName)
+			addon:DebugSummon("Skipping family with no valid mounts:", familyName)
 		end
 	end
 
 	-- UPDATED: Handle priority 6 groups first - if any exist, ONLY consider them
 	if #priority6Groups > 0 then
 		local selectedGroup = priority6Groups[math.random(#priority6Groups)]
-		addon:DebugSummon(" Selected priority 6 group:", selectedGroup.name, selectedGroup.type)
+		addon:DebugSummon("Selected priority 6 group:", selectedGroup.name, selectedGroup.type)
 		return selectedGroup.name, selectedGroup.type
 	end
 
 	-- Handle regular groups only if no priority 6 groups exist
 	if #eligibleGroups == 0 or totalWeight == 0 then
-		addon:DebugSummon(" No eligible groups found")
+		addon:DebugSummon("No eligible groups found")
 		return nil, nil
 	end
 
 	-- Weighted selection
 	local roll = math.random(1, totalWeight)
-	addon:DebugSummon(" Group selection roll:", roll, "out of", totalWeight)
+	addon:DebugSummon("Group selection roll:", roll, "out of", totalWeight)
 	local currentSum = 0
 	for _, group in ipairs(eligibleGroups) do
 		currentSum = currentSum + group.weight
 		if roll <= currentSum then
-			addon:DebugSummon(" Selected group:", group.name, group.type)
+			addon:DebugSummon("Selected group:", group.name, group.type)
 			return group.name, group.type
 		end
 	end
@@ -1455,7 +1455,7 @@ function MountSummon:SelectFamilyFromPoolSuperGroup(pool, superGroupName)
 	-- Get families in this supergroup for this pool
 	local families = pool.superGroups[superGroupName] or {}
 	if #families == 0 then
-		addon:DebugSummon(" Supergroup has no families in this pool:", superGroupName)
+		addon:DebugSummon("Supergroup has no families in this pool:", superGroupName)
 		return nil
 	end
 
@@ -1482,7 +1482,7 @@ function MountSummon:SelectFamilyFromPoolSuperGroup(pool, superGroupName)
 					totalWeight = totalWeight + probWeight
 				end
 
-				addon:DebugSummon(" Added eligible family from supergroup:", familyName, "Weight:", familyWeight)
+				addon:DebugSummon("Added eligible family from supergroup:", familyName, "Weight:", familyWeight)
 			end
 		end
 	end
@@ -1490,24 +1490,24 @@ function MountSummon:SelectFamilyFromPoolSuperGroup(pool, superGroupName)
 	-- UPDATED: Handle priority 6 families first - if any exist, ONLY consider them
 	if #priority6Families > 0 then
 		local selectedFamily = priority6Families[math.random(#priority6Families)]
-		addon:DebugSummon(" Selected priority 6 family:", selectedFamily.name)
+		addon:DebugSummon("Selected priority 6 family:", selectedFamily.name)
 		return selectedFamily.name
 	end
 
 	-- If no eligible families, return nil
 	if #eligibleFamilies == 0 or totalWeight == 0 then
-		addon:DebugSummon(" No eligible families found in supergroup")
+		addon:DebugSummon("No eligible families found in supergroup")
 		return nil
 	end
 
 	-- Weighted random selection
 	local roll = math.random(1, totalWeight)
-	addon:DebugSummon(" Family selection roll:", roll, "out of", totalWeight)
+	addon:DebugSummon("Family selection roll:", roll, "out of", totalWeight)
 	local currentSum = 0
 	for _, family in ipairs(eligibleFamilies) do
 		currentSum = currentSum + family.weight
 		if roll <= currentSum then
-			addon:DebugSummon(" Selected family:", family.name)
+			addon:DebugSummon("Selected family:", family.name)
 			return family.name
 		end
 	end
@@ -1521,7 +1521,7 @@ function MountSummon:SelectMountFromPoolFamily(pool, familyName)
 	-- Get mounts in this family for this pool
 	local familyMounts = pool.mountsByFamily[familyName] or {}
 	if #familyMounts == 0 then
-		addon:DebugSummon(" Family has no mounts in this pool:", familyName)
+		addon:DebugSummon("Family has no mounts in this pool:", familyName)
 		return nil, nil
 	end
 
@@ -1561,7 +1561,7 @@ function MountSummon:SelectMountFromPoolFamily(pool, familyName)
 						totalWeight = totalWeight + probWeight
 					end
 
-					addon:DebugSummon(" Added eligible mount from family:", name, "Weight:", mountWeight)
+					addon:DebugSummon("Added eligible mount from family:", name, "Weight:", mountWeight)
 				else
 					addon:DebugSummon("Mount " .. name .. " and family have weight 0, skipping")
 				end
@@ -1574,24 +1574,24 @@ function MountSummon:SelectMountFromPoolFamily(pool, familyName)
 	-- UPDATED: Handle priority 6 mounts first - if any exist, ONLY consider them
 	if #priority6Mounts > 0 then
 		local selectedMount = priority6Mounts[math.random(#priority6Mounts)]
-		addon:DebugSummon(" Selected priority 6 mount:", selectedMount.name)
+		addon:DebugSummon("Selected priority 6 mount:", selectedMount.name)
 		return selectedMount.id, selectedMount.name
 	end
 
 	-- If no eligible mounts, return nil
 	if #eligibleMounts == 0 or totalWeight == 0 then
-		addon:DebugSummon(" No eligible mounts found in family")
+		addon:DebugSummon("No eligible mounts found in family")
 		return nil, nil
 	end
 
 	-- Weighted random selection
 	local roll = math.random(1, totalWeight)
-	addon:DebugSummon(" Mount selection roll:", roll, "out of", totalWeight)
+	addon:DebugSummon("Mount selection roll:", roll, "out of", totalWeight)
 	local currentSum = 0
 	for _, mount in ipairs(eligibleMounts) do
 		currentSum = currentSum + mount.weight
 		if roll <= currentSum then
-			addon:DebugSummon(" Selected mount:", mount.name)
+			addon:DebugSummon("Selected mount:", mount.name)
 			return mount.id, mount.name
 		end
 	end
@@ -1750,7 +1750,7 @@ function MountSummon:SelectSpecificMountTypeFromPool(poolName, mountType)
 										totalWeight = totalWeight + probWeight
 									end
 
-									addon:DebugSummon(" Added eligible " .. mountType .. " mount from "
+									addon:DebugSummon("Added eligible " .. mountType .. " mount from "
 										.. family.name .. ":", name, "Weight:", mountWeight)
 								end
 							end
@@ -1762,7 +1762,7 @@ function MountSummon:SelectSpecificMountTypeFromPool(poolName, mountType)
 				if #priority6Mounts > 0 then
 					-- Priority 6 mounts take precedence
 					local selectedMount = priority6Mounts[math.random(#priority6Mounts)]
-					addon:DebugSummon(" Selected priority 6 " .. mountType .. " mount:", selectedMount.name,
+					addon:DebugSummon("Selected priority 6 " .. mountType .. " mount:", selectedMount.name,
 						"from family:", family.name,
 						group.type == "superGroup" and "in supergroup: " .. group.name or "")
 					return selectedMount.id, selectedMount.name
@@ -1773,7 +1773,7 @@ function MountSummon:SelectSpecificMountTypeFromPool(poolName, mountType)
 					for _, mount in ipairs(eligibleMounts) do
 						currentSum = currentSum + mount.weight
 						if roll <= currentSum then
-							addon:DebugSummon(" Selected " .. mountType .. " mount:", mount.name,
+							addon:DebugSummon("Selected " .. mountType .. " mount:", mount.name,
 								"from family:", family.name,
 								group.type == "superGroup" and "in supergroup: " .. group.name or "")
 							return mount.id, mount.name
@@ -1788,6 +1788,6 @@ function MountSummon:SelectSpecificMountTypeFromPool(poolName, mountType)
 	end
 
 	-- If we got here, no eligible mounts were found
-	addon:DebugSummon(" No eligible " .. mountType .. " mounts found in any group")
+	addon:DebugSummon("No eligible " .. mountType .. " mounts found in any group")
 	return nil, nil
 end

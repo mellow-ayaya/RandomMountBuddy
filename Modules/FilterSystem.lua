@@ -118,7 +118,7 @@ function FilterSystem:GetFilterSetting(category, key)
 
 	-- Additional safety check - make sure categorySettings is a table
 	if type(categorySettings) ~= "table" then
-		addon:DebugUI(" Category " ..
+		addon:DebugUI("Category " ..
 			category .. " is not a table (it's " .. type(categorySettings) .. "), returning false")
 		return false
 	end

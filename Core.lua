@@ -88,7 +88,7 @@ local success, result = pcall(function()
 	addon = RandomMountBuddy
 end)
 if not success then
-	print(" ERROR during NewAddon: " .. tostring(result))
+	print("ERROR during NewAddon: " .. tostring(result))
 	return
 end
 
@@ -194,7 +194,7 @@ end
 
 function addon:InitializeProcessedData()
 	local eventNameForLog = self.lastProcessingEventName or "Manual Call or Unknown Event"
-	addon:DebugData(" Initializing Processed Data (Event: " .. eventNameForLog .. ")...")
+	addon:DebugData("Initializing Processed Data (Event: " .. eventNameForLog .. ")...")
 	-- Initialize data structures (including uncollected mounts)
 	self.processedData = {
 		superGroupMap = {},
@@ -227,17 +227,17 @@ function addon:InitializeProcessedData()
 
 	-- Check API availability
 	if not C_MountJournal or not C_MountJournal.GetMountIDs then
-		addon:DebugData(" C_MountJournal API missing!")
+		addon:DebugData("C_MountJournal API missing!")
 		return
 	end
 
 	local allMountIDs = C_MountJournal.GetMountIDs()
 	if not allMountIDs then
-		addon:DebugData(" GetMountIDs nil")
+		addon:DebugData("GetMountIDs nil")
 		return
 	end
 
-	addon:DebugData(" GetMountIDs found " .. #allMountIDs .. " IDs.")
+	addon:DebugData("GetMountIDs found " .. #allMountIDs .. " IDs.")
 	-- Process all mounts
 	local collectedCount, uncollectedCount, processedCount, scannedCount = 0, 0, 0, 0
 	for _, mountID in ipairs(allMountIDs) do
@@ -339,18 +339,18 @@ function addon:InitializeProcessedData()
 		end
 	end
 
-	addon:DebugData(" Scanned:" .. scannedCount .. ", APICollected:" .. collectedCount ..
+	addon:DebugData("Scanned:" .. scannedCount .. ", APICollected:" .. collectedCount ..
 		", APIUncollected:" .. uncollectedCount .. ", ProcessedFamilyInfo:" .. processedCount)
 	local sgC = 0; for k in pairs(self.processedData.superGroupMap) do sgC = sgC + 1 end
 
-	addon:DebugData(" SuperGroups:" .. sgC)
+	addon:DebugData("SuperGroups:" .. sgC)
 	local fnC = 0; for k in pairs(self.processedData.standaloneFamilyNames) do fnC = fnC + 1 end
 
-	addon:DebugData(" StandaloneFams:" .. fnC)
-	addon:DebugData(" Init COMPLETE.")
+	addon:DebugData("StandaloneFams:" .. fnC)
+	addon:DebugData("Init COMPLETE.")
 	-- ENHANCED: Run automatic orphaned settings cleanup at startup
 	if self.ConfigurationManager then
-		addon:DebugCore(" Running automatic orphaned settings cleanup...")
+		addon:DebugCore("Running automatic orphaned settings cleanup...")
 		local canRun, reason = self.ConfigurationManager:CanRunValidation() -- CHANGED
 		if canRun then
 			-- Run validation with auto-fix enabled, but only for orphaned settings
@@ -365,22 +365,22 @@ function addon:InitializeProcessedData()
 				end
 
 				if fixedCount > 0 then
-					addon:DebugCore(" Cleaned up " .. fixedCount .. " orphaned settings automatically")
+					addon:DebugCore("Cleaned up " .. fixedCount .. " orphaned settings automatically")
 				else
-					addon:DebugCore(" No orphaned settings found during startup cleanup")
+					addon:DebugCore("No orphaned settings found during startup cleanup")
 				end
 			else
-				addon:DebugCore(" Orphaned settings cleanup failed: " .. tostring(report))
+				addon:DebugCore("Orphaned settings cleanup failed: " .. tostring(report))
 			end
 		else
-			addon:DebugCore(" Skipped orphaned settings cleanup: " .. tostring(reason))
+			addon:DebugCore("Skipped orphaned settings cleanup: " .. tostring(reason))
 		end
 	else
-		addon:DebugCore(" ConfigurationManager not available for orphaned settings cleanup") -- CHANGED
+		addon:DebugCore("ConfigurationManager not available for orphaned settings cleanup") -- CHANGED
 	end
 
 	self.RMB_DataReadyForUI = true
-	addon:DebugData(" Set RMB_DataReadyForUI to true.")
+	addon:DebugData("Set RMB_DataReadyForUI to true.")
 	self:ProcessSeparatedMounts()
 	-- Rebuild mount grouping for trait-based filtering
 	self:RebuildMountGrouping()
@@ -404,7 +404,7 @@ function addon:ProcessSeparatedMounts()
 		return
 	end
 
-	addon:DebugSeparation(" Processing " .. separationCount .. " separated mounts")
+	addon:DebugSeparation("Processing " .. separationCount .. " separated mounts")
 	-- First pass: Remove all separated mounts from their original families
 	for mountID, separationData in pairs(self.db.profile.separatedMounts) do
 		local mountIDNum = tonumber(mountID)
@@ -415,7 +415,7 @@ function addon:ProcessSeparatedMounts()
 				for i = #self.processedData.familyToMountIDsMap[originalFamilyName], 1, -1 do
 					if self.processedData.familyToMountIDsMap[originalFamilyName][i] == mountIDNum then
 						table.remove(self.processedData.familyToMountIDsMap[originalFamilyName], i)
-						addon:DebugSeparation(" Removed collected mount " ..
+						addon:DebugSeparation("Removed collected mount " ..
 							mountIDNum .. " from original family " .. originalFamilyName)
 						break -- Important: break after removing to avoid processing the same mount multiple times
 					end
@@ -424,7 +424,7 @@ function addon:ProcessSeparatedMounts()
 				-- Clean up empty family
 				if #self.processedData.familyToMountIDsMap[originalFamilyName] == 0 then
 					self.processedData.familyToMountIDsMap[originalFamilyName] = nil
-					addon:DebugSeparation(" Cleaned up empty collected family: " .. originalFamilyName)
+					addon:DebugSeparation("Cleaned up empty collected family: " .. originalFamilyName)
 				end
 			end
 
@@ -433,7 +433,7 @@ function addon:ProcessSeparatedMounts()
 				for i = #self.processedData.familyToUncollectedMountIDsMap[originalFamilyName], 1, -1 do
 					if self.processedData.familyToUncollectedMountIDsMap[originalFamilyName][i] == mountIDNum then
 						table.remove(self.processedData.familyToUncollectedMountIDsMap[originalFamilyName], i)
-						addon:DebugSeparation(" Removed uncollected mount " ..
+						addon:DebugSeparation("Removed uncollected mount " ..
 							mountIDNum .. " from original family " .. originalFamilyName)
 						break
 					end
@@ -442,7 +442,7 @@ function addon:ProcessSeparatedMounts()
 				-- Clean up empty family
 				if #self.processedData.familyToUncollectedMountIDsMap[originalFamilyName] == 0 then
 					self.processedData.familyToUncollectedMountIDsMap[originalFamilyName] = nil
-					addon:DebugSeparation(" Cleaned up empty uncollected family: " .. originalFamilyName)
+					addon:DebugSeparation("Cleaned up empty uncollected family: " .. originalFamilyName)
 				end
 			end
 
@@ -495,7 +495,7 @@ function addon:ProcessSeparatedMounts()
 
 				if not alreadyExists then
 					table.insert(self.processedData.familyToMountIDsMap[newFamilyName], mountIDNum)
-					addon:DebugSeparation(" Added collected mount " .. mountIDNum .. " to new family " .. newFamilyName)
+					addon:DebugSeparation("Added collected mount " .. mountIDNum .. " to new family " .. newFamilyName)
 				end
 
 				-- Update mount info
@@ -505,10 +505,10 @@ function addon:ProcessSeparatedMounts()
 					-- Apply preserved original traits if no custom traits are set
 					if separationData.originalTraits and not (separationData.customTraits and next(separationData.customTraits)) then
 						self.processedData.allCollectedMountFamilyInfo[mountIDNum].traits = separationData.originalTraits
-						addon:DebugSeparation(" Applied original traits to separated collected mount " .. mountIDNum)
+						addon:DebugSeparation("Applied original traits to separated collected mount " .. mountIDNum)
 					elseif separationData.customTraits and next(separationData.customTraits) then
 						self.processedData.allCollectedMountFamilyInfo[mountIDNum].traits = separationData.customTraits
-						addon:DebugSeparation(" Applied custom traits to separated collected mount " .. mountIDNum)
+						addon:DebugSeparation("Applied custom traits to separated collected mount " .. mountIDNum)
 					end
 				end
 			else
@@ -528,7 +528,7 @@ function addon:ProcessSeparatedMounts()
 
 				if not alreadyExists then
 					table.insert(self.processedData.familyToUncollectedMountIDsMap[newFamilyName], mountIDNum)
-					addon:DebugSeparation(" Added uncollected mount " .. mountIDNum .. " to new family " .. newFamilyName)
+					addon:DebugSeparation("Added uncollected mount " .. mountIDNum .. " to new family " .. newFamilyName)
 				end
 
 				-- Update mount info
@@ -538,50 +538,50 @@ function addon:ProcessSeparatedMounts()
 					-- Apply preserved original traits if no custom traits are set
 					if separationData.originalTraits and not (separationData.customTraits and next(separationData.customTraits)) then
 						self.processedData.allUncollectedMountFamilyInfo[mountIDNum].traits = separationData.originalTraits
-						addon:DebugSeparation(" Applied original traits to separated uncollected mount " .. mountIDNum)
+						addon:DebugSeparation("Applied original traits to separated uncollected mount " .. mountIDNum)
 					elseif separationData.customTraits and next(separationData.customTraits) then
 						self.processedData.allUncollectedMountFamilyInfo[mountIDNum].traits = separationData.customTraits
-						addon:DebugSeparation(" Applied custom traits to separated uncollected mount " .. mountIDNum)
+						addon:DebugSeparation("Applied custom traits to separated uncollected mount " .. mountIDNum)
 					end
 				end
 			end
 
 			-- Add to standalone families
 			self.processedData.standaloneFamilyNames[newFamilyName] = true
-			addon:DebugSeparation(" Added " .. newFamilyName .. " to standalone families")
+			addon:DebugSeparation("Added " .. newFamilyName .. " to standalone families")
 		end
 	end
 
-	addon:DebugSeparation(" Separation processing completed")
+	addon:DebugSeparation("Separation processing completed")
 end
 
 -- ============================================================================
 -- INITIALIZATION FUNCTIONS
 -- ============================================================================
 function addon:OnInitialize()
-	self:DebugCore(" OnInitialize CALLED.")
+	self:DebugCore("OnInitialize CALLED.")
 	self:InitializeUIState()
 	-- Load preload data
 	if RandomMountBuddy_PreloadData then
 		self.MountToModelPath = RandomMountBuddy_PreloadData.MountToModelPath or {}
 		self.FamilyDefinitions = RandomMountBuddy_PreloadData.FamilyDefinitions or {}
 		RandomMountBuddy_PreloadData = nil
-		self:DebugCore(" PreloadData processed.")
+		self:DebugCore("PreloadData processed.")
 	else
 		self.MountToModelPath = {}
 		self.FamilyDefinitions = {}
-		self:DebugCore(" PreloadData nil.")
+		self:DebugCore("PreloadData nil.")
 	end
 
 	-- Log data counts
 	local mtpC = 0
 	for _ in pairs(self.MountToModelPath) do mtpC = mtpC + 1 end
 
-	self:DebugCore(" MountToModelPath entries: " .. mtpC)
+	self:DebugCore("MountToModelPath entries: " .. mtpC)
 	local fdC = 0
 	for _ in pairs(self.FamilyDefinitions) do fdC = fdC + 1 end
 
-	self:DebugCore(" FamilyDefinitions entries: " .. fdC)
+	self:DebugCore("FamilyDefinitions entries: " .. fdC)
 	-- Initialize empty processed data
 	self.processedData = {
 		superGroupMap = {},
@@ -590,7 +590,7 @@ function addon:OnInitialize()
 		superGroupToMountIDsMap = {},
 		allCollectedMountFamilyInfo = {},
 	}
-	self:DebugCore(" OnInitialize - Initialized empty self.processedData.")
+	self:DebugCore("OnInitialize - Initialized empty self.processedData.")
 	self.RMB_DataReadyForUI = false
 	self:InitializeBulkPrioritySystem()
 	-- Load mount type data
@@ -601,24 +601,24 @@ function addon:OnInitialize()
 	-- Clear global tables to save memory
 	MountTypeTraits_Input_Helper = nil
 	MountIDtoMountTypeID = nil
-	self:DebugCore(" Mount type data loaded. Types: " .. self:CountTableEntries(self.mountTypeTraits) ..
+	self:DebugCore("Mount type data loaded. Types: " .. self:CountTableEntries(self.mountTypeTraits) ..
 		", ID mappings: " .. self:CountTableEntries(self.mountIDtoTypeID))
 	-- Initialize database
 	if LibAceDB then
 		self.db = LibAceDB:New("RandomMountBuddy_SavedVars", dbDefaults, true)
-		self:DebugCore(" AceDB:New done.")
+		self:DebugCore("AceDB:New done.")
 		self:CleanupLegacyUIState()
 		if self.db and self.db.profile then
-			self:DebugCore(" Initial 'overrideBlizzardButton': " .. tostring(self.db.profile.overrideBlizzardButton))
+			self:DebugCore("Initial 'overrideBlizzardButton': " .. tostring(self.db.profile.overrideBlizzardButton))
 			if self.db.profile.fmItemsPerPage then
 				self.fmItemsPerPage = self.db.profile.fmItemsPerPage
-				self:DebugCore(" Loaded fmItemsPerPage: " .. tostring(self.fmItemsPerPage))
+				self:DebugCore("Loaded fmItemsPerPage: " .. tostring(self.fmItemsPerPage))
 			end
 		else
-			self:DebugCore(" self.db.profile nil!")
+			self:DebugCore("self.db.profile nil!")
 		end
 	else
-		self:DebugCore(" LibAceDB missing.")
+		self:DebugCore("LibAceDB missing.")
 	end
 
 	-- Register slash commands
@@ -626,24 +626,24 @@ function addon:OnInitialize()
 		self:RegisterChatCommand("rmb", "SlashCommandHandler")
 		self:RegisterChatCommand("randommountbuddy", "SlashCommandHandler")
 		self:RegisterChatCommand("rmm", function()
-			addon:DebugCore(" 'rmm' slash command executed from Core.lua")
+			addon:DebugCore("'rmm' slash command executed from Core.lua")
 			if self.ClickSecureButton then
 				self:ClickSecureButton()
 			else
 				addon:DebugSecure("ClickSecureButton method not found!")
 			end
 		end)
-		self:DebugCore(" Slash commands registered.")
+		self:DebugCore("Slash commands registered.")
 	else
-		self:DebugCore(" LibAceConsole missing.")
+		self:DebugCore("LibAceConsole missing.")
 	end
 
 	-- Register events
 	if self.RegisterEvent then
 		self:RegisterEvent("PLAYER_LOGIN", "OnPlayerLoginAttemptProcessData")
-		self:DebugCore(" Registered for PLAYER_LOGIN.")
+		self:DebugCore("Registered for PLAYER_LOGIN.")
 	else
-		self:DebugCore(" self:RegisterEvent missing!")
+		self:DebugCore("self:RegisterEvent missing!")
 	end
 
 	-- Initialize mount pools
@@ -652,27 +652,27 @@ function addon:OnInitialize()
 		ground = { superGroups = {}, families = {}, mountsByFamily = {} },
 		underwater = { superGroups = {}, families = {}, mountsByFamily = {} },
 	}
-	self:DebugCore(" OnInitialize END.")
+	self:DebugCore("OnInitialize END.")
 end
 
 function addon:OnEnable()
-	self:DebugCore(" OnEnable CALLED.")
+	self:DebugCore("OnEnable CALLED.")
 	-- Initialize all mount system modules in proper dependency order
 	self:InitializeAllMountModules()
 	-- Initialize secure handlers last (they depend on mount modules)
 	if self.InitializeSecureHandlers then
 		self:InitializeSecureHandlers()
-		self:DebugCore(" OnEnable - Secure handlers initialization called")
+		self:DebugCore("OnEnable - Secure handlers initialization called")
 	else
-		addon:DebugCore(" InitializeSecureHandlers function not found!")
+		addon:DebugCore("InitializeSecureHandlers function not found!")
 	end
 
-	self:DebugCore(" OnEnable END.")
+	self:DebugCore("OnEnable END.")
 end
 
 -- Centralized module initialization
 function addon:InitializeAllMountModules()
-	self:DebugCore(" Initializing all mount system modules...")
+	self:DebugCore("Initializing all mount system modules...")
 	-- Initialize in dependency order
 	if self.InitializeMountDataManager then
 		self:InitializeMountDataManager()
@@ -710,19 +710,19 @@ function addon:InitializeAllMountModules()
 	-- 1. SuperGroupManager first (core supergroup operations)
 	if self.InitializeSuperGroupManager then
 		self:InitializeSuperGroupManager()
-		self:DebugCore(" SuperGroupManager initialized")
+		self:DebugCore("SuperGroupManager initialized")
 	end
 
 	-- 2. FamilyAssignment next (depends on SuperGroupManager)
 	if self.InitializeFamilyAssignment then
 		self:InitializeFamilyAssignment()
-		self:DebugCore(" FamilyAssignment initialized")
+		self:DebugCore("FamilyAssignment initialized")
 	end
 
 	-- 3. ConfigurationManager last (may need both above modules)
 	if self.InitializeConfigurationManager then
 		self:InitializeConfigurationManager()
-		self:DebugCore(" ConfigurationManager initialized")
+		self:DebugCore("ConfigurationManager initialized")
 	end
 
 	-- UI components come last as they depend on everything else
@@ -730,7 +730,7 @@ function addon:InitializeAllMountModules()
 		self:InitializeMountUI()
 	end
 
-	self:DebugCore(" All mount modules initialized")
+	self:DebugCore("All mount modules initialized")
 end
 
 function addon:OnPlayerLoginAttemptProcessData(eventArg)
@@ -818,7 +818,7 @@ function addon:RefreshMountDataAndUI(changeType, mountID)
 	if changeType == "new_mount" and mountID then
 		local mountName = C_MountJournal.GetMountInfoByID(mountID)
 		if mountName then
-			addon:AlwaysPrint(" New mount added to collection: " .. mountName)
+			addon:AlwaysPrint("New mount added to collection: " .. mountName)
 			-- Could show a more prominent message here if desired
 		end
 	end
@@ -837,12 +837,12 @@ function addon:RebuildMountGrouping()
 			local newFamilyName = separationData.familyName
 			if newFamilyName then
 				newStandaloneFamilies[newFamilyName] = true
-				addon:DebugCore(" Preserving separated family: " .. newFamilyName)
+				addon:DebugCore("Preserving separated family: " .. newFamilyName)
 			end
 		end
 	end
 
-	addon:DebugCore(" Rebuilding mount grouping...")
+	addon:DebugCore("Rebuilding mount grouping...")
 	-- STEP 1: Start with original grouping structure
 	-- Process collected and uncollected mounts to establish baseline
 	local allFamiliesProcessed = {}
@@ -911,7 +911,7 @@ function addon:RebuildMountGrouping()
 	end
 
 	-- STEP 2: Apply user overrides to set INTENDED structure
-	addon:DebugCore(" Applying user supergroup overrides...")
+	addon:DebugCore("Applying user supergroup overrides...")
 	local overrideCount = 0
 	if self.db and self.db.profile and self.db.profile.superGroupOverrides then
 		for familyName, overrideSG in pairs(self.db.profile.superGroupOverrides) do
@@ -923,7 +923,7 @@ function addon:RebuildMountGrouping()
 					for i = #families, 1, -1 do
 						if families[i] == familyName then
 							table.remove(families, i)
-							addon:DebugCore(" Moved " .. familyName .. " from " .. sgName .. " to standalone (user override)")
+							addon:DebugCore("Moved " .. familyName .. " from " .. sgName .. " to standalone (user override)")
 							overrideCount = overrideCount + 1
 						end
 					end
@@ -956,7 +956,7 @@ function addon:RebuildMountGrouping()
 
 				if not alreadyExists then
 					table.insert(newSuperGroupMap[overrideSG], familyName)
-					addon:DebugCore(" Moved " .. familyName .. " to " .. overrideSG .. " (user override)")
+					addon:DebugCore("Moved " .. familyName .. " to " .. overrideSG .. " (user override)")
 					overrideCount = overrideCount + 1
 				end
 			end
@@ -974,20 +974,20 @@ function addon:RebuildMountGrouping()
 					if not (self.db.profile.superGroupOverrides and
 								self.db.profile.superGroupOverrides[familyName]) then
 						newStandaloneFamilies[familyName] = true
-						addon:DebugCore(" Moved " .. familyName .. " to standalone (deleted supergroup: " .. sgName .. ")")
+						addon:DebugCore("Moved " .. familyName .. " to standalone (deleted supergroup: " .. sgName .. ")")
 						overrideCount = overrideCount + 1
 					end
 				end
 
 				-- Remove the deleted supergroup
 				newSuperGroupMap[sgName] = nil
-				addon:DebugCore(" Removed deleted supergroup: " .. sgName)
+				addon:DebugCore("Removed deleted supergroup: " .. sgName)
 			end
 		end
 	end
 
 	if overrideCount > 0 then
-		addon:DebugCore(" Applied " .. overrideCount .. " user supergroup overrides")
+		addon:DebugCore("Applied " .. overrideCount .. " user supergroup overrides")
 	end
 
 	-- STEP 3: NOW apply trait strictness to the intended structure
@@ -1011,6 +1011,19 @@ function addon:RebuildMountGrouping()
 		end
 	end
 
+	-- FIXED: Also check families that were assigned from standalone to supergroups
+	if self.db and self.db.profile and self.db.profile.superGroupOverrides then
+		for familyName, override in pairs(self.db.profile.superGroupOverrides) do
+			if type(override) == "string" and override ~= "" then
+				-- This family was assigned to a supergroup, make sure it's in our intended families
+				if not allIntendedFamilies[familyName] then
+					allIntendedFamilies[familyName] = override
+					addon:DebugCore("Added assigned family to trait processing: " .. familyName .. " -> " .. override)
+				end
+			end
+		end
+	end
+
 	for familyName, _ in pairs(newStandaloneFamilies) do
 		allIntendedFamilies[familyName] = nil -- Mark as intended standalone
 	end
@@ -1031,7 +1044,7 @@ function addon:RebuildMountGrouping()
 							table.remove(newSuperGroupMap[intendedSG], i)
 							newStandaloneFamilies[familyName] = true
 							traitSeparationCount = traitSeparationCount + 1
-							addon:DebugCore(" Separated " .. familyName .. " from " .. intendedSG .. " due to trait strictness")
+							addon:DebugCore("Separated " .. familyName .. " from " .. intendedSG .. " due to trait strictness")
 							break
 						end
 					end
@@ -1041,7 +1054,7 @@ function addon:RebuildMountGrouping()
 	end
 
 	if traitSeparationCount > 0 then
-		addon:DebugCore(" Separated " .. traitSeparationCount .. " families due to trait strictness")
+		addon:DebugCore("Separated " .. traitSeparationCount .. " families due to trait strictness")
 	end
 
 	-- Clean up empty supergroups created by trait separation
@@ -1054,7 +1067,7 @@ function addon:RebuildMountGrouping()
 
 	for _, sgName in ipairs(emptySuperGroups) do
 		newSuperGroupMap[sgName] = nil
-		addon:DebugCore(" Removed empty supergroup: " .. sgName)
+		addon:DebugCore("Removed empty supergroup: " .. sgName)
 	end
 
 	-- Replace the original grouping with the new one
@@ -1420,7 +1433,7 @@ function addon:SetGroupWeight(gk, w)
 
 	local nw = tonumber(w)
 	if nw == nil or nw < 0 or nw > 6 then
-		addon:DebugCore(" Invalid W for " .. tostring(gk))
+		addon:DebugCore("Invalid W for " .. tostring(gk))
 		return
 	end
 
@@ -1443,17 +1456,17 @@ function addon:SyncWeightForSingleMountFamily(groupKey, weight)
 			local currentMountWeight = self.db.profile.groupWeights[mountKey] or 0
 			if currentMountWeight ~= weight then
 				self.db.profile.groupWeights[mountKey] = weight
-				addon:DebugSync(" Family '" .. groupKey .. "' synced weight " .. weight .. " to mount '" .. mountKey .. "'")
+				addon:DebugSync("Family '" .. groupKey .. "' synced weight " .. weight .. " to mount '" .. mountKey .. "'")
 				-- FIX: Add debug for separated mounts
 				if self.db and self.db.profile and self.db.profile.separatedMounts and self.db.profile.separatedMounts[mountID] then
-					addon:DebugSync(" ^^^ This was a separated mount sync")
+					addon:DebugSync("^^^ This was a separated mount sync")
 				end
 
 				refreshNeeded = true
 			end
 		else
 			-- Debug why sync didn't happen
-			addon:DebugSync(" Family '" ..
+			addon:DebugSync("Family '" ..
 				groupKey .. "' - isSingleMount: " .. tostring(isSingleMount) .. ", mountID: " .. tostring(mountID))
 		end
 	else
@@ -1469,10 +1482,10 @@ function addon:SyncWeightForSingleMountFamily(groupKey, weight)
 					local currentFamilyWeight = self.db.profile.groupWeights[familyName] or 0
 					if currentFamilyWeight ~= weight then
 						self.db.profile.groupWeights[familyName] = weight
-						addon:DebugSync(" Mount '" .. groupKey .. "' synced weight " .. weight .. " to family '" .. familyName .. "'")
+						addon:DebugSync("Mount '" .. groupKey .. "' synced weight " .. weight .. " to family '" .. familyName .. "'")
 						-- FIX: Add debug for separated mounts
 						if self.db and self.db.profile and self.db.profile.separatedMounts and self.db.profile.separatedMounts[currentMountID] then
-							addon:DebugSync(" ^^^ This was a separated mount family sync")
+							addon:DebugSync("^^^ This was a separated mount family sync")
 						end
 
 						refreshNeeded = true
@@ -1480,7 +1493,7 @@ function addon:SyncWeightForSingleMountFamily(groupKey, weight)
 				end
 			else
 				-- Debug why sync didn't happen
-				addon:DebugSync(" Mount '" ..
+				addon:DebugSync("Mount '" ..
 					groupKey ..
 					"' family '" ..
 					familyName .. "' - isSingleMount: " .. tostring(isSingleMount) .. ", mountID: " .. tostring(mountID))
@@ -1500,7 +1513,7 @@ function addon:SyncWeightForSingleMountFamily(groupKey, weight)
 		-- Refresh mount pools so changes take effect immediately in summoning
 		if self.RefreshMountPools then
 			self:RefreshMountPools()
-			addon:DebugSync(" Refreshed mount pools for immediate sync effect")
+			addon:DebugSync("Refreshed mount pools for immediate sync effect")
 		end
 	end
 end
@@ -1811,7 +1824,7 @@ function addon:ApplyBulkPriorityChange(groupKeys, newPriority, skipConfirmation)
 		return
 	end
 
-	addon:DebugBulk(" ApplyBulkPriorityChange called - " ..
+	addon:DebugBulk("ApplyBulkPriorityChange called - " ..
 		#groupKeys .. " items, priority " .. priority .. ", skipConfirmation: " .. tostring(skipConfirmation))
 	-- For large operations, store the data and show a confirmation message
 	if not skipConfirmation and #groupKeys > 50 then
@@ -1830,7 +1843,7 @@ function addon:ApplyBulkPriorityChange(groupKeys, newPriority, skipConfirmation)
 			priority = priority,
 			priorityName = priorityNames[priority] or tostring(priority),
 		}
-		addon:DebugBulk(" Storing pending bulk operation for " ..
+		addon:DebugBulk("Storing pending bulk operation for " ..
 			#groupKeys .. " items to " .. (priorityNames[priority] or tostring(priority)))
 		-- Trigger UI refresh to show the confirmation option
 		if self.PopulateFamilyManagementUI then
@@ -1854,7 +1867,7 @@ function addon:ExecutePendingBulkOperation()
 
 	local operation = self.pendingBulkOperation
 	self.pendingBulkOperation = nil -- Clear it first
-	addon:DebugBulk(" Executing pending bulk operation - " ..
+	addon:DebugBulk("Executing pending bulk operation - " ..
 		#operation.groupKeys .. " items to priority " .. operation.priority)
 	self:PerformBulkPriorityUpdate(operation.groupKeys, operation.priority)
 	-- Refresh UI to remove confirmation section and show updated weights
@@ -1993,7 +2006,7 @@ StaticPopupDialogs["RMB_BULK_PRIORITY_CONFIRM"] = {
 	OnAccept = function(self, data)
 		addon:DebugBulk("StaticPopup OnAccept called")
 		if data then
-			addon:DebugBulk(" Data exists - groupKeys: " ..
+			addon:DebugBulk("Data exists - groupKeys: " ..
 				tostring(data.groupKeys and #data.groupKeys) .. ", priority: " .. tostring(data.priority))
 			if data.groupKeys and data.priority then
 				addon:DebugBulk("Calling PerformBulkPriorityUpdate from popup")
@@ -2021,7 +2034,7 @@ StaticPopupDialogs["RMB_BULK_PRIORITY_CONFIRM"] = {
 -- ============================================================================
 function addon:GetDisplayableGroups()
 	if not self.RMB_DataReadyForUI or not self.processedData then
-		addon:DebugUI(" Data not ready")
+		addon:DebugUI("Data not ready")
 		return {}
 	end
 
@@ -2577,7 +2590,7 @@ function addon:MigrateSuperGroupData()
 		-- Remove invalid overrides
 		for _, familyName in ipairs(invalidOverrides) do
 			self.db.profile.superGroupOverrides[familyName] = nil
-			addon:DebugCore(" Removed invalid override for non-existent family: " .. familyName)
+			addon:DebugCore("Removed invalid override for non-existent family: " .. familyName)
 		end
 	end
 
@@ -2602,12 +2615,12 @@ end
 -- Main summoning interface
 function addon:SummonRandomMount(useContext)
 	if not self.RMB_DataReadyForUI then
-		addon:DebugSummon(" Data not ready for summoning")
+		addon:DebugSummon("Data not ready for summoning")
 		return false
 	end
 
 	if not self.MountSummon then
-		addon:AlwaysPrint(" MountSummon module not initialized")
+		addon:AlwaysPrint("MountSummon module not initialized")
 		return false
 	end
 
@@ -2640,41 +2653,41 @@ function addon:GetSmartButtonAction()
 end
 
 function addon:NotifyModulesDataReady()
-	self:DebugCore(" Notifying modules that data is ready...")
+	self:DebugCore("Notifying modules that data is ready...")
 	-- Notify each module that data is ready
 	if self.MountDataManager and self.MountDataManager.OnDataReady then
 		self.MountDataManager:OnDataReady()
-		self:DebugCore(" Notified MountDataManager")
+		self:DebugCore("Notified MountDataManager")
 	end
 
 	if self.MountSummon and self.MountSummon.OnDataReady then
 		self.MountSummon:OnDataReady()
-		self:DebugCore(" Notified MountSummon - this builds mount pools!")
+		self:DebugCore("Notified MountSummon - this builds mount pools!")
 	end
 
 	if self.FilterSystem and self.FilterSystem.OnDataReady then
 		self.FilterSystem:OnDataReady()
-		self:DebugCore(" Notified FilterSystem")
+		self:DebugCore("Notified FilterSystem")
 	end
 
 	if self.MountTooltips and self.MountTooltips.OnDataReady then
 		self.MountTooltips:OnDataReady()
-		self:DebugCore(" Notified MountTooltips")
+		self:DebugCore("Notified MountTooltips")
 	end
 
 	if self.MountPreview and self.MountPreview.OnDataReady then
 		self.MountPreview:OnDataReady()
-		self:DebugCore(" Notified MountPreview")
+		self:DebugCore("Notified MountPreview")
 	end
 
 	if self.FavoriteSync and self.FavoriteSync.OnDataReady then
 		self.FavoriteSync:OnDataReady()
-		self:DebugCore(" Notified FavoriteSync")
+		self:DebugCore("Notified FavoriteSync")
 	end
 
 	-- Refresh SuperGroupManager UI when data is ready
 	if self.SuperGroupManager then
-		self:DebugCore(" Refreshing SuperGroup Manager UI with fresh data...")
+		self:DebugCore("Refreshing SuperGroup Manager UI with fresh data...")
 		-- Use a small delay to ensure all other modules are ready
 		C_Timer.After(0.1, function()
 			self.SuperGroupManager:PopulateSuperGroupManagementUI()
@@ -2683,14 +2696,14 @@ function addon:NotifyModulesDataReady()
 				self.FamilyAssignment:PopulateFamilyAssignmentUI()
 			end
 
-			self:DebugCore(" SuperGroup Manager UI refreshed")
+			self:DebugCore("SuperGroup Manager UI refreshed")
 		end)
 	end
 
 	-- Refresh MountSeparationManager UI when data is ready
 	if self.MountSeparationManager and self.MountSeparationManager.OnDataReady then
 		self.MountSeparationManager:OnDataReady()
-		self:DebugCore(" Notified MountSeparationManager")
+		self:DebugCore("Notified MountSeparationManager")
 	end
 
 	-- Also notify about mount collection changes
@@ -2710,16 +2723,16 @@ function addon:CleanupLegacyUIState()
 
 	-- Remove legacy UI state from saved variables
 	if self.db.profile.filtersExpanded ~= nil then
-		addon:DebugCore(" Removing legacy filtersExpanded from saved variables")
+		addon:DebugCore("Removing legacy filtersExpanded from saved variables")
 		self.db.profile.filtersExpanded = nil
 	end
 
 	if self.db.profile.expansionStates ~= nil then
-		addon:DebugCore(" Removing legacy expansionStates from saved variables")
+		addon:DebugCore("Removing legacy expansionStates from saved variables")
 		self.db.profile.expansionStates = nil
 	end
 
-	addon:DebugCore(" Legacy UI state cleanup completed")
+	addon:DebugCore("Legacy UI state cleanup completed")
 end
 
 -- ============================================================================
@@ -2737,7 +2750,7 @@ function addon:CountTableEntries(tbl)
 end
 
 function addon:GetFavoriteMountsForOptions()
-	addon:DebugCore(" GetFavoriteMountsForOptions (placeholder)")
+	addon:DebugCore("GetFavoriteMountsForOptions (placeholder)")
 	return {
 		p = {
 			order = 1,

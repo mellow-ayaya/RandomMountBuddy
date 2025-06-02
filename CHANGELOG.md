@@ -1,3 +1,10 @@
+# 0.9.4
+UI overhaul stage 3/x.
+Overhauled Supergroup Manager, Family Assignments and Mount Separate.
+Removed unwanted spacing from debug messages.
+Added description to Advanced Settings tab.
+Fixed Supergroup Manager list not refreshing after deleting a Supergroup.
+
 # 0.9.3
 UI overhaul stage 2/x.
 Moved Supergroup Manager, Family Assignments and Mount Separate under a new expandable menu: Advanced settings.

@@ -11,7 +11,7 @@ addon.FavoriteSync = FavoriteSync
 -- INITIALIZATION
 -- ============================================================================
 function FavoriteSync:Initialize()
-	addon:DebugSync(" Initializing favorite mount synchronization system...")
+	addon:DebugSync("Initializing favorite mount synchronization system...")
 	-- Track favorite changes
 	self.lastFavoriteHash = nil
 	self.syncInProgress = false
@@ -24,12 +24,12 @@ function FavoriteSync:Initialize()
 	if self.favoriteCheckTimer then
 		self.favoriteCheckTimer:Cancel()
 		self.favoriteCheckTimer = nil
-		addon:DebugSync(" Cleaned up old periodic timer")
+		addon:DebugSync("Cleaned up old periodic timer")
 	end
 
 	-- Register for mount journal events (but not PLAYER_LOGIN - we'll use OnDataReady instead)
 	self:RegisterFavoriteEvents()
-	addon:DebugSync(" Initialized successfully")
+	addon:DebugSync("Initialized successfully")
 end
 
 -- ============================================================================
@@ -76,7 +76,7 @@ function FavoriteSync:RegisterFavoriteEvents()
 	self.eventFrame:RegisterEvent("ADDON_LOADED")
 	-- Try to hook immediately if journal is already loaded
 	self:HookMountJournal()
-	addon:DebugSync(" Registered for essential events (ADDON_LOADED)")
+	addon:DebugSync("Registered for essential events (ADDON_LOADED)")
 end
 
 -- Hook the Mount Journal to detect when users close it
@@ -87,23 +87,23 @@ function FavoriteSync:HookMountJournal()
 		CollectionsJournal:HookScript("OnHide", function()
 			-- Check if the mount tab was active when journal was closed
 			if PanelTemplates_GetSelectedTab(CollectionsJournal) == 1 then -- Mount tab is usually tab 1
-				addon:DebugSync(" Mount Journal closed, checking for favorite changes")
+				addon:DebugSync("Mount Journal closed, checking for favorite changes")
 				self:OnMountJournalClosed()
 			end
 		end)
 		self.journalHooked = true
-		addon:DebugSync(" Successfully hooked Collections Journal OnHide")
+		addon:DebugSync("Successfully hooked Collections Journal OnHide")
 	end
 
 	-- Also try to hook the mount journal frame directly if it exists
 	if MountJournal and not self.mountJournalHooked then
 		-- Hook when mount journal specifically is hidden
 		MountJournal:HookScript("OnHide", function()
-			addon:DebugSync(" MountJournal frame hidden, checking for favorite changes")
+			addon:DebugSync("MountJournal frame hidden, checking for favorite changes")
 			self:OnMountJournalClosed()
 		end)
 		self.mountJournalHooked = true
-		addon:DebugSync(" Successfully hooked MountJournal OnHide")
+		addon:DebugSync("Successfully hooked MountJournal OnHide")
 	end
 
 	-- Fallback: Try to hook when Collections Journal becomes available
@@ -123,13 +123,13 @@ function FavoriteSync:OnMountJournalClosed()
 
 	-- Only check for changes if we have processed data
 	if not addon.RMB_DataReadyForUI then
-		addon:DebugSync(" Data not ready, skipping favorite check")
+		addon:DebugSync("Data not ready, skipping favorite check")
 		return
 	end
 
 	-- Prevent duplicate calls (since we hook both frames)
 	if self.checkingFavorites then
-		addon:DebugSync(" Already checking favorites, skipping duplicate call")
+		addon:DebugSync("Already checking favorites, skipping duplicate call")
 		return
 	end
 
@@ -140,11 +140,11 @@ function FavoriteSync:OnMountJournalClosed()
 		-- SIMPLIFIED: Only use comprehensive weight check
 		local syncNeeded = self:AreWeightsMisaligned()
 		if syncNeeded then
-			addon:DebugSync(" Weight misalignment detected, correcting")
+			addon:DebugSync("Weight misalignment detected, correcting")
 			-- Always use optimized bulk sync for journal changes
 			self:SyncFavoriteMounts(true)
 		else
-			addon:DebugSync(" All weights properly aligned")
+			addon:DebugSync("All weights properly aligned")
 		end
 	end)
 end
@@ -156,7 +156,7 @@ function FavoriteSync:AreWeightsMisaligned()
 	local favoriteWeight = self:GetSetting("favoriteWeight")
 	local nonFavoriteWeight = self:GetSetting("nonFavoriteWeight")
 	local weightMode = self:GetSetting("favoriteWeightMode")
-	addon:DebugSync(" Checking weight alignment for " ..
+	addon:DebugSync("Checking weight alignment for " ..
 		#favoriteMounts .. " favorites and " .. #nonFavoriteMounts .. " non-favorites")
 	-- Check if any favorites have wrong weight
 	for _, mount in ipairs(favoriteMounts) do
@@ -170,7 +170,7 @@ function FavoriteSync:AreWeightsMisaligned()
 		end
 
 		if needsUpdate then
-			addon:DebugSync(" Favorite mount " ..
+			addon:DebugSync("Favorite mount " ..
 				mount.name .. " has weight " .. currentWeight .. ", should be " .. favoriteWeight)
 			return true -- Found misalignment
 		end
@@ -183,7 +183,7 @@ function FavoriteSync:AreWeightsMisaligned()
 			local currentWeight = addon:GetGroupWeight(mountKey)
 			-- For non-favorites, always use "set" mode (exact weight)
 			if currentWeight ~= nonFavoriteWeight then
-				addon:DebugSync(" Non-favorite mount " ..
+				addon:DebugSync("Non-favorite mount " ..
 					mount.name .. " has weight " .. currentWeight .. ", should be " .. nonFavoriteWeight)
 				return true -- Found misalignment
 			end
@@ -208,7 +208,7 @@ function FavoriteSync:AreWeightsMisaligned()
 				end
 
 				if needsUpdate then
-					addon:DebugSync(" Family with favorites " ..
+					addon:DebugSync("Family with favorites " ..
 						familyName .. " has weight " .. currentWeight .. ", should be " .. favoriteWeight)
 					return true
 				end
@@ -227,7 +227,7 @@ function FavoriteSync:AreWeightsMisaligned()
 				end
 
 				if needsUpdate then
-					addon:DebugSync(" SuperGroup with favorites " ..
+					addon:DebugSync("SuperGroup with favorites " ..
 						superGroupName .. " has weight " .. currentWeight .. ", should be " .. favoriteWeight)
 					return true
 				end
@@ -235,7 +235,7 @@ function FavoriteSync:AreWeightsMisaligned()
 		end
 	end
 
-	addon:DebugSync(" All weights properly aligned")
+	addon:DebugSync("All weights properly aligned")
 	return false -- All weights are aligned
 end
 
@@ -244,7 +244,7 @@ end
 -- ============================================================================
 function FavoriteSync:GetAllFavoriteMounts()
 	if not addon.RMB_DataReadyForUI or not addon.processedData then
-		addon:DebugSync(" Data not ready - RMB_DataReadyForUI: " ..
+		addon:DebugSync("Data not ready - RMB_DataReadyForUI: " ..
 			tostring(addon.RMB_DataReadyForUI) .. ", processedData exists: " ..
 			tostring(addon.processedData ~= nil))
 		return {}, {}
@@ -277,7 +277,7 @@ function FavoriteSync:GetAllFavoriteMounts()
 		end
 	end
 
-	addon:DebugSync(" Processed " .. mountCount .. " total mounts, found " ..
+	addon:DebugSync("Processed " .. mountCount .. " total mounts, found " ..
 		#favoriteMounts .. " favorite mounts and " .. #nonFavoriteMounts .. " non-favorite mounts")
 	return favoriteMounts, nonFavoriteMounts
 end
@@ -292,7 +292,7 @@ function FavoriteSync:CreateFavoriteHash()
 
 	table.sort(ids)
 	local hash = table.concat(ids, ",")
-	addon:DebugSync(" Created hash from " .. #ids .. " favorites: " .. string.sub(hash, 1, 50) .. "...")
+	addon:DebugSync("Created hash from " .. #ids .. " favorites: " .. string.sub(hash, 1, 50) .. "...")
 	return hash
 end
 
@@ -317,28 +317,28 @@ end
 -- Optimized version of SyncFavoriteMounts that batches all updates
 function FavoriteSync:SyncFavoriteMountsOptimized(forceSync)
 	if self.syncInProgress then
-		addon:DebugSync(" Sync already in progress, skipping")
+		addon:DebugSync("Sync already in progress, skipping")
 		return false
 	end
 
 	-- Since we're calling this from OnDataReady or manual triggers, data should always be ready
 	if not addon.RMB_DataReadyForUI or not addon.processedData then
-		addon:DebugSync(" ERROR - Data not ready when sync was called")
+		addon:DebugSync("ERROR - Data not ready when sync was called")
 		return false
 	end
 
 	if not forceSync and not self:HasFavoritesChanged() then
-		addon:DebugSync(" No changes detected in favorites")
+		addon:DebugSync("No changes detected in favorites")
 		return false
 	end
 
 	self.syncInProgress = true
-	addon:DebugSync(" Starting OPTIMIZED favorite mount synchronization..." ..
+	addon:DebugSync("Starting OPTIMIZED favorite mount synchronization..." ..
 		(forceSync and " (FORCED)" or ""))
 	local startTime = debugprofilestop()
 	local favoriteMounts, nonFavoriteMounts = self:GetAllFavoriteMounts()
 	if #favoriteMounts == 0 then
-		addon:DebugSync(" No favorite mounts found, aborting sync")
+		addon:DebugSync("No favorite mounts found, aborting sync")
 		self.syncInProgress = false
 		return false
 	end
@@ -350,7 +350,7 @@ function FavoriteSync:SyncFavoriteMountsOptimized(forceSync)
 	local weightMode = self:GetSetting("favoriteWeightMode")
 	-- Analyze hierarchy ONCE
 	local familiesWithFavorites, superGroupsWithFavorites = self:AnalyzeFavoriteHierarchy(favoriteMounts)
-	addon:DebugSync(" Analysis complete - " ..
+	addon:DebugSync("Analysis complete - " ..
 		self:CountTableEntries(familiesWithFavorites) .. " families with favorites, " ..
 		self:CountTableEntries(superGroupsWithFavorites) .. " supergroups with favorites")
 	local counters = {
@@ -360,7 +360,7 @@ function FavoriteSync:SyncFavoriteMountsOptimized(forceSync)
 		mountsSkipped = 0,
 	}
 	-- BATCH UPDATE APPROACH - No individual notifications!
-	addon:DebugSync(" Starting batch weight updates...")
+	addon:DebugSync("Starting batch weight updates...")
 	-- Step 1: Update ALL favorite mounts at once
 	for _, mount in ipairs(favoriteMounts) do
 		local mountKey = "mount_" .. mount.id
@@ -482,10 +482,10 @@ function FavoriteSync:SyncFavoriteMountsOptimized(forceSync)
 	local elapsed = endTime - startTime
 	-- Update settings
 	self:SetSetting("lastSyncTime", time())
-	addon:DebugSync(" Batch updates completed in " .. string.format("%.2fms", elapsed))
-	addon:DebugSync(" Updated " .. counters.mountsUpdated .. " mounts, " ..
+	addon:DebugSync("Batch updates completed in " .. string.format("%.2fms", elapsed))
+	addon:DebugSync("Updated " .. counters.mountsUpdated .. " mounts, " ..
 		counters.familiesUpdated .. " families, " .. counters.superGroupsUpdated .. " supergroups")
-	addon:DebugSync(" Skipped " .. counters.mountsSkipped .. " mounts (already correct weight)")
+	addon:DebugSync("Skipped " .. counters.mountsSkipped .. " mounts (already correct weight)")
 	self.syncInProgress = false
 	-- ONE notification for everything
 	self:NotifyOtherSystems()
@@ -499,13 +499,13 @@ end
 -- ============================================================================
 function FavoriteSync:SyncFavoriteMounts(forceSync)
 	if self.syncInProgress then
-		addon:DebugSync(" Sync already in progress, skipping")
+		addon:DebugSync("Sync already in progress, skipping")
 		return false
 	end
 
 	-- Data readiness check
 	if not addon.RMB_DataReadyForUI or not addon.processedData then
-		addon:DebugSync(" ERROR - Data not ready when sync was called")
+		addon:DebugSync("ERROR - Data not ready when sync was called")
 		return false
 	end
 
@@ -513,7 +513,7 @@ function FavoriteSync:SyncFavoriteMounts(forceSync)
 	if not forceSync then
 		local syncNeeded = self:AreWeightsMisaligned()
 		if not syncNeeded then
-			addon:DebugSync(" No weight misalignments detected")
+			addon:DebugSync("No weight misalignments detected")
 			return false
 		end
 	end
@@ -592,7 +592,7 @@ end
 -- ============================================================================
 -- Verify sync results
 function FavoriteSync:VerifySyncResults()
-	addon:DebugSync(" Verifying sync results...")
+	addon:DebugSync("Verifying sync results...")
 	local favoriteMounts, nonFavoriteMounts = self:GetAllFavoriteMounts()
 	local favoriteWeight = self:GetSetting("favoriteWeight")
 	local nonFavoriteWeight = self:GetSetting("nonFavoriteWeight")
@@ -606,7 +606,7 @@ function FavoriteSync:VerifySyncResults()
 			correctFavorites = correctFavorites + 1
 		else
 			incorrectFavorites = incorrectFavorites + 1
-			addon:DebugSync(" WARNING - Favorite mount " .. mount.name ..
+			addon:DebugSync("WARNING - Favorite mount " .. mount.name ..
 				" has weight " .. currentWeight .. ", expected " .. favoriteWeight)
 		end
 	end
@@ -626,12 +626,12 @@ function FavoriteSync:VerifySyncResults()
 		end
 	end
 
-	addon:DebugSync(" Verification Results:")
-	addon:DebugSync("  Favorites: " .. correctFavorites .. " correct, " .. incorrectFavorites .. " incorrect")
+	addon:DebugSync("Verification Results:")
+	addon:DebugSync("Favorites: " .. correctFavorites .. " correct, " .. incorrectFavorites .. " incorrect")
 	if nonFavoriteWeight ~= 3 then
-		addon:DebugSync("  Non-favorites: " .. correctNonFavorites .. " correct, " .. incorrectNonFavorites .. " incorrect")
+		addon:DebugSync("Non-favorites: " .. correctNonFavorites .. " correct, " .. incorrectNonFavorites .. " incorrect")
 	else
-		addon:DebugSync("  Non-favorites: Not checked (weight set to default)")
+		addon:DebugSync("Non-favorites: Not checked (weight set to default)")
 	end
 
 	return (incorrectFavorites == 0) and (incorrectNonFavorites == 0)
@@ -639,14 +639,14 @@ end
 
 -- Test functions
 function FavoriteSync:TestLoginSyncTiming()
-	addon:DebugSync(" Testing login sync timing...")
-	addon:DebugSync(" hasPerformedLoginSync = " .. tostring(self.hasPerformedLoginSync))
-	addon:DebugSync(" enableFavoriteSync = " .. tostring(self:GetSetting("enableFavoriteSync")))
-	addon:DebugSync(" syncOnLogin = " .. tostring(self:GetSetting("syncOnLogin")))
-	addon:DebugSync(" RMB_DataReadyForUI = " .. tostring(addon.RMB_DataReadyForUI))
-	addon:DebugSync(" processedData exists = " .. tostring(addon.processedData ~= nil))
+	addon:DebugSync("Testing login sync timing...")
+	addon:DebugSync("hasPerformedLoginSync = " .. tostring(self.hasPerformedLoginSync))
+	addon:DebugSync("enableFavoriteSync = " .. tostring(self:GetSetting("enableFavoriteSync")))
+	addon:DebugSync("syncOnLogin = " .. tostring(self:GetSetting("syncOnLogin")))
+	addon:DebugSync("RMB_DataReadyForUI = " .. tostring(addon.RMB_DataReadyForUI))
+	addon:DebugSync("processedData exists = " .. tostring(addon.processedData ~= nil))
 	-- Reset the login sync flag to simulate a fresh login
-	addon:DebugSync(" Resetting login sync flag and simulating OnDataReady...")
+	addon:DebugSync("Resetting login sync flag and simulating OnDataReady...")
 	self.hasPerformedLoginSync = false
 	self:OnDataReady()
 end
@@ -655,7 +655,7 @@ end
 -- MANUAL SYNC FUNCTIONS
 -- ============================================================================
 function FavoriteSync:ManualSync()
-	addon:DebugSync(" Manual sync requested")
+	addon:DebugSync("Manual sync requested")
 	return self:SyncFavoriteMounts(true) -- Force sync
 end
 
@@ -679,29 +679,29 @@ end
 -- INTEGRATION HOOKS
 -- ============================================================================
 function FavoriteSync:OnDataReady()
-	addon:DebugSync(" Data ready notification received")
+	addon:DebugSync("Data ready notification received")
 	-- Initialize favorite hash now that data is available
 	if addon.RMB_DataReadyForUI then
 		self.lastFavoriteHash = self:CreateFavoriteHash()
-		addon:DebugSync(" Initialized baseline favorite hash")
+		addon:DebugSync("Initialized baseline favorite hash")
 		-- Check if we should perform login sync
 		if not self.hasPerformedLoginSync then
 			self.hasPerformedLoginSync = true -- Mark that we've attempted it
 			if self:GetSetting("enableFavoriteSync") and self:GetSetting("syncOnLogin") then
 				-- SIMPLIFIED: Use comprehensive weight check instead of sampling
-				addon:DebugSync(" Checking if login sync needed...")
+				addon:DebugSync("Checking if login sync needed...")
 				local syncNeeded = self:AreWeightsMisaligned()
 				if syncNeeded then
-					addon:DebugSync(" Login sync needed, performing sync")
+					addon:DebugSync("Login sync needed, performing sync")
 					-- Schedule the sync with a small delay to ensure everything is fully loaded
 					C_Timer.After(2, function()
 						self:SyncFavoriteMounts(true) -- Force sync on login
 					end)
 				else
-					addon:DebugSync(" Login sync not needed - all weights properly aligned")
+					addon:DebugSync("Login sync not needed - all weights properly aligned")
 				end
 			else
-				addon:DebugSync(" Login sync disabled or favorite sync disabled")
+				addon:DebugSync("Login sync disabled or favorite sync disabled")
 			end
 		end
 	end
@@ -725,12 +725,12 @@ end
 -- ============================================================================
 function addon:InitializeFavoriteSync()
 	if not self.FavoriteSync then
-		addon:DebugSync(" ERROR - FavoriteSync not found!")
+		addon:DebugSync("ERROR - FavoriteSync not found!")
 		return
 	end
 
 	self.FavoriteSync:Initialize()
-	addon:DebugSync(" Integration complete")
+	addon:DebugSync("Integration complete")
 end
 
 addon:DebugCore("FavoriteSync.lua END (Optimized).")

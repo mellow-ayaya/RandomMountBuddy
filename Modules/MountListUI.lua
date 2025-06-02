@@ -39,18 +39,18 @@ end
 -- MAIN UI CONTROLLER
 -- ============================================================================
 function addon:InitializeMountUI()
-	addon:DebugUI(" Initializing mount UI systems...")
+	addon:DebugUI("Initializing mount UI systems...")
 	-- Initialize UI state
 	self.fmCurrentPage = 1
 	self.fmItemsPerPage = self.fmItemsPerPage or 14
-	addon:DebugUI(" Mount UI system initialized")
+	addon:DebugUI("Mount UI system initialized")
 end
 
 -- ============================================================================
 -- MAIN UI BUILDING FUNCTION
 -- ============================================================================
 function addon:BuildFamilyManagementArgs()
-	addon:DebugUI(" BuildFamilyManagementArgs called (With Bulk Priority, Search and Filters)")
+	addon:DebugUI("BuildFamilyManagementArgs called (With Bulk Priority, Search and Filters)")
 	local pageArgs = {}
 	local displayOrder = 1
 	-- Check if data is ready
@@ -417,7 +417,7 @@ function addon:BuildFamilyManagementArgs()
 	-- Calculate page bounds and build group entries
 	local startIndex = (currentPage - 1) * itemsPerPage + 1
 	local endIndex = math.min(startIndex + itemsPerPage - 1, totalGroups)
-	addon:DebugUI(" Building page " .. currentPage .. " (" .. startIndex .. "-" .. endIndex .. " of " .. totalGroups .. ")")
+	addon:DebugUI("Building page " .. currentPage .. " (" .. startIndex .. "-" .. endIndex .. " of " .. totalGroups .. ")")
 	local groupEntryOrder = displayOrder
 	local actualItemsOnPage = 0
 	for i = startIndex, endIndex do
@@ -484,11 +484,10 @@ function addon:BuildFamilyManagementArgs()
 		end
 	end
 
-	addon:DebugUI(" Built UI with " .. (endIndex - startIndex + 1) .. " group entries")
+	addon:DebugUI("Built UI with " .. (endIndex - startIndex + 1) .. " group entries")
 	return pageArgs
 end
 
--- ADD this new function to MountListUI.lua:
 function addon:BuildFilterPanelArgs()
 	local filterArgs = {}
 	local order = 1
@@ -880,7 +879,7 @@ end
 -- UI REFRESH AND POPULATION
 -- ============================================================================
 function addon:PopulateFamilyManagementUI()
-	addon:DebugUI(" PopulateFamilyManagementUI called (Fixed Dynamic Grouping)")
+	addon:DebugUI("PopulateFamilyManagementUI called (Fixed Dynamic Grouping)")
 	if not self.fmArgsRef then
 		addon:DebugUI("self.fmArgsRef is nil! Options.lua problem.")
 		return
@@ -917,7 +916,7 @@ function addon:PopulateFamilyManagementUI()
 		addon:DebugPerf(string.format(" UI build took %.2fms", elapsed))
 	end
 
-	addon:DebugUI(" UI populated successfully")
+	addon:DebugUI("UI populated successfully")
 end
 
 -- ============================================================================
@@ -960,13 +959,13 @@ end
 -- ============================================================================
 function addon:ToggleExpansionState(groupKey)
 	if not self.uiState then
-		addon:DebugUI(" UI state not initialized")
+		addon:DebugUI("UI state not initialized")
 		return
 	end
 
 	-- Store expansion state in memory only (not saved to database)
 	self.uiState.expansionStates[groupKey] = not self.uiState.expansionStates[groupKey]
-	addon:DebugUI(" Toggled expansion for '" .. tostring(groupKey) .. "' to " ..
+	addon:DebugUI("Toggled expansion for '" .. tostring(groupKey) .. "' to " ..
 		tostring(self.uiState.expansionStates[groupKey]))
 	self:TriggerFamilyManagementUIRefresh()
 end
@@ -980,7 +979,7 @@ function addon:IsGroupExpanded(groupKey)
 end
 
 function addon:CollapseAllExpanded()
-	addon:DebugUI(" Collapsing all expanded groups")
+	addon:DebugUI("Collapsing all expanded groups")
 	if not self.uiState then
 		return false
 	end
@@ -1148,11 +1147,11 @@ function addon:ShowMountPreview(mountID, mountName, groupKey, groupType, isUncol
 end
 
 function addon:TriggerFamilyManagementUIRefresh()
-	addon:DebugUI(" Manual refresh triggered")
+	addon:DebugUI("Manual refresh triggered")
 	if self.MountDataManager and self.MountDataManager.InvalidateCache then
 		self.MountDataManager:InvalidateCache("manual_refresh")
 	else
-		addon:DebugUI(" MountDataManager or InvalidateCache not found for refresh")
+		addon:DebugUI("MountDataManager or InvalidateCache not found for refresh")
 	end
 
 	self:PopulateFamilyManagementUI()

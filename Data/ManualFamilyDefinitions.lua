@@ -623,50 +623,50 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		superGroup = "Sabers",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 	},
-	-- Flying Panthers
+	-- Flying sabers
 	["creature/flyingpanther/flyingpanther.m2"] = {
 		familyName = "Obsidian Nightwing",
-		superGroup = "Flying Panthers",
+		superGroup = "Flying sabers",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 	},
 	["creature/wingedlionmount/wingedlionmount.m2"] = {
 		familyName = "Winged Guardian",
-		superGroup = "Flying Panthers",
+		superGroup = "Flying sabers",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 	},
 	["creature/suramarmount/suramarmount.m2"] = {
 		familyName = "Arcanist's Manasaber",
-		superGroup = "Flying Panthers",
+		superGroup = "Flying sabers",
 		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
 	},
 	["creature/saber2/saber2mount.m2"] = {
 		familyName = "Mystic Runesaber",
-		superGroup = "Flying Panthers",
+		superGroup = "Flying sabers",
 		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
 	},
 	["creature/onyxpanther/onyxpanther.m2"] = {
 		familyName = "Jeweled Panther",
-		superGroup = "Flying Panthers",
+		superGroup = "Flying sabers",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 	},
 	["creature/nightsaber2mountsunmoon/nightsaber2mountsunmoon.m2"] = {
 		familyName = "Ash'adar",
-		superGroup = "Flying Panthers",
+		superGroup = "Flying sabers",
 		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
 	},
 	["creature/shadowstalkerpanthermount/shadowstalkerpanthermount.m2"] = {
 		familyName = "Luminous Starseeker",
-		superGroup = "Flying Panthers",
+		superGroup = "Flying sabers",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 	},
 	["creature/tigermount/tigermount.m2"] = {
 		familyName = "Wen Lo",
-		superGroup = "Flying Panthers",
+		superGroup = "Flying sabers",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 	},
 	["creature/monkmount/monkmount.m2"] = {
 		familyName = "Ban-Lu",
-		superGroup = "Flying Panthers",
+		superGroup = "Flying sabers",
 		traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 	},
 	-- Rams

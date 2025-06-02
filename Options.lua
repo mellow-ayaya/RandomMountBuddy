@@ -16,11 +16,11 @@ end
 
 -- Ensure necessary functions exist on the addon object for various pages
 if type(addon.GetSetting) ~= "function" or type(addon.SetSetting) ~= "function" then
-	addon:DebugOptions(" Core Get/SetSetting methods missing!")
+	addon:DebugOptions("Core Get/SetSetting methods missing!")
 end
 
 if type(addon.BuildFamilyManagementArgs) ~= "function" then
-	addon:DebugOptions(" addon.BuildFamilyManagementArgs is missing!")
+	addon:DebugOptions("addon.BuildFamilyManagementArgs is missing!")
 	addon.BuildFamilyManagementArgs = function()
 		return {
 			err = {
@@ -33,7 +33,7 @@ if type(addon.BuildFamilyManagementArgs) ~= "function" then
 end
 
 if type(addon.GetFavoriteMountsForOptions) ~= "function" then
-	addon:DebugOptions(" addon.GetFavoriteMountsForOptions is missing!")
+	addon:DebugOptions("addon.GetFavoriteMountsForOptions is missing!")
 	addon.GetFavoriteMountsForOptions = function()
 		return {
 			err = {
@@ -46,7 +46,7 @@ if type(addon.GetFavoriteMountsForOptions) ~= "function" then
 end
 
 if type(addon.PopulateFamilyManagementUI) ~= "function" then
-	addon:DebugOptions(" addon.PopulateFamilyManagementUI is missing!")
+	addon:DebugOptions("addon.PopulateFamilyManagementUI is missing!")
 end
 
 --[[-----------------------------------------------------------------------------
@@ -100,7 +100,7 @@ local rootOptionsTable = {
 						end
 					end
 
-					addon:DebugSummon(" Cache reset due to mode toggle")
+					addon:DebugSummon("Cache reset due to mode toggle")
 				end
 
 				-- ENHANCED: Refresh mount pools since this affects selection logic
@@ -625,11 +625,11 @@ local rootOptionsTable = {
 LibAceConfig:RegisterOptionsTable(rootOptions_InternalName, rootOptionsTable)
 local rootPanel, rootCategoryID = LibAceConfigDialog:AddToBlizOptions(rootOptions_InternalName, PARENT_ADDON_DISPLAY_NAME)
 if not rootPanel then
-	addon:DebugOptions(" FAILED to create parent category '" ..
+	addon:DebugOptions("FAILED to create parent category '" ..
 		PARENT_ADDON_DISPLAY_NAME .. "' in Blizzard Options.")
 	return -- If parent can't be made, children will fail
 else
-	addon:DebugOptions(" Parent category '" ..
+	addon:DebugOptions("Parent category '" ..
 		PARENT_ADDON_DISPLAY_NAME ..
 		"' created/found. ID/Name: " .. tostring(rootCategoryID or (rootPanel and rootPanel.name)))
 end
@@ -942,7 +942,36 @@ local advancedSettingsOptionsTable = {
 		description = {
 			order = 1,
 			type = "description",
-			name = "Advanced mount management tools. Use the sub-menus below to access detailed configuration options.",
+			name = "|cffffd700Advanced Settings Guide|r\n\n" ..
+					"The Advanced Settings provide powerful tools for customizing how mounts are organized and selected. Use these when you disagree with the default grouping or want to fine-tune your mount collection experience.\n\n" ..
+					"|cff00ff00Understanding Mount Organization|r\n\n" ..
+
+					"|cffffff001. Mounts -> Families|r\n" ..
+					"• |cffccccccHow it works:|r Mounts with identical 3D models (but different colors) share the same model path in WoW's files\n" ..
+					"• |cffccccccExample:|r Both Jade Cloud Serpent and Azure Cloud Serpent use 'creature/pandarenserpent/pandarenserpentmount.m2'\n" ..
+					"• |cffccccccResult:|r These become the \"Cloud Serpent\" family\n" ..
+					"• |cffccccccSpecial case:|r Mounts with unique model paths appear as standalone families\n\n" ..
+					"|cffffff002. Families -> Supergroups|r\n" ..
+					"• |cffccccccWhy needed:|r Different families often use very similar models\n" ..
+					"• |cffccccccExample:|r \"Cloud Serpent\" and \"Thundering Cloud Serpent\" families both look like serpents\n" ..
+					"• |cffccccccResult:|r Both families grouped into \"Cloud Serpents\" supergroup\n" ..
+					"• |cffccccccBenefit:|r Prevents mount pool pollution from overly similar models\n\n" ..
+					"|cffffff003. Traits System|r\n" ..
+					"• |cffccccccPurpose:|r Identifies what makes each family/mount special within its supergroup\n" ..
+					"• |cffccccccHow assigned:|r Based on differences from the \"basic\" version in each supergroup\n" ..
+					"• |cffccccccTrait types:|r Minor Armor, Major Armor, Model Variants, Unique Effects\n" ..
+					"• |cffccccccUsage:|r Allows separation of special variants while keeping similar ones grouped\n\n" ..
+					"|cff00ff00Why This Matters|r\n\n" ..
+					"|cffff9900The Problem:|r Without grouping, 17 Cloud Serpent recolors would vastly outnumber 1 Ashes of Al'ar in your random selection pool.\n\n" ..
+					"|cff00ff00The Solution:|r\n" ..
+					"The addon changes summoning from individual mounts to model-based selection:\n" ..
+					"• |cffccccccWithout addon:|r Each mount has equal chance (17 Cloud Serpents : 1 Ashes = 17:1 odds)\n" ..
+					"• |cffccccccWith addon:|r Each model type has equal chance (Cloud Serpent model : Ashes model = 1:1 odds)\n" ..
+					"• |cffccccccResult:|r Balanced representation across different mount models, then random selection within the chosen model\n\n" ..
+					"|cff00ff00Available Tools|r\n\n" ..
+					"|cffffff00Supergroup Management:|r Create custom supergroups, rename existing ones, delete unwanted groups, merge similar supergroups\n\n" ..
+					"|cffffff00Family Assignment:|r Move families between supergroups, make families standalone, bulk assignment operations\n\n" ..
+					"|cffffff00Mount Separation:|r Extract individual mounts from families, create custom single-mount families, override traits for separated mounts",
 			fontSize = "medium",
 		},
 	},
@@ -1061,12 +1090,6 @@ local importExportOptionsTable = {
 	type = "group",
 	order = 10,
 	args = {
-		header_ie = {
-			order = 1,
-			type = "header",
-			name = "Import/Export & Reset Configuration",
-		},
-
 		desc_ie = {
 			order = 2,
 			type = "description",
@@ -1074,96 +1097,6 @@ local importExportOptionsTable = {
 			fontSize = "medium",
 		},
 
-		-- Validation Section
-		validation_header = {
-			order = 5,
-			type = "header",
-			name = "Data Validation & Repair",
-		},
-
-		validation_desc = {
-			order = 6,
-			type = "description",
-			name =
-			"Check for and fix common data integrity issues including weight sync problems, orphaned settings, and name conflicts.",
-			fontSize = "medium",
-		},
-
-		validation_check_button = {
-			order = 7,
-			type = "execute",
-			name = "Run Validation Check",
-			desc = "Scan for data integrity issues without fixing them",
-			func = function()
-				-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
-				if addon.ConfigurationManager then
-					local success, report = addon.ConfigurationManager:RunDataValidation(false)
-					if success then
-						local reportText = addon.ConfigurationManager:FormatValidationReport(report)
-						addon.ConfigurationManager.lastValidationReport = reportText
-						addon:AlwaysPrint(" Validation check completed")
-						-- Refresh UI to show the report
-						if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then
-							LibStub("AceConfigRegistry-3.0"):NotifyChange("RandomMountBuddy")
-						end
-					else
-						addon:AlwaysPrint(" " .. tostring(report))
-					end
-				end
-			end,
-			width = 1.0,
-		},
-
-		validation_fix_button = {
-			order = 8,
-			type = "execute",
-			name = "Run Validation & Auto-Fix",
-			desc = "Scan for data integrity issues and automatically fix safe issues",
-			func = function()
-				-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
-				if addon.ConfigurationManager then
-					local success, report = addon.ConfigurationManager:RunDataValidation(true)
-					if success then
-						local reportText = addon.ConfigurationManager:FormatValidationReport(report)
-						addon.ConfigurationManager.lastValidationReport = reportText
-						addon:AlwaysPrint(" Validation and auto-fix completed")
-						-- If any issues were fixed, trigger a data refresh
-						if report.totalFixed > 0 then
-							addon:AlwaysPrint(" " .. report.totalFixed .. " issues were fixed, refreshing data...")
-							-- Trigger data rebuild to apply fixes
-							addon:RebuildMountGrouping()
-							-- Refresh all UIs - CHANGED: Use ConfigurationManager
-							if addon.ConfigurationManager.RefreshAllUIs then
-								addon.ConfigurationManager:RefreshAllUIs()
-							end
-						end
-
-						-- Refresh UI to show the report
-						if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then
-							LibStub("AceConfigRegistry-3.0"):NotifyChange("RandomMountBuddy")
-						end
-					else
-						addon:AlwaysPrint(" " .. tostring(report))
-					end
-				end
-			end,
-			width = 1.0,
-		},
-
-		validation_report = {
-			order = 9,
-			type = "description",
-			name = function()
-				-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
-				if addon.ConfigurationManager and addon.ConfigurationManager.lastValidationReport then
-					return addon.ConfigurationManager.lastValidationReport
-				else
-					return "|cff888888Click 'Run Validation Check' to scan for data integrity issues.|r"
-				end
-			end,
-			width = "full",
-			fontSize = "medium",
-		},
 
 		-- Export Section
 		export_header = {
@@ -1232,12 +1165,12 @@ local importExportOptionsTable = {
 						StaticPopup_Show("RMB_EXPORT_CONFIG_POPUP", nil, nil, {
 							configString = config,
 						})
-						addon:AlwaysPrint(" Configuration export popup opened - copy the text from the dialog")
+						addon:AlwaysPrint("Configuration export popup opened - copy the text from the dialog")
 					else
-						addon:AlwaysPrint(" Failed to generate configuration export")
+						addon:AlwaysPrint("Failed to generate configuration export")
 					end
 				else
-					addon:AlwaysPrint(" ConfigurationManager not available")
+					addon:AlwaysPrint("ConfigurationManager not available")
 				end
 			end,
 			width = 1.0,
@@ -1282,7 +1215,7 @@ local importExportOptionsTable = {
 					addon.ConfigurationManager.pendingImportMode = value
 				end
 			end,
-			width = 1.5,
+			width = 2.75,
 		},
 
 		import_button = {
@@ -1298,9 +1231,9 @@ local importExportOptionsTable = {
 					local success, message = addon.ConfigurationManager:ImportConfiguration(configString, importMode)
 					if success then
 						addon.ConfigurationManager.pendingImportString = ""
-						addon:AlwaysPrint(" " .. message)
+						addon:AlwaysPrint("" .. message)
 					else
-						addon:AlwaysPrint(" " .. message)
+						addon:AlwaysPrint("" .. message)
 					end
 				end
 			end,
@@ -1321,48 +1254,139 @@ local importExportOptionsTable = {
 			width = "full",
 		},
 
+		reset_custom = {
+			order = 33,
+			type = "execute",
+			name = "Reset Supergroup Manager",
+			desc = "Remove custom supergroups but keep family assignments",
+			func = function()
+				StaticPopup_Show("RMB_RESET_CUSTOM_CONFIRM")
+			end,
+			width = 1.25,
+		},
+
+		reset_assignments = {
+			order = 34,
+			type = "execute",
+			name = "Reset Family Assignments",
+			desc = "Clear family assignments but keep custom supergroups",
+			func = function()
+				StaticPopup_Show("RMB_RESET_ASSIGNMENTS_CONFIRM")
+			end,
+			width = 1.25,
+		},
+
+		reset_separation = {
+			order = 35,
+			type = "execute",
+			name = "Reset Mount Separation",
+			desc = "Reunite all separated mounts with their original families but keep other settings",
+			func = function()
+				StaticPopup_Show("RMB_RESET_SEPARATION_CONFIRM")
+			end,
+			width = 1.25,
+		},
+
 		reset_all = {
-			order = 32,
+			order = 36,
 			type = "execute",
 			name = "Reset Everything",
 			desc = "Clear all supergroup customizations and return to default configuration",
 			func = function()
 				StaticPopup_Show("RMB_RESET_ALL_CONFIRM")
 			end,
-			width = 1.0,
+			width = 3.75,
 		},
 
-		reset_assignments = {
-			order = 33,
-			type = "execute",
-			name = "Reset Family Assignments Only",
-			desc = "Clear family assignments but keep custom supergroups",
-			func = function()
-				StaticPopup_Show("RMB_RESET_ASSIGNMENTS_CONFIRM")
-			end,
-			width = 1.5,
+		-- Validation Section
+		validation_header = {
+			order = 45,
+			type = "header",
+			name = "Data Validation & Repair",
 		},
 
-		reset_custom = {
-			order = 34,
-			type = "execute",
-			name = "Reset Custom Supergroups Only",
-			desc = "Remove custom supergroups but keep family assignments",
-			func = function()
-				StaticPopup_Show("RMB_RESET_CUSTOM_CONFIRM")
-			end,
-			width = 1.5,
+		validation_desc = {
+			order = 46,
+			type = "description",
+			name =
+			"Check for and fix common data integrity issues including weight sync problems, orphaned settings, and name conflicts.",
+			fontSize = "medium",
 		},
 
-		reset_separation = {
-			order = 35,
+		validation_check_button = {
+			order = 47,
 			type = "execute",
-			name = "Reset Mount Separation Only",
-			desc = "Reunite all separated mounts with their original families but keep other settings",
+			name = "Run Validation Check",
+			desc = "Scan for data integrity issues without fixing them",
 			func = function()
-				StaticPopup_Show("RMB_RESET_SEPARATION_CONFIRM")
+				-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+				if addon.ConfigurationManager then
+					local success, report = addon.ConfigurationManager:RunDataValidation(false)
+					if success then
+						local reportText = addon.ConfigurationManager:FormatValidationReport(report)
+						addon.ConfigurationManager.lastValidationReport = reportText
+						addon:AlwaysPrint("Validation check completed")
+						-- Refresh UI to show the report
+						if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then
+							LibStub("AceConfigRegistry-3.0"):NotifyChange("RandomMountBuddy")
+						end
+					else
+						addon:AlwaysPrint("" .. tostring(report))
+					end
+				end
 			end,
-			width = 1.5,
+			width = 1.85,
+		},
+
+		validation_fix_button = {
+			order = 48,
+			type = "execute",
+			name = "Run Validation & Auto-Fix",
+			desc = "Scan for data integrity issues and automatically fix safe issues",
+			func = function()
+				-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+				if addon.ConfigurationManager then
+					local success, report = addon.ConfigurationManager:RunDataValidation(true)
+					if success then
+						local reportText = addon.ConfigurationManager:FormatValidationReport(report)
+						addon.ConfigurationManager.lastValidationReport = reportText
+						addon:AlwaysPrint("Validation and auto-fix completed")
+						-- If any issues were fixed, trigger a data refresh
+						if report.totalFixed > 0 then
+							addon:AlwaysPrint("" .. report.totalFixed .. " issues were fixed, refreshing data...")
+							-- Trigger data rebuild to apply fixes
+							addon:RebuildMountGrouping()
+							-- Refresh all UIs - CHANGED: Use ConfigurationManager
+							if addon.ConfigurationManager.RefreshAllUIs then
+								addon.ConfigurationManager:RefreshAllUIs()
+							end
+						end
+
+						-- Refresh UI to show the report
+						if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then
+							LibStub("AceConfigRegistry-3.0"):NotifyChange("RandomMountBuddy")
+						end
+					else
+						addon:AlwaysPrint("" .. tostring(report))
+					end
+				end
+			end,
+			width = 1.85,
+		},
+
+		validation_report = {
+			order = 49,
+			type = "description",
+			name = function()
+				-- CHANGED: Use ConfigurationManager instead of SuperGroupManager
+				if addon.ConfigurationManager and addon.ConfigurationManager.lastValidationReport then
+					return addon.ConfigurationManager.lastValidationReport
+				else
+					return "|cff888888Click 'Run Validation Check' to scan for data integrity issues.|r"
+				end
+			end,
+			width = "full",
+			fontSize = "medium",
 		},
 	},
 }
@@ -1410,11 +1434,11 @@ StaticPopupDialogs["RMB_MERGE_SUPERGROUPS_CONFIRM"] = {
 			if success then
 				addon.SuperGroupManager.pendingMergeSource = ""
 				addon.SuperGroupManager.pendingMergeTarget = ""
-				addon:AlwaysPrint(" " .. message)
+				addon:AlwaysPrint("" .. message)
 				-- FIXED: Use enhanced refresh method that updates ALL UIs
 				addon.SuperGroupManager:RefreshAllUIs()
 			else
-				addon:AlwaysPrint(" " .. message)
+				addon:AlwaysPrint("" .. message)
 			end
 		end
 	end,

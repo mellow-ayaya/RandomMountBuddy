@@ -4,7 +4,7 @@ local addon = RandomMountBuddy
 local MountSeparationManager = {}
 addon.MountSeparationManager = MountSeparationManager
 function MountSeparationManager:Initialize()
-	addon:DebugSeparation(" Initializing Mount Separation Manager...")
+	addon:DebugSeparation("Initializing Mount Separation Manager...")
 	-- UI state
 	self.uiState = {
 		searchTerm = "",
@@ -73,7 +73,7 @@ function MountSeparationManager:SeparateMount(mountID, customName)
 			originalTraits[traitName] = traitValue
 		end
 
-		addon:DebugSeparation(" Preserved original traits for mount " .. mountID .. ": " ..
+		addon:DebugSeparation("Preserved original traits for mount " .. mountID .. ": " ..
 			table.concat({ "hasMinorArmor=" .. tostring(originalTraits.hasMinorArmor or false),
 				"hasMajorArmor=" .. tostring(originalTraits.hasMajorArmor or false),
 				"hasModelVariant=" .. tostring(originalTraits.hasModelVariant or false),
@@ -94,9 +94,9 @@ function MountSeparationManager:SeparateMount(mountID, customName)
 	-- Set both family and mount weights to ensure they're in sync
 	addon.db.profile.groupWeights[newFamilyName] = currentMountWeight
 	addon.db.profile.groupWeights[mountKey] = currentMountWeight
-	addon:DebugSeparation(" Set initial weights - Family '" ..
+	addon:DebugSeparation("Set initial weights - Family '" ..
 		newFamilyName .. "' and Mount '" .. mountKey .. "' both set to " .. currentMountWeight)
-	addon:DebugSeparation(" Separated mount '" ..
+	addon:DebugSeparation("Separated mount '" ..
 		mountName .. "' from family '" .. originalFamily .. "' into new family '" .. newFamilyName .. "'")
 	-- FIX: Trigger complete data reinitialization instead of just rebuild
 	addon.lastProcessingEventName = "mount_separation"
@@ -104,7 +104,7 @@ function MountSeparationManager:SeparateMount(mountID, customName)
 	addon.lastProcessingEventName = nil
 	-- ENHANCED: Notify SuperGroupManager of the change
 	if addon.SuperGroupManager then
-		addon:DebugSeparation(" Notifying SuperGroupManager of separation")
+		addon:DebugSeparation("Notifying SuperGroupManager of separation")
 		-- Use a brief delay to ensure data processing is complete
 		C_Timer.After(0.1, function()
 			addon.SuperGroupManager:RefreshAllUIs()
@@ -125,13 +125,13 @@ function MountSeparationManager:ReuniteSeparatedMount(mountID)
 	local separatedFamilyName = separationData.familyName
 	-- ENHANCED: Clear any supergroup assignments for the separated family
 	if addon.db.profile.superGroupOverrides and addon.db.profile.superGroupOverrides[separatedFamilyName] then
-		addon:DebugSeparation(" Clearing supergroup override for reunited family: " .. separatedFamilyName)
+		addon:DebugSeparation("Clearing supergroup override for reunited family: " .. separatedFamilyName)
 		addon.db.profile.superGroupOverrides[separatedFamilyName] = nil
 	end
 
 	-- ENHANCED: Clear weight settings for the separated family (keep mount weight)
 	if addon.db.profile.groupWeights and addon.db.profile.groupWeights[separatedFamilyName] then
-		addon:DebugSeparation(" Clearing weight for separated family: " .. separatedFamilyName)
+		addon:DebugSeparation("Clearing weight for separated family: " .. separatedFamilyName)
 		addon.db.profile.groupWeights[separatedFamilyName] = nil
 	end
 
@@ -142,14 +142,14 @@ function MountSeparationManager:ReuniteSeparatedMount(mountID)
 		addon.db.profile.separatedMounts = {}
 	end
 
-	addon:DebugSeparation(" Reunited mount " .. mountID .. " with original family '" .. originalFamily .. "'")
+	addon:DebugSeparation("Reunited mount " .. mountID .. " with original family '" .. originalFamily .. "'")
 	-- FIX: Trigger complete data reinitialization instead of just rebuild
 	addon.lastProcessingEventName = "mount_reunification"
 	addon:InitializeProcessedData()
 	addon.lastProcessingEventName = nil
 	-- ENHANCED: Notify SuperGroupManager of the change
 	if addon.SuperGroupManager then
-		addon:DebugSeparation(" Notifying SuperGroupManager of reunification")
+		addon:DebugSeparation("Notifying SuperGroupManager of reunification")
 		-- Use a brief delay to ensure data processing is complete
 		C_Timer.After(0.1, function()
 			addon.SuperGroupManager:RefreshAllUIs()
@@ -318,7 +318,7 @@ function MountSeparationManager:GoToPage(pageNumber)
 	if targetPage and targetPage >= 1 and targetPage <= totalPages then
 		self:SetCurrentPage(targetPage)
 		self:PopulateSeparationManagementUI()
-		addon:DebugSeparation(" Jumped to page " .. targetPage)
+		addon:DebugSeparation("Jumped to page " .. targetPage)
 	end
 end
 
@@ -486,13 +486,6 @@ end
 function MountSeparationManager:BuildSeparationManagementArgs()
 	local args = {}
 	local order = 1
-	-- Header
-	args.header = {
-		order = order,
-		type = "header",
-		name = "Mount Separation Management",
-	}
-	order = order + 1
 	args.description = {
 		order = order,
 		type = "description",
@@ -506,7 +499,7 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 		order = order,
 		type = "description",
 		name = "|cffffd700  Search:|r",
-		width = 0.28,
+		width = 0.3,
 	}
 	order = order + 1
 	args.search_input = {
@@ -520,15 +513,22 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 			self.uiState.currentPage = 1 -- Reset to first page
 			self:PopulateSeparationManagementUI()
 		end,
-		width = 0.82,
+		width = 1,
+	}
+	order = order + 1
+	args.spacer_custom_name = {
+		order = order,
+		type = "description",
+		name = " ",
+		width = 0.2,
 	}
 	order = order + 1
 	-- Custom name input section
 	args.custom_name_description = {
 		order = order,
 		type = "description",
-		name = "|cffffd700  Custom Name:|r",
-		width = 0.28,
+		name = "|cffffd700   Custom Separate Name:|r",
+		width = 0.8,
 	}
 	order = order + 1
 	args.custom_name_input = {
@@ -538,7 +538,7 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 		desc = "Optional: Custom family name for separated mount (leave empty for auto-generated name)",
 		get = function() return self.uiState.customSeparationName or "" end,
 		set = function(info, value) self.uiState.customSeparationName = value end,
-		width = 0.82,
+		width = 1,
 	}
 	order = order + 1
 	-- Get filtered mounts for current page
@@ -559,12 +559,13 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 	else
 		-- Add column headers
 		if addon.MountUIComponents then
-			args.separable_mounts_header = {
+			--[[args.separable_mounts_header = {
 				order = order,
 				type = "header",
 				name = "Separable Mounts (" .. totalMounts .. " total)",
 			}
 			order = order + 1
+			--]]
 			-- Custom column headers for separation interface
 			args.column_headers_group = {
 				order = order,
@@ -582,14 +583,14 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 					mountHeader = {
 						order = 2,
 						type = "description",
-						name = "   |cffffd700Mount Name|r",
+						name = "               |cffffd700Mount Name|r",
 						width = 1.0,
 					},
 					familyHeader = {
 						order = 3,
 						type = "description",
-						name = "   |cffffd700Current Family|r",
-						width = 1.0,
+						name = "       |cffffd700Current Family|r",
+						width = 1.5,
 					},
 					actionHeader = {
 						order = 4,
@@ -656,6 +657,13 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 							width = 1.0,
 						},
 
+						spacer_fam_sep = {
+							order = 3.5,
+							type = "description",
+							name = "",
+							width = 0.35,
+						},
+
 						-- Separate button
 						separate_button = {
 							order = 4,
@@ -676,7 +684,7 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 									addon:AlwaysPrint(" " .. message)
 								end
 							end,
-							width = 0.4,
+							width = 0.6,
 						},
 					},
 				}
@@ -830,7 +838,7 @@ end
 
 -- Add OnDataReady method
 function MountSeparationManager:OnDataReady()
-	addon:DebugSeparation(" Data ready, populating UI...")
+	addon:DebugSeparation("Data ready, populating UI...")
 	self:PopulateSeparationManagementUI()
 end
 
@@ -841,5 +849,5 @@ function addon:InitializeMountSeparationManager()
 	end
 
 	self.MountSeparationManager:Initialize()
-	addon:DebugSeparation(" Mount Separation Manager initialized")
+	addon:DebugSeparation("Mount Separation Manager initialized")
 end

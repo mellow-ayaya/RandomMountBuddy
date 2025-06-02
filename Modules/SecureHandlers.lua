@@ -79,7 +79,7 @@ local function getCachedSpellInfo(spellID, defaultName)
 			spellCache[spellID] = spellInfo.name
 		else
 			spellCache[spellID] = defaultName
-			addonTable:DebugCore(" Warning - Spell ID " .. spellID .. " not found, using default: " .. defaultName)
+			addonTable:DebugCore("Warning - Spell ID " .. spellID .. " not found, using default: " .. defaultName)
 		end
 	end
 
@@ -102,7 +102,7 @@ end
 local function buildMacro(parts)
 	local result = table.concat(parts, "\n")
 	if #result > 255 then
-		addonTable:AlwaysPrint(" Macro length is " .. #result .. " characters (limit: 255)")
+		addonTable:AlwaysPrint("Macro length is " .. #result .. " characters (limit: 255)")
 	end
 
 	return result
@@ -186,7 +186,7 @@ local function updateZoneAbilityCache(forceRefresh)
 			if not validateZoneAbility(zoneAbilityCache.cachedSpellID) then
 				zoneAbilityCache.cachedSpellID = nil
 				zoneAbilityCache.hasZoneAbility = false
-				addonTable:DebugCore(" Invalidated cached zone ability due to validation failure")
+				addonTable:DebugCore("Invalidated cached zone ability due to validation failure")
 			end
 
 			zoneAbilityCache.lastValidationTime = currentTime
@@ -203,7 +203,7 @@ local function updateZoneAbilityCache(forceRefresh)
 	zoneAbilityCache.lastUpdateTime = currentTime
 	zoneAbilityCache.lastValidationTime = currentTime
 	if zoneAbilityCache.hasZoneAbility then
-		addonTable:DebugCore(" Zone ability available - Spell ID:", zoneAbilitySpellID)
+		addonTable:DebugCore("Zone ability available - Spell ID:", zoneAbilitySpellID)
 	end
 end
 
@@ -285,7 +285,7 @@ local function createPostClickHandler()
 				if attempts == 8 then -- After 0.8 seconds
 					if not InCombatLockdown() and not isActionOnCooldown("mountAttempt", 1.0) then
 						if RandomMountBuddy and RandomMountBuddy.SRM then
-							addonTable:DebugCore(" Zone ability failed, using fallback mount")
+							addonTable:DebugCore("Zone ability failed, using fallback mount")
 							RandomMountBuddy:SRM(true)
 						end
 					end
@@ -301,7 +301,7 @@ local function createPostClickHandler()
 			C_Timer.After(0.1, checkMountStatus)
 		end)
 		if not success then
-			addonTable:DebugCore(" PostClick error:", err)
+			addonTable:DebugCore("PostClick error:", err)
 		end
 	end
 end
@@ -312,7 +312,7 @@ local function cleanupZoneHelperButton()
 		addonTable.zoneHelperButton:Hide()
 		addonTable.zoneHelperButton:SetScript("PostClick", nil)
 		addonTable.zoneHelperButton:SetAttribute("spell", nil)
-		addonTable:DebugCore(" Cleaned up zone helper button")
+		addonTable:DebugCore("Cleaned up zone helper button")
 	end
 end
 
@@ -320,14 +320,14 @@ end
 function addonTable:UpdateShapeshiftMacros()
 	-- Prevent recursion with better checking
 	if self.isUpdatingMacros then
-		addonTable:DebugCore(" Prevented recursion in UpdateShapeshiftMacros")
+		addonTable:DebugCore("Prevented recursion in UpdateShapeshiftMacros")
 		return
 	end
 
 	self.isUpdatingMacros = true
 	-- Skip if in combat
 	if InCombatLockdown() then
-		addonTable:DebugCore(" Skipped macro update due to combat lockdown")
+		addonTable:DebugCore("Skipped macro update due to combat lockdown")
 		self.isUpdatingMacros = false
 		return
 	end
@@ -370,12 +370,12 @@ function addonTable:UpdateShapeshiftMacros()
 			slowFallName, levitateName, settings, slowFallTarget, levitateTarget)
 	end)
 	if not success then
-		addonTable:DebugCore(" Error in UpdateShapeshiftMacros: " .. tostring(errorMsg))
+		addonTable:DebugCore("Error in UpdateShapeshiftMacros: " .. tostring(errorMsg))
 	end
 
 	self.isUpdatingMacros = false
 	if success then
-		addonTable:DebugCore(" Updated shapeshift macros")
+		addonTable:DebugCore("Updated shapeshift macros")
 	end
 end
 
@@ -517,7 +517,7 @@ function addonTable:SetupSecureHandlers()
 	eventFrame:SetScript("OnEvent", function(self, event, addonNameLoaded)
 		if addonNameLoaded ~= "RandomMountBuddy" then return end
 
-		addonTable:DebugCore(" Initializing secure handlers...")
+		addonTable:DebugCore("Initializing secure handlers...")
 		-- Create all secure buttons
 		local buttons = addonTable:createSecureButtons()
 		-- Store button references
@@ -534,7 +534,7 @@ function addonTable:SetupSecureHandlers()
 		addonTable:setupZoneAbilityHandling()
 		-- Initialize macros
 		addonTable:UpdateShapeshiftMacros()
-		addonTable:DebugCore(" Secure handlers initialized")
+		addonTable:DebugCore("Secure handlers initialized")
 		self:UnregisterEvent("ADDON_LOADED")
 		if addonTable.visibleButton then
 			addonTable.visibleButton:Show()
@@ -611,7 +611,7 @@ function addonTable:createVisibleButton()
 						end
 					end)
 				end)
-				addonTable:DebugCore(" Used zone ability " .. zoneAbilityCache.cachedSpellID)
+				addonTable:DebugCore("Used zone ability " .. zoneAbilityCache.cachedSpellID)
 				return
 			end
 
@@ -647,11 +647,11 @@ function addonTable:createVisibleButton()
 			local targetButton = actionFunc and actionFunc() or addonTable.mountButton
 			if targetButton then
 				targetButton:Click()
-				addonTable:DebugCore(" Clicked " .. (targetButton == addonTable.mountButton and "mount" or "form") .. " button")
+				addonTable:DebugCore("Clicked " .. (targetButton == addonTable.mountButton and "mount" or "form") .. " button")
 			end
 		end)
 		if not success then
-			addonTable:DebugCore(" Visible button click error:", err)
+			addonTable:DebugCore("Visible button click error:", err)
 		end
 	end)
 	-- Tooltip handlers
@@ -791,7 +791,7 @@ function SecureHandlers:OnSettingChanged(key, value)
 		useSmartFormSwitching = true,
 	}
 	if relevantSettings[key] then
-		addonTable:DebugCore(" Setting changed notification received for:", key, "->", value)
+		addonTable:DebugCore("Setting changed notification received for:", key, "->", value)
 		-- Clear cache and update
 		settingsCache = {}
 		-- Use C_Timer to avoid any potential recursion
@@ -827,7 +827,7 @@ end
 
 -- Initialize
 function RandomMountBuddy:InitializeSecureHandlers()
-	addonTable:DebugCore(" InitializeSecureHandlers called from Core.lua")
+	addonTable:DebugCore("InitializeSecureHandlers called from Core.lua")
 	addonTable:SetupSecureHandlers()
 	addonTable:setupSecureReferences()
 end

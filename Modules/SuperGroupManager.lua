@@ -9,12 +9,12 @@ local SuperGroupManager = {}
 addon.SuperGroupManager = SuperGroupManager
 -- Initialize the SuperGroup Manager
 function SuperGroupManager:Initialize()
-	addon:DebugSupergr(" Initializing SuperGroup Manager...")
+	addon:DebugSupergr("Initializing SuperGroup Manager...")
 	-- UI state for the manager
 	self.uiState = {
 		currentPage = 1,
 		searchTerm = "",
-		itemsPerPage = 20,
+		itemsPerPage = 14,
 		selectedFamilies = {},
 		pendingSummon = { source = nil, target = nil },
 	}
@@ -27,33 +27,28 @@ function SuperGroupManager:Initialize()
 	self:StartRefreshPolling()
 	-- Populate initial content (will be empty until data is ready)
 	self:PopulateExistingSuperGroupsList()
-	addon:DebugSupergr(" SuperGroup Manager initialized")
+	addon:DebugSupergr("SuperGroup Manager initialized")
 end
 
--- Add this new function to SuperGroupManager.lua:
 function SuperGroupManager:StartRefreshPolling()
 	-- Check for refresh needs every 0.5 seconds
 	if not self.refreshTimer then
 		self.refreshTimer = C_Timer.NewTicker(0.5, function()
 			if self.needsRefresh then
 				self.needsRefresh = false
-				addon:DebugSupergr(" Polling detected refresh needed")
 				-- Refresh all UIs
 				self:PopulateSuperGroupManagementUI()
 				-- Also refresh main UI
 				if addon.PopulateFamilyManagementUI then
 					addon:PopulateFamilyManagementUI()
 				end
-
-				addon:DebugSupergr(" Refresh completed via polling")
 			end
 		end)
 	end
 end
 
--- Add this new function to SuperGroupManager.lua:
 function SuperGroupManager:RequestRefresh()
-	addon:DebugSupergr(" Refresh requested, will process on next poll")
+	addon:DebugSupergr("Refresh requested, will process on next poll")
 	self.needsRefresh = true
 end
 
@@ -79,7 +74,7 @@ function SuperGroupManager:GoToPage(pageNumber)
 	if targetPage and targetPage >= 1 and targetPage <= totalPages then
 		self:SetCurrentPage(targetPage)
 		self:PopulateSuperGroupManagementUI()
-		addon:DebugSupergr(" Jumped to page " .. targetPage)
+		addon:DebugSupergr("Jumped to page " .. targetPage)
 	end
 end
 
@@ -241,7 +236,7 @@ end
 
 -- UI population functions (similar to PopulateFamilyManagementUI)
 function SuperGroupManager:PopulateExistingSuperGroupsList()
-	addon:DebugSupergr(" Populating existing supergroups list")
+	addon:DebugSupergr("Populating existing supergroups list")
 	-- Clear existing content
 	wipe(self.existingListArgsRef)
 	if not addon.SuperGroupManager then
@@ -354,13 +349,11 @@ end
 
 -- Populate supergroup management UI (same pattern as PopulateFamilyManagementUI)
 function SuperGroupManager:PopulateSuperGroupManagementUI()
-	addon:DebugSupergr(" PopulateSuperGroupManagementUI called")
 	if not addon.sgMgmtArgsRef then
 		addon:DebugSupergr("addon.sgMgmtArgsRef is nil! Options.lua problem.")
 		return
 	end
 
-	local startTime = debugprofilestop()
 	-- Build new UI arguments
 	local newArgs = self:BuildSuperGroupManagementArgs()
 	-- Update the options table (same pattern as Mount List)
@@ -369,27 +362,23 @@ function SuperGroupManager:PopulateSuperGroupManagementUI()
 		addon.sgMgmtArgsRef[k] = v
 	end
 
-	-- Notify AceConfig of changes
-	if LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true) then
-		LibStub("AceConfigRegistry-3.0"):NotifyChange(addonName)
+	-- Notify AceConfig with specific registration name
+	local registryLib = LibStub and LibStub:GetLibrary("AceConfigRegistry-3.0", true)
+	if registryLib then
+		C_Timer.After(0.05, function()
+			registryLib:NotifyChange("RandomMountBuddy_SuperGroupMgmt")
+			registryLib:NotifyChange("RandomMountBuddy")
+		end)
+	else
+		addon:DebugSupergr("AceConfigRegistry not available")
 	end
-
-	local endTime = debugprofilestop()
-	addon:DebugSupergr(string.format(" UI build took %.2fms", endTime - startTime))
 end
 
 -- Build supergroup management page content
 function SuperGroupManager:BuildSuperGroupManagementArgs()
-	addon:DebugSupergr(" BuildSuperGroupManagementArgs called")
+	addon:DebugSupergr("BuildSuperGroupManagementArgs called")
 	local args = {}
 	local order = 1
-	-- Header
-	args.header_mgmt = {
-		order = order,
-		type = "header",
-		name = "Create, Rename, Delete & Merge Supergroups",
-	}
-	order = order + 1
 	args.desc_mgmt = {
 		order = order,
 		type = "description",
@@ -398,28 +387,109 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 		fontSize = "medium",
 	}
 	order = order + 1
-	-- Create New Supergroup Section
-	args.create_header = {
-		order = order,
-		type = "header",
-		name = "Create New Supergroup",
-	}
-	order = order + 1
-	args.create_desc = {
+	-- Search Section
+	args.search_label = {
 		order = order,
 		type = "description",
-		name = "Enter a name for your new supergroup. You can use letters, numbers, spaces, hyphens, and underscores.",
-		fontSize = "medium",
+		name = "|cffffd700  Search:|r",
+		width = 0.3,
+	}
+	order = order + 1
+	args.search_input = {
+		order = order,
+		type = "input",
+		name = "",
+		desc = "Search supergroup names (press Enter to search)",
+		get = function() return self.uiState.searchTerm or "" end,
+		set = function(info, value)
+			self.uiState.searchTerm = value or ""
+			self.uiState.currentPage = 1 -- Reset to first page
+			self:PopulateSuperGroupManagementUI()
+		end,
+		width = 1,
+	}
+	order = order + 1
+	-- Show clear button only when there's a search term
+	local hasSearchTerm = (self.uiState.searchTerm or "") ~= ""
+	if hasSearchTerm then
+		args.search_reset = {
+			order = order,
+			type = "execute",
+			name = "Clear",
+			desc = "Clear search term",
+			func = function()
+				self.uiState.searchTerm = ""
+				self.uiState.currentPage = 1
+				self:PopulateSuperGroupManagementUI()
+			end,
+			width = 0.4,
+		}
+	else
+		args.spacer_no_search_reset = {
+			order = order,
+			type = "description",
+			name = " ",
+			width = 0.4,
+		}
+	end
+
+	order = order + 1
+	args.spacer_search_create = {
+		order = order,
+		type = "description",
+		name = " ",
+		width = 0.1,
+	}
+	order = order + 1
+	-- Creation Section
+	args.create_label = {
+		order = order,
+		type = "description",
+		name = "|cffffd700Create New SG:|r",
+		width = 0.5,
 	}
 	order = order + 1
 	args.create_name = {
 		order = order,
 		type = "input",
-		name = "Supergroup Name",
+		name = "",
 		desc = "Name for your custom supergroup (e.g., 'My Favorite Dragons')",
 		get = function() return self.pendingCreateName or "" end,
 		set = function(info, value) self.pendingCreateName = value end,
-		width = 1.5,
+		width = 1,
+	}
+	order = order + 1
+	args.create_button = {
+		order = order,
+		type = "execute",
+		name = "+",
+		desc = "Create the new supergroup",
+		func = function()
+			local name = self.pendingCreateName or ""
+			local success, message = self:CreateSuperGroup(name)
+			if success then
+				self.pendingCreateName = ""
+				addon:AlwaysPrint("" .. message)
+				self:PopulateSuperGroupManagementUI()
+			else
+				addon:AlwaysPrint("" .. message)
+			end
+		end,
+		disabled = function()
+			local name = self.pendingCreateName or ""
+			if name:trim() == "" then return true end
+
+			local hasConflict, _ = self:DoesNameConflict(name)
+			return hasConflict or self:SanitizeSuperGroupName(name) == ""
+		end,
+		width = 0.35,
+	}
+	order = order + 1
+	args.spacer_create_preview = {
+		order = order,
+		type = "description",
+		name = "",
+		width = 2.3,
 	}
 	order = order + 1
 	-- Show sanitized preview
@@ -443,70 +513,15 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 				return "|cffff0000" .. conflictMessage .. "|r"
 			end
 
-			return "|cff00ff00✓ Available|r" .. (sanitized ~= inputName:trim() and (" (internal: " .. sanitized .. ")") or "")
+			return "|cff00ff00 Available|r" .. (sanitized ~= inputName:trim() and (" (internal: " .. sanitized .. ")") or "")
 		end,
-		width = 1.5,
-	}
-	order = order + 1
-	args.create_button = {
-		order = order,
-		type = "execute",
-		name = "Create Supergroup",
-		desc = "Create the new supergroup",
-		func = function()
-			local name = self.pendingCreateName or ""
-			local success, message = self:CreateSuperGroup(name)
-			if success then
-				self.pendingCreateName = ""
-				addon:AlwaysPrint(" " .. message)
-				self:PopulateSuperGroupManagementUI()
-			else
-				addon:AlwaysPrint(" " .. message)
-			end
-		end,
-		disabled = function()
-			local name = self.pendingCreateName or ""
-			if name:trim() == "" then return true end
-
-			local hasConflict, _ = self:DoesNameConflict(name)
-			return hasConflict or self:SanitizeSuperGroupName(name) == ""
-		end,
-		width = 0.8,
-	}
-	order = order + 1
-	-- Search Section
-	args.search_label = {
-		order = order,
-		type = "description",
-		name = "|cffffd700Search Supergroups:|r",
-		width = 0.4,
-	}
-	order = order + 1
-	args.search_input = {
-		order = order,
-		type = "input",
-		name = "",
-		desc = "Search supergroup names (press Enter to search)",
-		get = function() return self.uiState.searchTerm or "" end,
-		set = function(info, value)
-			self.uiState.searchTerm = value or ""
-			self.uiState.currentPage = 1 -- Reset to first page
-			self:PopulateSuperGroupManagementUI()
-		end,
-		width = 1.6,
+		width = 1.2,
 	}
 	order = order + 1
 	-- Existing Supergroups Section with Pagination
 	local allSGs = self:GetFilteredSuperGroups()
 	local totalSGs = #allSGs
 	local searchTerm = self.uiState.searchTerm or ""
-	local searchIndicator = searchTerm ~= "" and (" matching '" .. searchTerm .. "'") or ""
-	args.existing_header = {
-		order = order,
-		type = "header",
-		name = "Existing Supergroups (" .. totalSGs .. " total" .. searchIndicator .. ")",
-	}
-	order = order + 1
 	if totalSGs == 0 then
 		local message = "No supergroups found"
 		if searchTerm ~= "" then
@@ -520,23 +535,41 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 		}
 		order = order + 1
 	else
+		-- Add column headers for better organization
+		args.column_headers = {
+			order = order,
+			type = "group",
+			inline = true,
+			name = "",
+			width = "full",
+			args = {
+				nameHeader = {
+					order = 1,
+					type = "description",
+					name = "       |cffffd700Supergroup Name|r",
+					width = 1.0,
+				},
+				renameHeader = {
+					order = 2,
+					type = "description",
+					name = "          |cffffd700Rename|r",
+					width = 1.7,
+				},
+				actionsHeader = {
+					order = 3,
+					type = "description",
+					name = "|cffffd700Actions|r",
+					width = 0.5,
+				},
+			},
+		}
+		order = order + 1
 		-- Apply pagination
 		local itemsPerPage = self:GetItemsPerPage()
 		local totalPages = math.max(1, math.ceil(totalSGs / itemsPerPage))
 		local currentPage = math.max(1, math.min(self:GetCurrentPage(), totalPages))
 		local startIndex = (currentPage - 1) * itemsPerPage + 1
 		local endIndex = math.min(startIndex + itemsPerPage - 1, totalSGs)
-		-- Page info
-		if totalPages > 1 then
-			args.page_info = {
-				order = order,
-				type = "description",
-				name = string.format("Page %d of %d (%d supergroups)", currentPage, totalPages, totalSGs),
-				width = "full",
-			}
-			order = order + 1
-		end
-
 		-- Add supergroup entries for current page
 		for i = startIndex, endIndex do
 			local sgInfo = allSGs[i]
@@ -549,7 +582,6 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 					name = function()
 						local indicator = sgInfo.isCustom and "|cff00ff00[Custom]|r" or
 								sgInfo.isDeleted and "|cffff0000[Deleted]|r" or
-								sgInfo.isRenamed and "|cffffff00[Renamed]|r" or
 								"|cffa335ee[G]|r"
 						local displayText = indicator .. " " .. sgInfo.displayName
 						-- Show original name if it's been renamed
@@ -562,7 +594,7 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 
 						return displayText
 					end,
-					width = sgInfo.isRenamed and not sgInfo.isCustom and 1.8 or 1.2,
+					width = 1,
 				}
 				-- Rename input with validation
 				if not sgInfo.isDeleted then
@@ -608,10 +640,24 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 									self:PopulateSuperGroupManagementUI()
 								end
 							end,
-							width = 0.6,
+							width = 0.8,
+						}
+					else
+						-- Spacer when restore name button is absent
+						args[keyBase .. "_restore_name_spacer"] = {
+							order = order + 0.15,
+							type = "description",
+							name = "",
+							width = 0.8,
 						}
 					end
 
+					args[keyBase .. "_spacer_restore_delete"] = {
+						order = order + 0.16,
+						type = "description",
+						name = "",
+						width = 0.1,
+					}
 					-- Check if this supergroup is in confirmation mode
 					local inConfirmMode = self.deleteConfirmation and self.deleteConfirmation[sgInfo.name]
 					if not inConfirmMode then
@@ -628,7 +674,7 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 								end
 
 								self.deleteConfirmation[sgInfo.name] = true
-								addon:AlwaysPrint(" Confirm deletion of '" .. sgInfo.displayName .. "'")
+								addon:AlwaysPrint("Confirm deletion of '" .. sgInfo.displayName .. "'")
 								-- Refresh UI to show confirmation buttons
 								self:PopulateSuperGroupManagementUI()
 								-- Auto-cancel after 10 seconds
@@ -636,11 +682,11 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 									if self.deleteConfirmation and self.deleteConfirmation[sgInfo.name] then
 										self.deleteConfirmation[sgInfo.name] = nil
 										self:PopulateSuperGroupManagementUI()
-										addon:AlwaysPrint(" Delete confirmation timed out for '" .. sgInfo.displayName .. "'")
+										addon:AlwaysPrint("Delete confirmation timed out for '" .. sgInfo.displayName .. "'")
 									end
 								end)
 							end,
-							width = 0.4,
+							width = 0.45,
 						}
 					else
 						-- Confirmation mode - show delete button (disabled) and confirm/cancel buttons
@@ -651,58 +697,45 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 							desc = "Confirming deletion...",
 							func = function() end, -- Do nothing
 							disabled = true,
-							width = 0.4,
-						}
-						-- Visual separator
-						args[keyBase .. "_separator"] = {
-							order = order + 0.31,
-							type = "description",
-							name = " |cffff9900->|r ",
-							width = 0.1,
+							width = 0.45,
 						}
 						-- Confirm button
 						args[keyBase .. "_confirm"] = {
 							order = order + 0.32,
 							type = "execute",
-							name = "|cffff0000Confirm|r",
+							name = "|TInterface\\BUTTONS\\UI-CheckBox-Check:18:18:0:-2|t",
 							desc = "Confirm deletion of '" .. sgInfo.displayName .. "'",
 							func = function()
 								-- Actually delete the supergroup
 								local success, message = self:DeleteSuperGroup(sgInfo.name)
 								if success then
-									addon:AlwaysPrint(" " .. message)
+									addon:AlwaysPrint("" .. message)
 									self.deleteConfirmation[sgInfo.name] = nil
-									-- Refresh all UIs
-									self:PopulateSuperGroupManagementUI()
-									if addon.FamilyAssignment then
-										addon.FamilyAssignment:PopulateFamilyAssignmentUI()
-									end
-
-									if addon.PopulateFamilyManagementUI then
-										addon:PopulateFamilyManagementUI()
-									end
+									-- FIXED: Don't call multiple immediate refreshes - DeleteSuperGroup already requests refresh
+									-- The polling system will handle the refresh automatically
 								else
-									addon:AlwaysPrint(" " .. message)
+									addon:AlwaysPrint("" .. message)
 									-- Clear confirmation mode on error
 									self.deleteConfirmation[sgInfo.name] = nil
+									-- Only refresh this UI on error since DeleteSuperGroup didn't complete
 									self:PopulateSuperGroupManagementUI()
 								end
 							end,
-							width = 0.25,
+							width = 0.3,
 						}
 						-- Cancel button
 						args[keyBase .. "_cancel"] = {
 							order = order + 0.33,
 							type = "execute",
-							name = "Cancel",
+							name = "|TInterface\\BUTTONS\\UI-StopButton:18:18:0:-2|t",
 							desc = "Cancel deletion",
 							func = function()
 								-- Exit confirmation mode
 								self.deleteConfirmation[sgInfo.name] = nil
 								self:PopulateSuperGroupManagementUI()
-								addon:AlwaysPrint(" Delete cancelled for '" .. sgInfo.displayName .. "'")
+								addon:AlwaysPrint("Delete cancelled for '" .. sgInfo.displayName .. "'")
 							end,
-							width = 0.25,
+							width = 0.3,
 						}
 					end
 				else
@@ -719,7 +752,7 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 								self:PopulateSuperGroupManagementUI()
 							end
 						end,
-						width = 0.4,
+						width = 0.6,
 					}
 				end
 
@@ -746,7 +779,7 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 		end
 	end
 
-	addon:DebugSupergr(" Built management UI with " .. totalSGs .. " supergroups")
+	addon:DebugSupergr("Built management UI with " .. totalSGs .. " supergroups")
 	return args
 end
 
@@ -758,14 +791,14 @@ function SuperGroupManager:GetAllSuperGroups()
 	local allSuperGroups = {}
 	-- Ensure data is ready
 	if not addon.RMB_DataReadyForUI or not addon.processedData then
-		addon:DebugSupergr(" Data not ready for GetAllSuperGroups")
+		addon:DebugSupergr("Data not ready for GetAllSuperGroups")
 		return allSuperGroups
 	end
 
-	addon:DebugSupergr(" GetAllSuperGroups - Data is ready, processing...")
+	addon:DebugSupergr("GetAllSuperGroups - Data is ready, processing...")
 	-- Add original supergroups (if not deleted)
 	if addon.processedData.superGroupMap then
-		addon:DebugSupergr(" Found " .. addon:CountTableEntries(addon.processedData.superGroupMap) .. " original supergroups")
+		addon:DebugSupergr("Found " .. addon:CountTableEntries(addon.processedData.superGroupMap) .. " original supergroups")
 		for sgName, _ in pairs(addon.processedData.superGroupMap) do
 			if not addon:IsSuperGroupDeleted(sgName) then
 				table.insert(allSuperGroups, {
@@ -775,18 +808,18 @@ function SuperGroupManager:GetAllSuperGroups()
 					isRenamed = addon:IsSuperGroupRenamed(sgName),
 					isDeleted = false,
 				})
-				addon:DebugSupergr(" Added original supergroup: " .. sgName)
+				addon:DebugSupergr("Added original supergroup: " .. sgName)
 			else
-				addon:DebugSupergr(" Skipped deleted supergroup: " .. sgName)
+				addon:DebugSupergr("Skipped deleted supergroup: " .. sgName)
 			end
 		end
 	else
-		addon:DebugSupergr(" No original supergroups found in processedData")
+		addon:DebugSupergr("No original supergroups found in processedData")
 	end
 
 	-- Add custom supergroups
 	if addon.db and addon.db.profile and addon.db.profile.superGroupDefinitions then
-		addon:DebugSupergr(" Found " ..
+		addon:DebugSupergr("Found " ..
 			addon:CountTableEntries(addon.db.profile.superGroupDefinitions) .. " supergroup definitions")
 		for sgName, definition in pairs(addon.db.profile.superGroupDefinitions) do
 			if definition.isCustom then
@@ -797,11 +830,11 @@ function SuperGroupManager:GetAllSuperGroups()
 					isRenamed = false,
 					isDeleted = false,
 				})
-				addon:DebugSupergr(" Added custom supergroup: " .. sgName)
+				addon:DebugSupergr("Added custom supergroup: " .. sgName)
 			end
 		end
 	else
-		addon:DebugSupergr(" No custom supergroup definitions found")
+		addon:DebugSupergr("No custom supergroup definitions found")
 	end
 
 	-- Add deleted supergroups (for restore functionality)
@@ -815,7 +848,7 @@ function SuperGroupManager:GetAllSuperGroups()
 					isRenamed = false,
 					isDeleted = true,
 				})
-				addon:DebugSupergr(" Added deleted supergroup for restore: " .. sgName)
+				addon:DebugSupergr("Added deleted supergroup for restore: " .. sgName)
 			end
 		end
 	end
@@ -832,7 +865,7 @@ function SuperGroupManager:GetAllSuperGroups()
 			return a.displayName < b.displayName
 		end
 	end)
-	addon:DebugSupergr(" GetAllSuperGroups returning " .. #allSuperGroups .. " supergroups")
+	addon:DebugSupergr("GetAllSuperGroups returning " .. #allSuperGroups .. " supergroups")
 	return allSuperGroups
 end
 
@@ -927,7 +960,7 @@ function SuperGroupManager:CreateSuperGroup(userInputName)
 		isCustom = true,
 		isRenamed = false,       -- Not renamed since it starts with user's preferred name
 	}
-	addon:DebugSupergr(" Created custom supergroup: '" .. displayName .. "' (internal: " .. internalName .. ")")
+	addon:DebugSupergr("Created custom supergroup: '" .. displayName .. "' (internal: " .. internalName .. ")")
 	-- Trigger rebuild
 	addon:RebuildMountGrouping()
 	return true, "Supergroup '" .. displayName .. "' created successfully"
@@ -967,7 +1000,7 @@ function SuperGroupManager:RenameSuperGroup(sgName, newDisplayName)
 			end
 		end
 
-		addon:DebugSupergr(" Restored original name for supergroup: " .. sgName)
+		addon:DebugSupergr("Restored original name for supergroup: " .. sgName)
 	else
 		-- Renaming to a different name - update or create definition
 		if not addon.db.profile.superGroupDefinitions[sgName] then
@@ -976,7 +1009,7 @@ function SuperGroupManager:RenameSuperGroup(sgName, newDisplayName)
 
 		addon.db.profile.superGroupDefinitions[sgName].displayName = trimmedNewName
 		addon.db.profile.superGroupDefinitions[sgName].isRenamed = true
-		addon:DebugSupergr(" Renamed supergroup: " .. sgName .. " to '" .. trimmedNewName .. "'")
+		addon:DebugSupergr("Renamed supergroup: " .. sgName .. " to '" .. trimmedNewName .. "'")
 	end
 
 	-- Trigger UI refresh
@@ -1018,7 +1051,7 @@ function SuperGroupManager:RestoreOriginalName(sgName)
 		addon.db.profile.superGroupDefinitions[sgName] = nil
 	end
 
-	addon:DebugSupergr(" Restored original name for: " .. sgName)
+	addon:DebugSupergr("Restored original name for: " .. sgName)
 	-- Trigger UI refresh
 	if addon.MountDataManager and addon.MountDataManager.InvalidateCache then
 		addon.MountDataManager:InvalidateCache("supergroup_name_restored")
@@ -1046,11 +1079,11 @@ function SuperGroupManager:DeleteSuperGroup(sgName)
 			addon.db.profile.superGroupDefinitions[sgName] = nil
 		end
 
-		addon:DebugSupergr(" Deleted custom supergroup: " .. sgName)
+		addon:DebugSupergr("Deleted custom supergroup: " .. sgName)
 	else
 		-- For original supergroups, mark as deleted
 		addon.db.profile.deletedSuperGroups[sgName] = true
-		addon:DebugSupergr(" Marked original supergroup as deleted: " .. sgName)
+		addon:DebugSupergr("Marked original supergroup as deleted: " .. sgName)
 	end
 
 	-- Remove any family assignments to this supergroup
@@ -1064,7 +1097,7 @@ function SuperGroupManager:DeleteSuperGroup(sgName)
 		end
 
 		if #clearedFamilies > 0 then
-			addon:DebugSupergr(" Cleared assignments for " .. #clearedFamilies .. " families")
+			addon:DebugSupergr("Cleared assignments for " .. #clearedFamilies .. " families")
 		end
 	end
 
@@ -1097,10 +1130,10 @@ function SuperGroupManager:RestoreSuperGroup(sgName)
 			not addon.db.profile.superGroupDefinitions[sgName].isCustom then
 		-- For original supergroups, remove the definition entirely to restore original name
 		addon.db.profile.superGroupDefinitions[sgName] = nil
-		addon:DebugSupergr(" Cleaned up rename data during restoration of: " .. sgName)
+		addon:DebugSupergr("Cleaned up rename data during restoration of: " .. sgName)
 	end
 
-	addon:DebugSupergr(" Restored supergroup: " .. sgName)
+	addon:DebugSupergr("Restored supergroup: " .. sgName)
 	-- Trigger rebuild
 	addon:RebuildMountGrouping()
 	return true, "Supergroup restored to original state"
@@ -1153,7 +1186,7 @@ function SuperGroupManager:MergeSuperGroups(sourceSG, targetSG)
 	-- Delete the source supergroup
 	local deleteSuccess, deleteMessage = self:DeleteSuperGroup(sourceSG)
 	if deleteSuccess then
-		addon:DebugSupergr(" Merged '" ..
+		addon:DebugSupergr("Merged '" ..
 			sourceDisplayName .. "' into '" .. targetDisplayName .. "' (" .. movedFamilies .. " families moved)")
 		return true,
 				"Merged " .. movedFamilies .. " families from '" .. sourceDisplayName .. "' to '" .. targetDisplayName .. "'"
@@ -1204,7 +1237,7 @@ end
 -- ============================================================================
 -- Enhanced RefreshAllUIs method to handle refreshes across modules
 function SuperGroupManager:RefreshAllUIs()
-	addon:DebugSupergr(" SuperGroupManager: Refreshing all UIs")
+	addon:DebugSupergr("SuperGroupManager: Refreshing all UIs")
 	-- Refresh SuperGroup Management UI
 	self:PopulateSuperGroupManagementUI()
 	-- Refresh Family Assignment UI
@@ -1227,7 +1260,7 @@ function SuperGroupManager:RefreshAllUIs()
 		addon.MountSummon:RefreshMountPools()
 	end
 
-	addon:DebugSupergr(" SuperGroupManager: All UI refresh completed")
+	addon:DebugSupergr("SuperGroupManager: All UI refresh completed")
 end
 
 -- ============================================================================
@@ -1236,12 +1269,12 @@ end
 -- Initialize SuperGroup Manager when addon loads
 function addon:InitializeSuperGroupManager()
 	if not self.SuperGroupManager then
-		addon:DebugSupergr(" ERROR - SuperGroupManager not found!")
+		addon:DebugSupergr("ERROR - SuperGroupManager not found!")
 		return
 	end
 
 	self.SuperGroupManager:Initialize()
-	addon:DebugSupergr(" SuperGroupManager integration complete")
+	addon:DebugSupergr("SuperGroupManager integration complete")
 end
 
 addon:DebugCore("SuperGroupManager.lua END.")

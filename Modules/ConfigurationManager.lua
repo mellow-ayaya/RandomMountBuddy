@@ -9,10 +9,10 @@ local ConfigurationManager = {}
 addon.ConfigurationManager = ConfigurationManager
 -- Initialize the Configuration Manager
 function ConfigurationManager:Initialize()
-	addon:DebugSupergr(" Initializing Configuration Manager...")
+	addon:DebugSupergr("Initializing Configuration Manager...")
 	-- Initialize validation system
 	self.lastValidationReport = nil
-	addon:DebugSupergr(" Configuration Manager initialized")
+	addon:DebugSupergr("Configuration Manager initialized")
 end
 
 -- ============================================================================
@@ -88,7 +88,7 @@ function ConfigurationManager:ImportConfiguration(configString, importMode)
 	-- Check version for compatibility
 	local configVersion = config.version or "1.0"
 	local hasSeparatedMounts = config.separatedMounts ~= nil
-	addon:DebugImport(" Importing configuration version " .. configVersion ..
+	addon:DebugImport("Importing configuration version " .. configVersion ..
 		(hasSeparatedMounts and " (with separated mounts)" or " (no separated mounts)"))
 	-- Initialize database structures if needed
 	if not addon.db.profile.superGroupOverrides then
@@ -160,7 +160,7 @@ function ConfigurationManager:ImportConfiguration(configString, importMode)
 
 				importStats.separatedMounts = importStats.separatedMounts + 1
 			else
-				addon:DebugImport(" Skipped invalid separated mount data for mount " .. mountID)
+				addon:DebugImport("Skipped invalid separated mount data for mount " .. mountID)
 			end
 		end
 	end
@@ -185,7 +185,7 @@ function ConfigurationManager:ImportConfiguration(configString, importMode)
 		message = message .. string.format(", and %d separated mounts", importStats.separatedMounts)
 	end
 
-	addon:DebugSupergr(" " .. message)
+	addon:DebugSupergr("" .. message)
 	return true, message
 end
 
@@ -297,7 +297,7 @@ function ConfigurationManager:ResetToDefaults(resetType)
 		end
 	end
 
-	addon:DebugSupergr(" " .. message)
+	addon:DebugSupergr("" .. message)
 	return true, message
 end
 
@@ -316,7 +316,7 @@ function ConfigurationManager:ResetMountSeparationOnly()
 		return false, "No separated mounts found"
 	end
 
-	addon:DebugImport(" Resetting " .. separatedCount .. " separated mounts...")
+	addon:DebugImport("Resetting " .. separatedCount .. " separated mounts...")
 	-- Clear separated mount family weight settings (but keep individual mount weights)
 	local clearedFamilyWeights = 0
 	if addon.db.profile.groupWeights then
@@ -355,7 +355,7 @@ function ConfigurationManager:ResetMountSeparationOnly()
 
 	-- Clear the separated mounts data
 	wipe(addon.db.profile.separatedMounts)
-	addon:DebugImport(" Cleared separated mounts and " .. clearedFamilyWeights ..
+	addon:DebugImport("Cleared separated mounts and " .. clearedFamilyWeights ..
 		" family weights, " .. clearedOverrides .. " supergroup overrides, " ..
 		clearedTraitOverrides .. " trait overrides")
 	-- Trigger complete data rebuild
@@ -375,7 +375,7 @@ function ConfigurationManager:ResetMountSeparationOnly()
 		)
 	end
 
-	addon:DebugImport(" " .. message)
+	addon:DebugImport("" .. message)
 	return true, message
 end
 
@@ -432,7 +432,7 @@ function ConfigurationManager:RunDataValidation(autoFix)
 		return false, "Data not ready for validation"
 	end
 
-	addon:DebugValidation(" Starting comprehensive data validation...")
+	addon:DebugValidation("Starting comprehensive data validation...")
 	local startTime = debugprofilestop()
 	local report = {
 		weightSyncIssues = {},
@@ -471,7 +471,7 @@ end
 -- ADD: Method to clear validation report (useful for UI)
 function ConfigurationManager:ClearValidationReport()
 	self.lastValidationReport = nil
-	addon:DebugSupergr(" Validation report cleared")
+	addon:DebugSupergr("Validation report cleared")
 end
 
 -- ADD: Method to get validation statistics for display
@@ -514,7 +514,7 @@ end
 -- 1. WEIGHT SYNCHRONIZATION VALIDATION
 -- ============================================================================
 function ConfigurationManager:ValidateWeightSynchronization(report, autoFix)
-	addon:DebugValidation(" Checking weight synchronization...")
+	addon:DebugValidation("Checking weight synchronization...")
 	if not (addon.db and addon.db.profile and addon.db.profile.groupWeights) then
 		return
 	end
@@ -523,7 +523,7 @@ function ConfigurationManager:ValidateWeightSynchronization(report, autoFix)
 	local issuesFound = 0
 	local issuesFixed = 0
 	-- Check 1: Single-mount families where family weight ≠ mount weight
-	addon:DebugValidation(" Checking single-mount family weight sync...")
+	addon:DebugValidation("Checking single-mount family weight sync...")
 	for familyName, _ in pairs(addon.processedData.familyToMountIDsMap or {}) do
 		local isSingleMount, mountID = addon:IsSingleMountFamily(familyName)
 		if isSingleMount and mountID then
@@ -549,14 +549,14 @@ function ConfigurationManager:ValidateWeightSynchronization(report, autoFix)
 					issue.fixedWeight = syncWeight
 					issue.fixed = true
 					issuesFixed = issuesFixed + 1
-					addon:DebugValidation(" Fixed single-mount sync: " .. familyName .. " -> " .. syncWeight)
+					addon:DebugValidation("Fixed single-mount sync: " .. familyName .. " -> " .. syncWeight)
 				end
 			end
 		end
 	end
 
 	-- Check 2: Separated families where separated family weight ≠ mount weight
-	addon:DebugValidation(" Checking separated family weight sync...")
+	addon:DebugValidation("Checking separated family weight sync...")
 	if addon.db.profile.separatedMounts then
 		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
 			local familyName = separationData.familyName
@@ -582,14 +582,14 @@ function ConfigurationManager:ValidateWeightSynchronization(report, autoFix)
 					issue.fixedWeight = syncWeight
 					issue.fixed = true
 					issuesFixed = issuesFixed + 1
-					addon:DebugValidation(" Fixed separated family sync: " .. familyName .. " -> " .. syncWeight)
+					addon:DebugValidation("Fixed separated family sync: " .. familyName .. " -> " .. syncWeight)
 				end
 			end
 		end
 	end
 
 	-- Check 3: Invalid weight ranges (outside 0-6)
-	addon:DebugValidation(" Checking weight ranges...")
+	addon:DebugValidation("Checking weight ranges...")
 	for groupKey, weight in pairs(weightSettings) do
 		local numWeight = tonumber(weight)
 		if not numWeight or numWeight < 0 or numWeight > 6 then
@@ -606,13 +606,13 @@ function ConfigurationManager:ValidateWeightSynchronization(report, autoFix)
 				issue.fixedWeight = 3
 				issue.fixed = true
 				issuesFixed = issuesFixed + 1
-				addon:DebugValidation(" Fixed invalid weight: " .. groupKey .. " " .. tostring(weight) .. " -> 3")
+				addon:DebugValidation("Fixed invalid weight: " .. groupKey .. " " .. tostring(weight) .. " -> 3")
 			end
 		end
 	end
 
 	-- Check 4: Separated mounts missing family or mount weights
-	addon:DebugValidation(" Checking missing separated mount weights...")
+	addon:DebugValidation("Checking missing separated mount weights...")
 	if addon.db.profile.separatedMounts then
 		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
 			local familyName = separationData.familyName
@@ -644,7 +644,7 @@ function ConfigurationManager:ValidateWeightSynchronization(report, autoFix)
 					issue.fixedWeight = defaultWeight
 					issue.fixed = true
 					issuesFixed = issuesFixed + 1
-					addon:DebugValidation(" Fixed missing separated weights: " .. familyName .. " -> " .. defaultWeight)
+					addon:DebugValidation("Fixed missing separated weights: " .. familyName .. " -> " .. defaultWeight)
 				end
 			end
 		end
@@ -652,14 +652,14 @@ function ConfigurationManager:ValidateWeightSynchronization(report, autoFix)
 
 	report.totalIssues = report.totalIssues + issuesFound
 	report.totalFixed = report.totalFixed + issuesFixed
-	addon:DebugValidation(" Weight sync check complete - " .. issuesFound .. " issues, " .. issuesFixed .. " fixed")
+	addon:DebugValidation("Weight sync check complete - " .. issuesFound .. " issues, " .. issuesFixed .. " fixed")
 end
 
 -- ============================================================================
 -- 2. ORPHANED SETTINGS CLEANUP
 -- ============================================================================
 function ConfigurationManager:ValidateOrphanedSettings(report, autoFix)
-	addon:DebugValidation(" Checking for orphaned settings...")
+	addon:DebugValidation("Checking for orphaned settings...")
 	if not (addon.db and addon.db.profile) then
 		return
 	end
@@ -697,7 +697,7 @@ function ConfigurationManager:ValidateOrphanedSettings(report, autoFix)
 	end
 
 	-- Check 1: Orphaned weight settings
-	addon:DebugValidation(" Checking orphaned weight settings...")
+	addon:DebugValidation("Checking orphaned weight settings...")
 	if addon.db.profile.groupWeights then
 		for groupKey, weight in pairs(addon.db.profile.groupWeights) do
 			local isValid = false
@@ -723,14 +723,14 @@ function ConfigurationManager:ValidateOrphanedSettings(report, autoFix)
 					addon.db.profile.groupWeights[groupKey] = nil
 					issue.fixed = true
 					issuesFixed = issuesFixed + 1
-					addon:DebugValidation(" Removed orphaned weight: " .. groupKey)
+					addon:DebugValidation("Removed orphaned weight: " .. groupKey)
 				end
 			end
 		end
 	end
 
 	-- Check 2: Orphaned supergroup overrides
-	addon:DebugValidation(" Checking orphaned supergroup overrides...")
+	addon:DebugValidation("Checking orphaned supergroup overrides...")
 	if addon.db.profile.superGroupOverrides then
 		for familyName, override in pairs(addon.db.profile.superGroupOverrides) do
 			if not validFamilies[familyName] then
@@ -745,14 +745,14 @@ function ConfigurationManager:ValidateOrphanedSettings(report, autoFix)
 					addon.db.profile.superGroupOverrides[familyName] = nil
 					issue.fixed = true
 					issuesFixed = issuesFixed + 1
-					addon:DebugValidation(" Removed orphaned supergroup override: " .. familyName)
+					addon:DebugValidation("Removed orphaned supergroup override: " .. familyName)
 				end
 			end
 		end
 	end
 
 	-- Check 3: Orphaned trait overrides
-	addon:DebugValidation(" Checking orphaned trait overrides...")
+	addon:DebugValidation("Checking orphaned trait overrides...")
 	if addon.db.profile.traitOverrides then
 		for familyName, traits in pairs(addon.db.profile.traitOverrides) do
 			if not validFamilies[familyName] then
@@ -767,7 +767,7 @@ function ConfigurationManager:ValidateOrphanedSettings(report, autoFix)
 					addon.db.profile.traitOverrides[familyName] = nil
 					issue.fixed = true
 					issuesFixed = issuesFixed + 1
-					addon:DebugValidation(" Removed orphaned trait override: " .. familyName)
+					addon:DebugValidation("Removed orphaned trait override: " .. familyName)
 				end
 			end
 		end
@@ -775,14 +775,14 @@ function ConfigurationManager:ValidateOrphanedSettings(report, autoFix)
 
 	report.totalIssues = report.totalIssues + issuesFound
 	report.totalFixed = report.totalFixed + issuesFixed
-	addon:DebugValidation(" Orphaned settings check complete - " .. issuesFound .. " issues, " .. issuesFixed .. " fixed")
+	addon:DebugValidation("Orphaned settings check complete - " .. issuesFound .. " issues, " .. issuesFixed .. " fixed")
 end
 
 -- ============================================================================
 -- 3. SEPARATED FAMILY NAME CONFLICT VALIDATION
 -- ============================================================================
 function ConfigurationManager:ValidateSeparatedFamilyNames(report, autoFix)
-	addon:DebugValidation(" Checking separated family name conflicts...")
+	addon:DebugValidation("Checking separated family name conflicts...")
 	if not (addon.db and addon.db.profile and addon.db.profile.separatedMounts) then
 		return
 	end
@@ -862,7 +862,7 @@ function ConfigurationManager:ValidateSeparatedFamilyNames(report, autoFix)
 				issue.fixed = true
 				issuesFixed = issuesFixed + 1
 				separatedFamilies[newName] = true
-				addon:DebugValidation(" Fixed name conflict: " .. familyName .. " -> " .. newName)
+				addon:DebugValidation("Fixed name conflict: " .. familyName .. " -> " .. newName)
 			end
 		else
 			-- Track this separated family name
@@ -908,14 +908,14 @@ function ConfigurationManager:ValidateSeparatedFamilyNames(report, autoFix)
 				issue.fixed = true
 				issuesFixed = issuesFixed + 1
 				separatedFamilies[newName] = true
-				addon:DebugValidation(" Fixed duplicate separated name: " .. familyName .. " -> " .. newName)
+				addon:DebugValidation("Fixed duplicate separated name: " .. familyName .. " -> " .. newName)
 			end
 		end
 	end
 
 	report.totalIssues = report.totalIssues + issuesFound
 	report.totalFixed = report.totalFixed + issuesFixed
-	addon:DebugValidation(" Name conflict check complete - " .. issuesFound .. " issues, " .. issuesFixed .. " fixed")
+	addon:DebugValidation("Name conflict check complete - " .. issuesFound .. " issues, " .. issuesFixed .. " fixed")
 end
 
 -- Helper function to generate unique separated family names
@@ -1037,7 +1037,7 @@ end
 -- ============================================================================
 -- Method to refresh all UIs (coordinates with other modules)
 function ConfigurationManager:RefreshAllUIs()
-	addon:DebugSupergr(" ConfigurationManager: Refreshing all UIs after validation fixes")
+	addon:DebugSupergr("ConfigurationManager: Refreshing all UIs after validation fixes")
 	-- Refresh SuperGroup Management UIs
 	if addon.SuperGroupManager then
 		addon.SuperGroupManager:PopulateSuperGroupManagementUI()
@@ -1063,7 +1063,7 @@ function ConfigurationManager:RefreshAllUIs()
 		addon.MountSummon:RefreshMountPools()
 	end
 
-	addon:DebugSupergr(" ConfigurationManager: All UI refresh completed")
+	addon:DebugSupergr("ConfigurationManager: All UI refresh completed")
 end
 
 -- ============================================================================
@@ -1072,12 +1072,12 @@ end
 -- Initialize Configuration Manager when addon loads
 function addon:InitializeConfigurationManager()
 	if not self.ConfigurationManager then
-		addon:DebugSupergr(" ERROR - ConfigurationManager not found!")
+		addon:DebugSupergr("ERROR - ConfigurationManager not found!")
 		return
 	end
 
 	self.ConfigurationManager:Initialize()
-	addon:DebugSupergr(" ConfigurationManager integration complete")
+	addon:DebugSupergr("ConfigurationManager integration complete")
 end
 
 addon:DebugCore("ConfigurationManager.lua END.")

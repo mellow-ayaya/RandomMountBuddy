@@ -9,7 +9,7 @@ local FamilyAssignment = {}
 addon.FamilyAssignment = FamilyAssignment
 -- Initialize the Family Assignment system
 function FamilyAssignment:Initialize()
-	addon:DebugSupergr(" Initializing Family Assignment system...")
+	addon:DebugSupergr("Initializing Family Assignment system...")
 	-- UI state for family assignment
 	self.uiState = {
 		currentPage = 1,
@@ -17,7 +17,7 @@ function FamilyAssignment:Initialize()
 	}
 	-- Initialize dynamic content reference
 	self.familyListArgsRef = {}
-	addon:DebugSupergr(" Family Assignment system initialized")
+	addon:DebugSupergr("Family Assignment system initialized")
 end
 
 -- ============================================================================
@@ -28,11 +28,11 @@ function FamilyAssignment:GetAllFamilyAssignments()
 	local familyAssignments = {}
 	-- Ensure data is ready
 	if not addon.RMB_DataReadyForUI or not addon.processedData then
-		addon:DebugSupergr(" Data not ready for GetAllFamilyAssignments")
+		addon:DebugSupergr("Data not ready for GetAllFamilyAssignments")
 		return familyAssignments
 	end
 
-	addon:DebugSupergr(" GetAllFamilyAssignments - Data is ready, processing...")
+	addon:DebugSupergr("GetAllFamilyAssignments - Data is ready, processing...")
 	-- Get all unique families from collected mounts
 	local allFamilies = {}
 	if addon.processedData.allCollectedMountFamilyInfo then
@@ -40,7 +40,7 @@ function FamilyAssignment:GetAllFamilyAssignments()
 			allFamilies[mountInfo.familyName] = true
 		end
 
-		addon:DebugSupergr(" Found families from collected mounts: " .. addon:CountTableEntries(allFamilies))
+		addon:DebugSupergr("Found families from collected mounts: " .. addon:CountTableEntries(allFamilies))
 	end
 
 	-- Add families from uncollected mounts
@@ -54,7 +54,7 @@ function FamilyAssignment:GetAllFamilyAssignments()
 			allFamilies[mountInfo.familyName] = true
 		end
 
-		addon:DebugSupergr(" Added " .. uncollectedFamilyCount .. " new families from uncollected mounts")
+		addon:DebugSupergr("Added " .. uncollectedFamilyCount .. " new families from uncollected mounts")
 	end
 
 	-- FIXED: Also include separated families
@@ -63,12 +63,12 @@ function FamilyAssignment:GetAllFamilyAssignments()
 			local newFamilyName = separationData.familyName
 			if newFamilyName and not allFamilies[newFamilyName] then
 				allFamilies[newFamilyName] = true
-				addon:DebugSupergr(" Added separated family: " .. newFamilyName)
+				addon:DebugSupergr("Added separated family: " .. newFamilyName)
 			end
 		end
 	end
 
-	addon:DebugSupergr(" Total unique families to process: " .. addon:CountTableEntries(allFamilies))
+	addon:DebugSupergr("Total unique families to process: " .. addon:CountTableEntries(allFamilies))
 	-- Build assignment data for each family
 	for familyName, _ in pairs(allFamilies) do
 		local originalSG = addon:GetOriginalSuperGroup(familyName) -- Before any changes
@@ -106,7 +106,7 @@ function FamilyAssignment:GetAllFamilyAssignments()
 					(treatUniqueEffectsAsDistinct and effectiveTraits.isUniqueEffect) then
 				isSeparatedByStrictness = true
 				separationReason = addon:GetFamilySeparationReason(familyName)
-				addon:DebugSupergr(" Family '" ..
+				addon:DebugSupergr("Family '" ..
 					familyName .. "' separated by trait strictness from intended: " .. tostring(intendedSG))
 			end
 		end
@@ -170,7 +170,7 @@ function FamilyAssignment:GetAllFamilyAssignments()
 			return a.familyName < b.familyName
 		end
 	end)
-	addon:DebugSupergr(" GetAllFamilyAssignments returning " .. #familyAssignments .. " family assignments")
+	addon:DebugSupergr("GetAllFamilyAssignments returning " .. #familyAssignments .. " family assignments")
 	return familyAssignments
 end
 
@@ -200,29 +200,29 @@ function FamilyAssignment:AssignFamilyToSuperGroup(familyName, targetSG)
 
 	-- Get the family's relationships
 	local originalSG = addon:GetOriginalSuperGroup(familyName)
-	addon:DebugSupergr(" Assigning " .. familyName .. " - Original: " .. tostring(originalSG) ..
+	addon:DebugSupergr("Assigning " .. familyName .. " - Original: " .. tostring(originalSG) ..
 		", Target: " .. tostring(targetSG) .. ", IsSeparated: " .. tostring(isSeparatedFamily))
 	if targetSG == nil or targetSG == "" or targetSG == "<Standalone>" then
 		-- Assign to standalone (set intended assignment to standalone)
 		if originalSG == nil then
 			-- Already originally standalone, remove any override
 			addon.db.profile.superGroupOverrides[familyName] = nil
-			addon:DebugSupergr(" Cleared override for " .. familyName .. " (originally standalone)")
+			addon:DebugSupergr("Cleared override for " .. familyName .. " (originally standalone)")
 		else
 			-- Force to standalone (override original assignment)
 			addon.db.profile.superGroupOverrides[familyName] = false
-			addon:DebugSupergr(" Set " .. familyName .. " intended assignment to standalone")
+			addon:DebugSupergr("Set " .. familyName .. " intended assignment to standalone")
 		end
 	else
 		-- Assign to specific supergroup (set intended assignment)
 		if targetSG == originalSG then
 			-- Same as original assignment, remove any override
 			addon.db.profile.superGroupOverrides[familyName] = nil
-			addon:DebugSupergr(" Cleared override for " .. familyName .. " (matches original assignment)")
+			addon:DebugSupergr("Cleared override for " .. familyName .. " (matches original assignment)")
 		else
 			-- Override to new supergroup (set intended assignment)
 			addon.db.profile.superGroupOverrides[familyName] = targetSG
-			addon:DebugSupergr(" Set " .. familyName .. " intended assignment to " .. targetSG)
+			addon:DebugSupergr("Set " .. familyName .. " intended assignment to " .. targetSG)
 		end
 	end
 
@@ -233,7 +233,7 @@ function FamilyAssignment:AssignFamilyToSuperGroup(familyName, targetSG)
 		local mountWeight = addon:GetGroupWeight(mountKey)
 		-- Ensure family and mount weights are synchronized
 		if familyWeight ~= mountWeight then
-			addon:DebugSupergr(" Synchronizing weights for separated family - Family: " ..
+			addon:DebugSupergr("Synchronizing weights for separated family - Family: " ..
 				familyWeight .. ", Mount: " .. mountWeight)
 			-- Use the higher weight to avoid downgrading
 			local syncWeight = math.max(familyWeight, mountWeight)
@@ -353,20 +353,20 @@ function FamilyAssignment:ValidateSeparatedFamilyIntegrity()
 				addon:SetGroupWeight(familyName, syncWeight)
 				addon:SetGroupWeight(mountKey, syncWeight)
 				fixedIssues = fixedIssues + 1
-				addon:DebugSupergr(" Fixed weight sync for " .. familyName .. " -> " .. syncWeight)
+				addon:DebugSupergr("Fixed weight sync for " .. familyName .. " -> " .. syncWeight)
 			end
 		end
 	end
 
 	if #issues > 0 then
-		addon:DebugSupergr(" Found " .. #issues .. " separated family integrity issues")
+		addon:DebugSupergr("Found " .. #issues .. " separated family integrity issues")
 		for _, issue in ipairs(issues) do
-			addon:DebugSupergr(" ISSUE: " .. issue)
+			addon:DebugSupergr("ISSUE: " .. issue)
 		end
 	end
 
 	if fixedIssues > 0 then
-		addon:DebugSupergr(" Auto-fixed " .. fixedIssues .. " weight synchronization issues")
+		addon:DebugSupergr("Auto-fixed " .. fixedIssues .. " weight synchronization issues")
 	end
 
 	return #issues == 0, issues
@@ -380,7 +380,7 @@ function FamilyAssignment:GetAvailableSuperGroups()
 	local availableSGs = {}
 	-- FIXED: Use prefixed keys to force Ace sorting order
 	-- Start with standalone
-	availableSGs["0_<Standalone>"] = "Standalone (No Supergroup)"
+	availableSGs["0_<Standalone>"] = "Standalone"
 	-- Add custom supergroups first (prefix with 1_)
 	local allSGs = addon.SuperGroupManager:GetAllSuperGroups()
 	local customCounter = 1
@@ -417,7 +417,7 @@ end
 -- ============================================================================
 -- Populate family assignment UI (same pattern as PopulateFamilyManagementUI)
 function FamilyAssignment:PopulateFamilyAssignmentUI()
-	addon:DebugSupergr(" PopulateFamilyAssignmentUI called")
+	addon:DebugSupergr("PopulateFamilyAssignmentUI called")
 	if not addon.sgFamilyArgsRef then
 		addon:DebugSupergr("addon.sgFamilyArgsRef is nil! Options.lua problem.")
 		return
@@ -428,7 +428,7 @@ function FamilyAssignment:PopulateFamilyAssignmentUI()
 	if addon.db and addon.db.profile and addon.db.profile.separatedMounts then
 		local separatedCount = addon:CountTableEntries(addon.db.profile.separatedMounts)
 		if separatedCount > 0 then
-			addon:DebugSupergr(" Validating compatibility with " .. separatedCount .. " separated families")
+			addon:DebugSupergr("Validating compatibility with " .. separatedCount .. " separated families")
 			self:ValidateSeparatedFamilyIntegrity()
 		end
 	end
@@ -452,16 +452,9 @@ end
 
 -- Build family assignment page content
 function FamilyAssignment:BuildFamilyAssignmentArgs()
-	addon:DebugSupergr(" BuildFamilyAssignmentArgs called")
+	addon:DebugSupergr("BuildFamilyAssignmentArgs called")
 	local args = {}
 	local order = 1
-	-- Header
-	args.header_assign = {
-		order = order,
-		type = "header",
-		name = "Assign Families to Supergroups",
-	}
-	order = order + 1
 	args.desc_assign = {
 		order = order,
 		type = "description",
@@ -474,7 +467,7 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 	args.search_label = {
 		order = order,
 		type = "description",
-		name = "|cffffd700Search:|r",
+		name = "|cffffd700  Search:|r",
 		width = 0.3,
 	}
 	order = order + 1
@@ -492,6 +485,31 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 		width = 1.0,
 	}
 	order = order + 1
+	-- Show clear button only when there's a search term
+	local hasSearchTerm = (self.uiState.searchTerm or "") ~= ""
+	if hasSearchTerm then
+		args.search_reset = {
+			order = order,
+			type = "execute",
+			name = "Clear",
+			desc = "Clear search term",
+			func = function()
+				self.uiState.searchTerm = ""
+				self.uiState.currentPage = 1
+				self:PopulateFamilyAssignmentUI()
+			end,
+			width = 0.4,
+		}
+	else
+		args.spacer_no_search_reset = {
+			order = order,
+			type = "description",
+			name = " ",
+			width = 0.4,
+		}
+	end
+
+	order = order + 1
 	-- Family assignment list
 	local allFamilies = self:GetAllFamilyAssignments()
 	local searchTerm = self.uiState.searchTerm or ""
@@ -504,49 +522,12 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 	end
 
 	-- FIXED: Use same pagination style as MountSeparationManager
-	local itemsPerPage = 20
+	local itemsPerPage = 14
 	local totalItems = #filteredFamilies
 	local totalPages = math.max(1, math.ceil(totalItems / itemsPerPage))
 	local currentPage = math.max(1, math.min(self.uiState.currentPage or 1, totalPages))
 	local startIndex = (currentPage - 1) * itemsPerPage + 1
 	local endIndex = math.min(startIndex + itemsPerPage - 1, totalItems)
-	-- Page info
-	if totalPages > 1 then
-		args.page_info = {
-			order = order,
-			type = "description",
-			name = string.format("Page %d of %d (%d families)", currentPage, totalPages, totalItems),
-			width = "full",
-		}
-		order = order + 1
-	end
-
-	-- Enhanced Legend/Help section
-	args.legend_header = {
-		order = order,
-		type = "header",
-		name = "Status Indicators",
-	}
-	order = order + 1
-	args.legend_desc = {
-		order = order,
-		type = "description",
-		name = "|cffffd700*|r = User Override Active (you've manually changed this assignment)\n" ..
-				"|cffff9900⚡|r = Separated by Trait Settings (intended supergroup overridden by trait strictness)\n" ..
-				"|cff1eff00[M]|r = Single Mount Family  |cff0070dd[F]|r = Multi Mount Family\n\n" ..
-				"|cff00ff00How it works:|r Assignments set your intended supergroup structure. Trait strictness settings can still separate families with distinguishing traits from their intended supergroups.\n" ..
-				"|cff888888Example: Assign a unique-effect family to 'Dragons' supergroup. If 'Unique Effects as Distinct' is enabled, it will show as assigned to Dragons but remain separated.|r",
-		fontSize = "medium",
-		width = "full",
-	}
-	order = order + 1
-	-- Family entries header
-	args.family_header = {
-		order = order,
-		type = "header",
-		name = "Family Assignments (Showing " .. math.min(itemsPerPage, totalItems) .. " of " .. totalItems .. ")",
-	}
-	order = order + 1
 	-- ENHANCED: Add column headers for better organization
 	if totalItems > 0 then
 		args.column_headers = {
@@ -565,14 +546,20 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 				familyHeader = {
 					order = 2,
 					type = "description",
-					name = "   |cffffd700Family Name|r",
-					width = 1.5,
+					name = "     |cffffd700Family Name|r",
+					width = 2,
 				},
 				assignmentHeader = {
 					order = 3,
 					type = "description",
 					name = "   |cffffd700Supergroup Assignment|r",
 					width = 1.0,
+				},
+				resetHeader = {
+					order = 4,
+					type = "description",
+					name = "     |cffffd700  Reset|r",
+					width = 0.4,
 				},
 			},
 		}
@@ -584,6 +571,7 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 		local familyInfo = filteredFamilies[i]
 		if familyInfo then
 			local keyBase = "family_" .. familyInfo.familyName:gsub("[^%w]", "_")
+			-- ENHANCED: Create comprehensive family entry
 			-- ENHANCED: Create comprehensive family entry
 			args[keyBase .. "_entry"] = {
 				order = order,
@@ -612,32 +600,32 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 						width = 0.3,
 					},
 
-					-- ENHANCED: Family name with comprehensive status indicators
+					-- UPDATED: Family name (simplified, no status indicators)
 					family_name = {
 						order = 2,
 						type = "description",
 						name = function()
 							local indicator = (familyInfo.totalCount == 1) and "|cff1eff00[M]|r" or "|cff0070dd[F]|r"
-							local countText = "(" .. familyInfo.collectedCount
-							if familyInfo.uncollectedCount > 0 then
-								countText = countText .. " + |cff9d9d9d" .. familyInfo.uncollectedCount .. "|r"
+							-- Only show count if there's more than one mount
+							local countText = ""
+							if familyInfo.totalCount > 1 then
+								countText = " (" .. familyInfo.collectedCount
+								if familyInfo.uncollectedCount > 0 then
+									countText = countText .. " + |cff9d9d9d" .. familyInfo.uncollectedCount .. "|r"
+								end
+
+								countText = countText .. ")"
 							end
 
-							countText = countText .. ")"
-							-- Status indicators
-							local statusIndicators = {}
+							-- Show override indicator next to name
+							local overrideText = ""
 							if familyInfo.hasUserOverride then
-								table.insert(statusIndicators, "|cffffd700*|r") -- User override
+								overrideText = " |cffffd700*|r"
 							end
 
-							if familyInfo.isSeparatedByStrictness then
-								table.insert(statusIndicators, "|cffff9900⚡|r") -- Separated by strictness
-							end
-
-							local statusText = #statusIndicators > 0 and (" " .. table.concat(statusIndicators, "")) or ""
-							return indicator .. " " .. familyInfo.familyName .. " " .. countText .. statusText
+							return indicator .. " " .. familyInfo.familyName .. overrideText .. countText
 						end,
-						width = 1.5,
+						width = 2,
 					},
 
 					-- ENHANCED: Supergroup assignment dropdown with better tooltips
@@ -704,6 +692,40 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 						end,
 						width = 1.0,
 					},
+
+					-- NEW: Reset to default button
+					reset_button = {
+						order = 4,
+						type = "execute",
+						name = "Reset",
+						desc = function()
+							local defaultAssignment = familyInfo.originalSuperGroup or "Standalone"
+							return "Reset to default assignment: " .. defaultAssignment ..
+									(familyInfo.hasUserOverride and "\n|cffffd700(Will remove current override)|r" or "\n|cff888888(Already at default)|r")
+						end,
+						func = function()
+							-- Reset to original assignment by removing override
+							if addon.db and addon.db.profile and addon.db.profile.superGroupOverrides then
+								addon.db.profile.superGroupOverrides[familyInfo.familyName] = nil
+							end
+
+							-- Trigger rebuild
+							addon:RebuildMountGrouping()
+							-- Refresh all UIs
+							addon.SuperGroupManager:PopulateSuperGroupManagementUI()
+							self:PopulateFamilyAssignmentUI()
+							if addon.PopulateFamilyManagementUI then
+								addon:PopulateFamilyManagementUI()
+							end
+
+							local defaultAssignment = familyInfo.originalSuperGroup or "Standalone"
+							addon:AlwaysPrint("Reset " .. familyInfo.familyName .. " to default: " .. defaultAssignment)
+						end,
+						disabled = function()
+							return not familyInfo.hasUserOverride
+						end,
+						width = 0.4,
+					},
 				},
 			}
 			order = order + 1
@@ -721,7 +743,7 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 		order = order + 1
 	end
 
-	addon:DebugSupergr(" Built family assignment UI with " .. #filteredFamilies .. " families")
+	addon:DebugSupergr("Built family assignment UI with " .. #filteredFamilies .. " families")
 	return args
 end
 
@@ -852,12 +874,12 @@ end
 -- Initialize Family Assignment system when addon loads
 function addon:InitializeFamilyAssignment()
 	if not self.FamilyAssignment then
-		addon:DebugSupergr(" ERROR - FamilyAssignment not found!")
+		addon:DebugSupergr("ERROR - FamilyAssignment not found!")
 		return
 	end
 
 	self.FamilyAssignment:Initialize()
-	addon:DebugSupergr(" FamilyAssignment integration complete")
+	addon:DebugSupergr("FamilyAssignment integration complete")
 end
 
 addon:DebugCore("FamilyAssignment.lua END.")
