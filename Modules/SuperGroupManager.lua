@@ -381,8 +381,7 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 	args.desc_mgmt = {
 		order = order,
 		type = "description",
-		name =
-		"Manage your supergroup structure. Create custom supergroups, rename existing ones, or merge similar groups together.",
+		name = "",
 		fontSize = "medium",
 	}
 	order = order + 1

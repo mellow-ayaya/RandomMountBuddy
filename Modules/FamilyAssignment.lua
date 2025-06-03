@@ -458,8 +458,7 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 	args.desc_assign = {
 		order = order,
 		type = "description",
-		name =
-		"Move families between supergroups or make them standalone. Use search and bulk operations to manage large collections efficiently.",
+		name ="",
 		fontSize = "medium",
 	}
 	order = order + 1
@@ -522,7 +521,7 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 	end
 
 	-- FIXED: Use same pagination style as MountSeparationManager
-	local itemsPerPage = 14
+	local itemsPerPage = 15
 	local totalItems = #filteredFamilies
 	local totalPages = math.max(1, math.ceil(totalItems / itemsPerPage))
 	local currentPage = math.max(1, math.min(self.uiState.currentPage or 1, totalPages))

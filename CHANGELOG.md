@@ -1,3 +1,9 @@
+# 0.9.8
+UI overhaul final stage completed.
+Removed unnecessary descriptions from Supergroup manager, FamilyAssignments and Mount Separate.
+Removed outdated info from Advanced Settings.
+Added icon.
+
 # 0.9.7
 Fixed G99 sometimes not being summoned.
 

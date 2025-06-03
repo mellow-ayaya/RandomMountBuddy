@@ -401,44 +401,8 @@ local rootOptionsTable = {
 					width = 1.2,
 				},
 
-				favoriteWeight = {
-					order = 106,
-					type = "select",
-					name = "Favorite Mount Weight",
-					desc = "What weight to assign to your favorite mounts",
-					values = {
-						[0] = "Never (0)",
-						[1] = "Occasional (1)",
-						[2] = "Uncommon (2)",
-						[3] = "Normal (3)",
-						[4] = "Common (4)",
-						[5] = "Often (5)",
-						[6] = "Always (6)",
-					},
-					get = function()
-						return addon.FavoriteSync and addon.FavoriteSync:GetSetting("favoriteWeight") or 4
-					end,
-					set = function(i, v)
-						if addon.FavoriteSync then
-							addon.FavoriteSync:SetSetting("favoriteWeight", v)
-						end
-
-						-- ENHANCED: Refresh mount pools since this affects weights
-						C_Timer.After(0.1, function()
-							if addon.RefreshMountPools then
-								addon:RefreshMountPools()
-								addon:DebugOptions("Refreshed mount pools after favorite weight change")
-							end
-						end)
-					end,
-					disabled = function()
-						return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
-					end,
-					width = 1.2,
-				},
-
 				nonFavoriteWeight = {
-					order = 107,
+					order = 106,
 					type = "select",
 					name = "Non-Favorite Mount Weight",
 					desc = "What weight to assign to non-favorite mounts (set to Normal to leave unchanged)",
@@ -464,6 +428,42 @@ local rootOptionsTable = {
 							if addon.RefreshMountPools then
 								addon:RefreshMountPools()
 								addon:DebugOptions("Refreshed mount pools after non-favorite weight change")
+							end
+						end)
+					end,
+					disabled = function()
+						return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
+					end,
+					width = 1.2,
+				},
+
+				favoriteWeight = {
+					order = 107,
+					type = "select",
+					name = "Favorite Mount Weight",
+					desc = "What weight to assign to your favorite mounts",
+					values = {
+						[0] = "Never (0)",
+						[1] = "Occasional (1)",
+						[2] = "Uncommon (2)",
+						[3] = "Normal (3)",
+						[4] = "Common (4)",
+						[5] = "Often (5)",
+						[6] = "Always (6)",
+					},
+					get = function()
+						return addon.FavoriteSync and addon.FavoriteSync:GetSetting("favoriteWeight") or 4
+					end,
+					set = function(i, v)
+						if addon.FavoriteSync then
+							addon.FavoriteSync:SetSetting("favoriteWeight", v)
+						end
+
+						-- ENHANCED: Refresh mount pools since this affects weights
+						C_Timer.After(0.1, function()
+							if addon.RefreshMountPools then
+								addon:RefreshMountPools()
+								addon:DebugOptions("Refreshed mount pools after favorite weight change")
 							end
 						end)
 					end,
@@ -969,8 +969,8 @@ local advancedSettingsOptionsTable = {
 					"• |cffccccccWith addon:|r Each model type has equal chance (Cloud Serpent model : Ashes model = 1:1 odds)\n" ..
 					"• |cffccccccResult:|r Balanced representation across different mount models, then random selection within the chosen model\n\n" ..
 					"|cff00ff00Available Tools|r\n\n" ..
-					"|cffffff00Supergroup Management:|r Create custom supergroups, rename existing ones, delete unwanted groups, merge similar supergroups\n\n" ..
-					"|cffffff00Family Assignment:|r Move families between supergroups, make families standalone, bulk assignment operations\n\n" ..
+					"|cffffff00Supergroup Management:|r Create custom supergroups, rename existing ones, delete unwanted groups\n\n" ..
+					"|cffffff00Family Assignment:|r Move families between supergroups, make families standalone\n\n" ..
 					"|cffffff00Mount Separation:|r Extract individual mounts from families, create custom single-mount families, override traits for separated mounts",
 			fontSize = "medium",
 		},

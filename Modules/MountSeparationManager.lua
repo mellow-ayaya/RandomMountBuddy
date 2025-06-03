@@ -489,8 +489,7 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 	args.description = {
 		order = order,
 		type = "description",
-		name =
-		"Separate individual mounts from their families to create custom single-mount families. Separated families can have custom traits and be assigned to supergroups.",
+		name ="",
 		fontSize = "medium",
 	}
 	order = order + 1
