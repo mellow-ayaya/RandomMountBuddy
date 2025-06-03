@@ -200,7 +200,6 @@ function MountSummon:GetCurrentContext()
 		end
 	end
 
-	-- EXISTING: Rest of your current context detection code stays the same
 	if IsAdvancedFlyableArea then
 		context.canDragonride = IsAdvancedFlyableArea()
 	else
@@ -1405,8 +1404,6 @@ function MountSummon:SelectGroupFromPool(pool)
 						})
 						totalWeight = totalWeight + probWeight
 					end
-
-					addon:DebugSummon("Added eligible supergroup:", sgName, "Weight:", groupWeight)
 				end
 			else
 				addon:DebugSummon("Skipping supergroup with no valid families:", sgName)
@@ -1436,8 +1433,6 @@ function MountSummon:SelectGroupFromPool(pool)
 					})
 					totalWeight = totalWeight + probWeight
 				end
-
-				addon:DebugSummon("Added eligible standalone family:", familyName, "Weight:", groupWeight)
 			end
 		else
 			addon:DebugSummon("Skipping family with no valid mounts:", familyName)
@@ -1459,7 +1454,6 @@ function MountSummon:SelectGroupFromPool(pool)
 
 	-- Weighted selection
 	local roll = math.random(1, totalWeight)
-	addon:DebugSummon("Group selection roll:", roll, "out of", totalWeight)
 	local currentSum = 0
 	for _, group in ipairs(eligibleGroups) do
 		currentSum = currentSum + group.weight
@@ -1504,8 +1498,6 @@ function MountSummon:SelectFamilyFromPoolSuperGroup(pool, superGroupName)
 					})
 					totalWeight = totalWeight + probWeight
 				end
-
-				addon:DebugSummon("Added eligible family from supergroup:", familyName, "Weight:", familyWeight)
 			end
 		end
 	end
@@ -1583,8 +1575,6 @@ function MountSummon:SelectMountFromPoolFamily(pool, familyName)
 						})
 						totalWeight = totalWeight + probWeight
 					end
-
-					addon:DebugSummon("Added eligible mount from family:", name, "Weight:", mountWeight)
 				else
 					addon:DebugSummon("Mount " .. name .. " and family have weight 0, skipping")
 				end
@@ -1609,7 +1599,6 @@ function MountSummon:SelectMountFromPoolFamily(pool, familyName)
 
 	-- Weighted random selection
 	local roll = math.random(1, totalWeight)
-	addon:DebugSummon("Mount selection roll:", roll, "out of", totalWeight)
 	local currentSum = 0
 	for _, mount in ipairs(eligibleMounts) do
 		currentSum = currentSum + mount.weight
@@ -1772,9 +1761,6 @@ function MountSummon:SelectSpecificMountTypeFromPool(poolName, mountType)
 										})
 										totalWeight = totalWeight + probWeight
 									end
-
-									addon:DebugSummon("Added eligible " .. mountType .. " mount from "
-										.. family.name .. ":", name, "Weight:", mountWeight)
 								end
 							end
 						end

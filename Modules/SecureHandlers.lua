@@ -70,7 +70,6 @@ local function getCachedSetting(key)
 
 	return settingsCache[key]
 end
-
 -- Function to safely get spell info with caching
 local function getCachedSpellInfo(spellID, defaultName)
 	if not spellCache[spellID] then
@@ -147,12 +146,18 @@ end
 local function findG99AbilityForLocation()
 	local locationID = getCurrentLocationID()
 	if not locationID then
-		return nil -- Early return if no valid location
+		addonTable:DebugCore("No location ID available")
+		return nil
 	end
 
+	addonTable:DebugCore("Checking G99 for location ID: " .. tostring(locationID))
 	local spellID = G99_ZONES[locationID]
+	addonTable:DebugCore("Found spell ID: " .. tostring(spellID))
 	if spellID and validateZoneAbility(spellID) then
+		addonTable:DebugCore("G99 validation passed")
 		return spellID
+	else
+		addonTable:DebugCore("G99 validation failed - spellID: " .. tostring(spellID))
 	end
 
 	return nil
@@ -182,11 +187,27 @@ local function updateZoneAbilityCache(forceRefresh)
 			zoneAbilityCache.currentLocationID ~= -1 and
 			(currentTime - zoneAbilityCache.lastUpdateTime) < 30 then
 		-- Still validate the cached spell periodically
-		if (currentTime - zoneAbilityCache.lastValidationTime) > 5 and zoneAbilityCache.cachedSpellID then
-			if not validateZoneAbility(zoneAbilityCache.cachedSpellID) then
-				zoneAbilityCache.cachedSpellID = nil
-				zoneAbilityCache.hasZoneAbility = false
-				addonTable:DebugCore("Invalidated cached zone ability due to validation failure")
+		if (currentTime - zoneAbilityCache.lastValidationTime) > 0.5 and zoneAbilityCache.cachedSpellID then -- Check more frequently
+			local isValid = validateZoneAbility(zoneAbilityCache.cachedSpellID)
+			if not isValid then
+				-- Check WHY it failed - don't invalidate cache for temporary issues like cooldowns
+				local spellInfo = C_Spell.GetSpellInfo(zoneAbilityCache.cachedSpellID)
+				local cooldownInfo = C_Spell.GetSpellCooldown(zoneAbilityCache.cachedSpellID)
+				if not (spellInfo and spellInfo.name) or not IsPlayerSpell(zoneAbilityCache.cachedSpellID) then
+					-- Spell genuinely missing - invalidate cache
+					zoneAbilityCache.cachedSpellID = nil
+					zoneAbilityCache.hasZoneAbility = false
+					addonTable:DebugCore("Invalidated cached zone ability - spell missing or unknown")
+				elseif cooldownInfo and cooldownInfo.startTime > 0 and cooldownInfo.duration > 0 then
+					-- Just on cooldown - keep cache but mark temporarily unavailable
+					-- Don't invalidate the cache, just let this validation cycle fail
+					addonTable:DebugCore("Zone ability on cooldown, keeping cache but skipping this attempt")
+				else
+					-- Some other validation failure - invalidate cache
+					zoneAbilityCache.cachedSpellID = nil
+					zoneAbilityCache.hasZoneAbility = false
+					addonTable:DebugCore("Invalidated cached zone ability - validation failed for unknown reason")
+				end
 			end
 
 			zoneAbilityCache.lastValidationTime = currentTime

@@ -1,3 +1,6 @@
+# 0.9.7
+Fixed G99 sometimes not being summoned.
+
 # 0.9.6
 Fixed the broken summoning randomness from a few updates ago.
 
