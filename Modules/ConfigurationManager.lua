@@ -241,7 +241,7 @@ function ConfigurationManager:ResetToDefaults(resetType)
 
 	if resetType == "all" then
 		-- ENHANCED: Clear ALL customizations for complete reset
-		addon:DebugImport("Performing complete reset of all saved variables...")
+		addon:DebugOptions("Performing complete reset of all saved variables...")
 		-- Clear all supergroup customizations including renames
 		if addon.db.profile.superGroupDefinitions then
 			wipe(addon.db.profile.superGroupDefinitions)
@@ -251,27 +251,27 @@ function ConfigurationManager:ResetToDefaults(resetType)
 		if addon.db.profile.separatedMounts then
 			resetStats.separatedMounts = addon:CountTableEntries(addon.db.profile.separatedMounts)
 			wipe(addon.db.profile.separatedMounts)
-			addon:DebugImport("Cleared " .. resetStats.separatedMounts .. " separated mounts")
+			addon:DebugOptions("Cleared " .. resetStats.separatedMounts .. " separated mounts")
 		end
 
 		-- ENHANCED: Clear all group weights (mount, family, and supergroup weights)
 		if addon.db.profile.groupWeights then
 			resetStats.groupWeights = addon:CountTableEntries(addon.db.profile.groupWeights)
 			wipe(addon.db.profile.groupWeights)
-			addon:DebugImport("Cleared " .. resetStats.groupWeights .. " weight settings")
+			addon:DebugOptions("Cleared " .. resetStats.groupWeights .. " weight settings")
 		end
 
 		-- ENHANCED: Clear all trait overrides
 		if addon.db.profile.traitOverrides then
 			resetStats.traitOverrides = addon:CountTableEntries(addon.db.profile.traitOverrides)
 			wipe(addon.db.profile.traitOverrides)
-			addon:DebugImport("Cleared " .. resetStats.traitOverrides .. " trait overrides")
+			addon:DebugOptions("Cleared " .. resetStats.traitOverrides .. " trait overrides")
 		end
 	end
 
 	-- ENHANCED: Trigger complete data rebuild if separated mounts were cleared
 	if resetStats.separatedMounts > 0 then
-		addon:DebugImport("Rebuilding data due to separated mounts reset...")
+		addon:DebugOptions("Rebuilding data due to separated mounts reset...")
 		addon.lastProcessingEventName = "reset_with_separated_mounts"
 		addon:InitializeProcessedData()
 		addon.lastProcessingEventName = nil

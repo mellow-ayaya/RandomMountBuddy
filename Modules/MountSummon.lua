@@ -415,6 +415,19 @@ function MountSummon:FilterPoolForDeterministic(pool, poolName)
 		end
 	end
 
+	-- Add this in FilterPoolForDeterministic after the decrementation:
+	local bannedCount = 0
+	for groupKey, count in pairs(cache.unavailableGroups) do
+		if count and count > 0 then
+			bannedCount = bannedCount + 1
+			if bannedCount <= 5 then -- Log first 5
+				addon:DebugSummon("Banned: " .. groupKey .. " for " .. count .. " more summons")
+			end
+		end
+	end
+
+	addon:DebugSummon("Total banned groups: " ..
+		bannedCount .. " out of pool size: " .. self:GetSelectableGroupsInPool(poolName))
 	-- Count available standalone families
 	for familyName, _ in pairs(pool.families) do
 		local unavailableCount = cache.unavailableGroups[familyName]
@@ -426,31 +439,12 @@ function MountSummon:FilterPoolForDeterministic(pool, poolName)
 	-- EMERGENCY SAFEGUARD: If filtering would leave us with very few groups, reduce ban durations
 	if availableGroupCount <= 1 then
 		addon:DebugSummon("WARNING - Only " .. availableGroupCount ..
-			" groups would remain after filtering in " .. poolName .. " pool, reducing all ban durations")
-		-- Emergency reduction: cut all ban durations in half
-		for groupKey, count in pairs(cache.unavailableGroups) do
-			if count and count > 1 then
-				cache.unavailableGroups[groupKey] = math.floor(count / 2)
-			elseif count == 1 then
-				cache.unavailableGroups[groupKey] = 0 -- Immediately available
-			end
-		end
-
-		-- Recalculate available groups after emergency reduction
-		availableGroupCount = 0
-		for sgName, families in pairs(pool.superGroups) do
-			local unavailableCount = cache.unavailableGroups[sgName]
-			if not unavailableCount or unavailableCount <= 0 then
-				availableGroupCount = availableGroupCount + 1
-			end
-		end
-
-		for familyName, _ in pairs(pool.families) do
-			local unavailableCount = cache.unavailableGroups[familyName]
-			if not unavailableCount or unavailableCount <= 0 then
-				availableGroupCount = availableGroupCount + 1
-			end
-		end
+			" groups would remain after filtering in " .. poolName .. " pool, clearing all bans")
+		-- Clear all bans instead of just reducing them
+		cache.unavailableGroups = {}
+		addon:DebugSummon("Cleared all deterministic bans due to empty pool")
+		-- Return the original unfiltered pool
+		return pool
 	end
 
 	-- Create filtered pool
@@ -869,14 +863,42 @@ end
 function MountSummon:SummonMount(mountID)
 	if not mountID then
 		addon:AlwaysPrint(" No mount ID provided.")
+		-- Clear any stale pending summon
+		self:ClearPendingSummon()
 		return false
 	end
 
 	local name = C_MountJournal.GetMountInfoByID(mountID)
 	addon:DebugSummon("Summoning mount:", name, "ID:", mountID)
+	-- Store the current time to detect failed summons
+	self.lastSummonAttempt = GetTime()
 	-- Use Blizzard's function to summon the mount
 	C_MountJournal.SummonByID(mountID)
+	-- Set up a timer to detect failed summons
+	C_Timer.After(2.0, function()
+		if not IsMounted() and (GetTime() - self.lastSummonAttempt) >= 1.8 then
+			addon:DebugSummon("Summon appears to have failed, clearing pending summon")
+			self:ClearPendingSummon()
+		end
+	end)
 	return true
+end
+
+-- New function to clear stale pending summons
+function MountSummon:ClearPendingSummon()
+	if not self:IsDeterministicModeEnabled() then
+		return
+	end
+
+	local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+	if deterministicCache then
+		for poolName, cache in pairs(deterministicCache) do
+			if cache and cache.pendingSummon then
+				addon:DebugSummon("Cleared stale pending summon for pool: " .. poolName)
+				cache.pendingSummon = nil
+			end
+		end
+	end
 end
 
 -- Main function to pick and summon a random mount
@@ -1089,11 +1111,9 @@ function MountSummon:SelectMountFromFilteredPool(pool, poolName)
 end
 
 -- Updated SelectSpecificMountTypeFromFilteredPool that works with deterministic filtering:
--- ENHANCED: Add comprehensive debugging to SelectSpecificMountTypeFromFilteredPool
--- CONCISE: Add targeted debugging to SelectSpecificMountTypeFromFilteredPool
 function MountSummon:SelectSpecificMountTypeFromFilteredPool(pool, poolName, mountType)
 	addon:DebugCore("=== " .. mountType .. " selection in " .. poolName .. " ===")
-	-- Quick counts
+	-- Quick counts for debugging
 	local totalSG = 0
 	local totalFam = 0
 	for _ in pairs(pool.superGroups) do totalSG = totalSG + 1 end
@@ -1101,155 +1121,158 @@ function MountSummon:SelectSpecificMountTypeFromFilteredPool(pool, poolName, mou
 	for _ in pairs(pool.families) do totalFam = totalFam + 1 end
 
 	addon:DebugCore("Pool has " .. totalSG .. " SG, " .. totalFam .. " families")
-	-- Build eligible groups (existing logic)
-	local eligibleGroups = {}
-	local priority6Groups = {}
-	-- Add supergroups (simplified logging)
+	-- Collect ALL eligible mounts first, then do weighted selection
+	local allEligibleMounts = {}
+	local priority6Mounts = {}
+	-- Process supergroups
 	for sgName, families in pairs(pool.superGroups) do
 		local superGroupWeight = addon:GetGroupWeight(sgName)
 		if superGroupWeight > 0 then
-			if superGroupWeight == 6 then
-				table.insert(priority6Groups, { name = sgName, type = "superGroup" })
-			else
-				table.insert(eligibleGroups, {
-					name = sgName,
-					type = "superGroup",
-					weight = self:MapWeightToProbability(superGroupWeight),
-				})
-			end
-		end
-	end
-
-	-- Add families (simplified logging)
-	for familyName, _ in pairs(pool.families) do
-		local familyWeight = addon:GetGroupWeight(familyName)
-		if familyWeight > 0 then
-			if familyWeight == 6 then
-				table.insert(priority6Groups, { name = familyName, type = "family" })
-			else
-				table.insert(eligibleGroups, {
-					name = familyName,
-					type = "family",
-					weight = self:MapWeightToProbability(familyWeight),
-				})
-			end
-		end
-	end
-
-	addon:DebugSummon("Eligible groups: " .. (#eligibleGroups + #priority6Groups) ..
-		" (P6:" .. #priority6Groups .. ", Regular:" .. #eligibleGroups .. ")")
-	-- Combine groups
-	local groupsToCheck = {}
-	if #priority6Groups > 0 then
-		for _, group in ipairs(priority6Groups) do
-			table.insert(groupsToCheck, group)
-		end
-	else
-		for _, group in ipairs(eligibleGroups) do
-			table.insert(groupsToCheck, group)
-		end
-	end
-
-	-- Try each group (concise logging)
-	for groupIndex, group in ipairs(groupsToCheck) do
-		local eligibleFamilies = {}
-		if group.type == "superGroup" then
-			for _, familyName in ipairs(pool.superGroups[group.name] or {}) do
+			for _, familyName in ipairs(families) do
 				local familyWeight = addon:GetGroupWeight(familyName)
 				if familyWeight > 0 then
-					table.insert(eligibleFamilies, { name = familyName, weight = self:MapWeightToProbability(familyWeight) })
-				end
-			end
-		else
-			table.insert(eligibleFamilies, { name = group.name, weight = group.weight or 100 })
-		end
-
-		-- Try each family in this group
-		for _, family in ipairs(eligibleFamilies) do
-			local eligibleMounts = {}
-			local priority6Mounts = {}
-			local typeMatches = 0
-			local totalMounts = 0
-			-- Check mounts in this family
-			for _, mountID in ipairs(pool.mountsByFamily[family.name] or {}) do
-				totalMounts = totalMounts + 1
-				local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
-				if isUsable then
-					local traits = self:GetMountTypeTraits(mountID)
-					local isEligible = false
-					if mountType == "skyriding" and traits.isSkyriding then
-						isEligible = true
-						typeMatches = typeMatches + 1
-					elseif mountType == "steadyflight" and traits.isSteadyFly then
-						isEligible = true
-						typeMatches = typeMatches + 1
-					end
-
-					if isEligible then
-						local mountKey = "mount_" .. mountID
-						local mountWeight = addon:GetGroupWeight(mountKey)
-						if mountWeight ~= 0 then
-							if mountWeight == nil or mountWeight == 0 then
-								mountWeight = addon:GetGroupWeight(family.name)
+					-- Check all mounts in this family
+					for _, mountID in ipairs(pool.mountsByFamily[familyName] or {}) do
+						local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
+						if isUsable then
+							local traits = self:GetMountTypeTraits(mountID)
+							local isEligible = false
+							-- Check if this mount matches the desired type
+							if mountType == "skyriding" and traits.isSkyriding then
+								isEligible = true
+							elseif mountType == "steadyflight" and traits.isSteadyFly then
+								isEligible = true
 							end
 
-							if mountWeight > 0 then
-								if mountWeight == 6 then
-									table.insert(priority6Mounts, { id = mountID, name = name })
-								else
-									table.insert(eligibleMounts, {
-										id = mountID,
-										name = name,
-										weight = self:MapWeightToProbability(mountWeight),
-									})
+							if isEligible then
+								local mountKey = "mount_" .. mountID
+								local mountWeight = addon:GetGroupWeight(mountKey)
+								-- Skip mounts with explicit weight 0
+								if mountWeight ~= 0 then
+									-- If mount has no specific weight, use family weight
+									if mountWeight == nil or mountWeight == 0 then
+										mountWeight = familyWeight
+									end
+
+									if mountWeight > 0 then
+										local mountData = {
+											id = mountID,
+											name = name,
+											groupName = sgName,
+											groupType = "superGroup",
+											weight = self:MapWeightToProbability(mountWeight),
+											originalWeight = mountWeight,
+										}
+										if mountWeight == 6 then
+											table.insert(priority6Mounts, mountData)
+										else
+											table.insert(allEligibleMounts, mountData)
+										end
+									end
 								end
 							end
 						end
 					end
 				end
 			end
+		end
+	end
 
-			-- Log family results only if interesting
-			if typeMatches > 0 or totalMounts > 0 then
-				addon:DebugSummon("" .. family.name .. " - " .. totalMounts .. " mounts, " ..
-					typeMatches .. " " .. mountType .. ", " .. (#eligibleMounts + #priority6Mounts) .. " eligible")
-			end
-
-			-- Make selection if eligible mounts found
-			if #priority6Mounts > 0 then
-				local selectedMount = priority6Mounts[math.random(#priority6Mounts)]
-				addon:DebugSummon("SUCCESS - P6 " .. selectedMount.name)
-				self:StorePendingSummon(poolName, group.name, group.type, selectedMount.id)
-				return selectedMount.id, selectedMount.name
-			elseif #eligibleMounts > 0 then
-				local totalWeight = 0
-				for _, mount in ipairs(eligibleMounts) do
-					totalWeight = totalWeight + mount.weight
-				end
-
-				if totalWeight > 0 then
-					local roll = math.random(1, totalWeight)
-					local currentSum = 0
-					for _, mount in ipairs(eligibleMounts) do
-						currentSum = currentSum + mount.weight
-						if roll <= currentSum then
-							addon:DebugSummon("SUCCESS - " .. mount.name)
-							self:StorePendingSummon(poolName, group.name, group.type, mount.id)
-							return mount.id, mount.name
-						end
+	-- Process standalone families
+	for familyName, _ in pairs(pool.families) do
+		local familyWeight = addon:GetGroupWeight(familyName)
+		if familyWeight > 0 then
+			-- Check all mounts in this family
+			for _, mountID in ipairs(pool.mountsByFamily[familyName] or {}) do
+				local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
+				if isUsable then
+					local traits = self:GetMountTypeTraits(mountID)
+					local isEligible = false
+					-- Check if this mount matches the desired type
+					if mountType == "skyriding" and traits.isSkyriding then
+						isEligible = true
+					elseif mountType == "steadyflight" and traits.isSteadyFly then
+						isEligible = true
 					end
 
-					-- Fallback
-					local fallbackMount = eligibleMounts[1]
-					self:StorePendingSummon(poolName, group.name, group.type, fallbackMount.id)
-					return fallbackMount.id, fallbackMount.name
+					if isEligible then
+						local mountKey = "mount_" .. mountID
+						local mountWeight = addon:GetGroupWeight(mountKey)
+						-- Skip mounts with explicit weight 0
+						if mountWeight ~= 0 then
+							-- If mount has no specific weight, use family weight
+							if mountWeight == nil or mountWeight == 0 then
+								mountWeight = familyWeight
+							end
+
+							if mountWeight > 0 then
+								local mountData = {
+									id = mountID,
+									name = name,
+									groupName = familyName,
+									groupType = "family",
+									weight = self:MapWeightToProbability(mountWeight),
+									originalWeight = mountWeight,
+								}
+								if mountWeight == 6 then
+									table.insert(priority6Mounts, mountData)
+								else
+									table.insert(allEligibleMounts, mountData)
+								end
+							end
+						end
+					end
 				end
 			end
 		end
 	end
 
-	addon:DebugCore("FAILED - No " .. mountType .. " mounts found")
-	return nil, nil
+	-- Log collection results
+	addon:DebugSummon("Collected mounts: " .. (#allEligibleMounts + #priority6Mounts) ..
+		" (P6:" .. #priority6Mounts .. ", Regular:" .. #allEligibleMounts .. ")")
+	-- Choose which pool to select from (priority 6 first)
+	local mountsToChooseFrom = #priority6Mounts > 0 and priority6Mounts or allEligibleMounts
+	if #mountsToChooseFrom == 0 then
+		addon:DebugCore("FAILED - No " .. mountType .. " mounts found")
+		return nil, nil
+	end
+
+	-- Handle priority 6 mounts (random selection, no weights)
+	if #priority6Mounts > 0 then
+		local selectedMount = priority6Mounts[math.random(#priority6Mounts)]
+		addon:DebugSummon("SUCCESS - P6 " .. selectedMount.name)
+		self:StorePendingSummon(poolName, selectedMount.groupName, selectedMount.groupType, selectedMount.id)
+		return selectedMount.id, selectedMount.name
+	end
+
+	-- Weighted random selection for regular mounts
+	local totalWeight = 0
+	for _, mount in ipairs(allEligibleMounts) do
+		totalWeight = totalWeight + mount.weight
+	end
+
+	if totalWeight <= 0 then
+		addon:DebugCore("FAILED - Total weight is 0")
+		return nil, nil
+	end
+
+	local roll = math.random(1, totalWeight)
+	addon:DebugSummon("ROLL: " .. roll .. "/" .. totalWeight)
+	local currentSum = 0
+	for _, mount in ipairs(allEligibleMounts) do
+		currentSum = currentSum + mount.weight
+		if roll <= currentSum then
+			addon:DebugSummon("SUCCESS - " .. mount.name .. " (weight: " .. mount.originalWeight .. ")")
+			self:StorePendingSummon(poolName, mount.groupName, mount.groupType, mount.id)
+			return mount.id, mount.name
+		end
+	end
+
+	-- Fallback to first mount if something goes wrong
+	local fallbackMount = allEligibleMounts[1]
+	addon:DebugSummon("FALLBACK - " .. fallbackMount.name)
+	self:StorePendingSummon(poolName, fallbackMount.groupName, fallbackMount.groupType, fallbackMount.id)
+	return fallbackMount.id, fallbackMount.name
 end
 
 -- Remove the old SelectMountFromPool method and replace with:

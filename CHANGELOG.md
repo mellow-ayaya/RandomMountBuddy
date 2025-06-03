@@ -1,3 +1,6 @@
+# 0.9.6
+Fixed the broken summoning randomness from a few updates ago.
+
 # 0.9.5
 Fixed assigned families not revealing traits when needed.
 Fixed minor UI issues.
