@@ -110,7 +110,7 @@ if not success then
 end
 
 -- Debug print function that only prints when debug mode is enabled
-function addon:DebugPrint(category, message)
+function addon:DebugPrint(category, ...)
 	-- Direct database access instead of GetSetting to avoid loops
 	local debugEnabled = false
 	if self.db and self.db.profile then
@@ -119,38 +119,77 @@ function addon:DebugPrint(category, message)
 
 	if debugEnabled then
 		local timestamp = date("%H:%M:%S")
-		print(string.format("[%s] RMB_%s: %s", timestamp, category or "DEBUG", message or ""))
+		-- Convert all arguments to strings and concatenate them
+		local messages = { ... }
+		local messageStr = ""
+		for i, msg in ipairs(messages) do
+			if i > 1 then
+				messageStr = messageStr .. " "
+			end
+
+			messageStr = messageStr .. tostring(msg)
+		end
+
+		print(string.format("[%s] RMB_%s: %s", timestamp, category or "DEBUG", messageStr))
 	end
 end
 
--- Shorthand for common debug categories
-function addon:DebugCore(message) self:DebugPrint("CORE", message) end
+-- Enhanced shorthand functions that now accept multiple parameters
+function addon:DebugCore(...)
+	self:DebugPrint("CORE", ...)
+end
 
-function addon:DebugUI(message) self:DebugPrint("UI", message) end
+function addon:DebugUI(...)
+	self:DebugPrint("UI", ...)
+end
 
-function addon:DebugSummon(message) self:DebugPrint("SUMMON", message) end
+function addon:DebugSummon(...)
+	self:DebugPrint("SUMMON", ...)
+end
 
-function addon:DebugData(message) self:DebugPrint("DATA", message) end
+function addon:DebugData(...)
+	self:DebugPrint("DATA", ...)
+end
 
-function addon:DebugSupergr(message) self:DebugPrint("SUPERGROUP", message) end
+function addon:DebugSupergr(...)
+	self:DebugPrint("SUPERGROUP", ...)
+end
 
-function addon:DebugSeparation(message) self:DebugPrint("SEPARATION", message) end
+function addon:DebugSeparation(...)
+	self:DebugPrint("SEPARATION", ...)
+end
 
-function addon:DebugSync(message) self:DebugPrint("SYNC", message) end
+function addon:DebugSync(...)
+	self:DebugPrint("SYNC", ...)
+end
 
-function addon:DebugValidation(message) self:DebugPrint("VALIDATION", message) end
+function addon:DebugValidation(...)
+	self:DebugPrint("VALIDATION", ...)
+end
 
-function addon:DebugCache(message) self:DebugPrint("CACHE", message) end
+function addon:DebugCache(...)
+	self:DebugPrint("CACHE", ...)
+end
 
-function addon:DebugEvent(message) self:DebugPrint("EVENT", message) end
+function addon:DebugEvent(...)
+	self:DebugPrint("EVENT", ...)
+end
 
-function addon:DebugPerf(message) self:DebugPrint("PERF", message) end
+function addon:DebugPerf(...)
+	self:DebugPrint("PERF", ...)
+end
 
-function addon:DebugSecure(message) self:DebugPrint("SECURE", message) end
+function addon:DebugSecure(...)
+	self:DebugPrint("SECURE", ...)
+end
 
-function addon:DebugOptions(message) self:DebugPrint("OPTIONS", message) end
+function addon:DebugOptions(...)
+	self:DebugPrint("OPTIONS", ...)
+end
 
-function addon:DebugBulk(message) self:DebugPrint("BULK", message) end
+function addon:DebugBulk(...)
+	self:DebugPrint("BULK", ...)
+end
 
 -- Keep AlwaysPrint simple and safe
 function addon:AlwaysPrint(message)
@@ -671,7 +710,6 @@ function addon:OnInitialize()
 	}
 	self:DebugCore("OnInitialize END.")
 end
-
 function addon:OnEnable()
 	self:DebugCore("OnEnable CALLED.")
 	-- Initialize all mount system modules in proper dependency order

@@ -1,3 +1,6 @@
+# 0.9.11
+More conistent fix for missing debug.
+
 # 0.9.10
 Fixed missing debug for summoning.
 

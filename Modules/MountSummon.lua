@@ -261,11 +261,12 @@ function MountSummon:GetCurrentContext()
 	-- NEW: Cache the result
 	self.cachedContext = context
 	self.lastContextCheck = currentTime
-addon:DebugSummon("Current context: canFly=" .. tostring(context.canFly) ..
-	", canDragonride=" .. tostring(context.canDragonride) ..
-	", isInSkyridingMode=" .. tostring(context.isInSkyridingMode) ..
-	", isUnderwater=" .. tostring(context.isUnderwater) ..
-	", zone=" .. tostring(context.inZone))
+	addon:DebugSummon("Current context:",
+		"canFly =", context.canFly,
+		"canDragonride =", context.canDragonride,
+		"isInSkyridingMode =", context.isInSkyridingMode,
+		"isUnderwater =", context.isUnderwater,
+		"zone =", context.inZone)
 	return context
 end
 
@@ -897,14 +898,14 @@ end
 -- Summon a specific mount by ID
 function MountSummon:SummonMount(mountID)
 	if not mountID then
-		addon:AlwaysPrint("No mount ID provided.")
+		addon:AlwaysPrint(" No mount ID provided.")
 		-- Clear any stale pending summon
 		self:ClearPendingSummon()
 		return false
 	end
 
 	local name = C_MountJournal.GetMountInfoByID(mountID)
-	addon:DebugSummon("Summoning mount: " .. tostring(name) .. " (ID: " .. tostring(mountID) .. ")")
+	addon:DebugSummon("Summoning mount:", name, "ID:", mountID)
 	-- Store the current time to detect failed summons
 	self.lastSummonAttempt = GetTime()
 	-- Use Blizzard's function to summon the mount
@@ -993,7 +994,7 @@ function MountSummon:SelectMountFromPoolWithFilter(poolName, mountTypeFilter)
 		(mountTypeFilter and (" + " .. mountTypeFilter) or " (no filter)") .. " ===")
 	local originalPool = self.mountPools[poolName]
 	if not originalPool then
-		addon:AlwaysPrint("Invalid pool name:", poolName)
+		addon:AlwaysPrint(" Invalid pool name:", poolName)
 		return nil, nil
 	end
 
@@ -1494,7 +1495,7 @@ function MountSummon:SelectGroupFromPool(pool)
 	for _, group in ipairs(eligibleGroups) do
 		currentSum = currentSum + group.weight
 		if roll <= currentSum then
-			addon:DebugSummon("Selected group: " .. tostring(group.name) .. " (" .. tostring(group.type) .. ")")
+			addon:DebugSummon("Selected group:", group.name, group.type)
 			return group.name, group.type
 		end
 	end
@@ -1553,12 +1554,12 @@ function MountSummon:SelectFamilyFromPoolSuperGroup(pool, superGroupName)
 
 	-- Weighted random selection
 	local roll = math.random(1, totalWeight)
-	addon:DebugSummon("Family selection roll: " .. tostring(roll) .. " out of " .. tostring(totalWeight))
+	addon:DebugSummon("Family selection roll:", roll, "out of", totalWeight)
 	local currentSum = 0
 	for _, family in ipairs(eligibleFamilies) do
 		currentSum = currentSum + family.weight
 		if roll <= currentSum then
-			addon:DebugSummon("Selected family: " .. tostring(family.name))
+			addon:DebugSummon("Selected family:", family.name)
 			return family.name
 		end
 	end
@@ -1639,7 +1640,7 @@ function MountSummon:SelectMountFromPoolFamily(pool, familyName)
 	for _, mount in ipairs(eligibleMounts) do
 		currentSum = currentSum + mount.weight
 		if roll <= currentSum then
-			addon:DebugSummon("Selected mount: " .. tostring(mount.name))
+			addon:DebugSummon("Selected mount:", mount.name)
 			return mount.id, mount.name
 		end
 	end
@@ -1652,7 +1653,7 @@ end
 function MountSummon:SelectSpecificMountTypeFromPool(poolName, mountType)
 	local pool = self.mountPools[poolName]
 	if not pool then
-		addon:AlwaysPrint("Invalid pool name:", poolName)
+		addon:AlwaysPrint(" Invalid pool name:", poolName)
 		return nil, nil
 	end
 
