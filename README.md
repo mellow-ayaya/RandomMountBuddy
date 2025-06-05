@@ -22,19 +22,19 @@ Result: Actually see variety in your mount collection instead of the same  model
 
 Mount Summoning related features:
 
-Contextual Summoning: Automatically filters by flying/ground/swimming based on your location
-Improved Randomness: Recently used mount families become temporarily unavailable for better variety
-Full Customization: Don't like how something is grouped? Move families around, create custom groups, or separate individual mounts
-Mount Traits: Each grouped Mount Family has traits that you can adjust, such as: Small Armor, Large Armor, Updated Texture and Unique.
-Summoning Uniqueness Strictness: Easily toggle which traits you consider different enough in the general settings.
-Weight System: Prioritize your favorites while still getting variety
-Favorite Sync: Automatically sync with your WoW Mount Journal favorites
-D.R.I.V.E. support: Automatically summon G-99 Breakneck when in the correct zones.
-Macros: You can create macros that use the addon's summoning logic, however, summoning a mount via this method does not support class spells or G-99 Breakneck. The command for macros is /run RMB:SRM(true)
+- Contextual Summoning: Automatically filters by flying/ground/swimming based on your location
+- Improved Randomness: Recently used mount families become temporarily unavailable for better variety
+- Full Customization: Don't like how something is grouped? Move families around, create custom groups, or separate individual mounts
+- Mount Traits: Each grouped Mount Family has traits that you can adjust, such as: Small Armor, Large Armor, Updated Texture and Unique.
+- Summoning Uniqueness Strictness: Easily toggle which traits you consider different enough in the general settings.
+- Weight System: Prioritize your favorites while still getting variety
+- Favorite Sync: Automatically sync with your WoW Mount Journal favorites
+- D.R.I.V.E. support: Automatically summon G-99 Breakneck when in the correct zones.
+- Macros: You can create macros that use the addon's summoning logic, however, summoning a mount via this method does not support class spells or G-99 Breakneck. The command for macros is /run RMB:SRM(true)
 
 Utility features:
 
-Press the addon keybind to use class spells such as Flight/Travel/Cat form depending on the situation, or Levitate while falling! Classes supported: Druid, Shaman, Mage, Monk, Priest.
+- Press the addon keybind to use class spells such as Flight/Travel/Cat form depending on the situation, or Levitate while falling! Classes supported: Druid, Shaman, Mage, Monk, Priest.
 ### &nbsp;
 ### Installation
 
