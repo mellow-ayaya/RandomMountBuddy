@@ -673,14 +673,14 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 								local success, message = self:SeparateMount(mountData.mountID, self.uiState.customSeparationName)
 								if success then
 									self.uiState.customSeparationName = ""
-									addon:AlwaysPrint(" " .. message)
+									addon:AlwaysPrint("" .. message)
 									self:PopulateSeparationManagementUI()
 									-- Also refresh the main Mount List UI
 									if addon.PopulateFamilyManagementUI then
 										addon:PopulateFamilyManagementUI()
 									end
 								else
-									addon:AlwaysPrint(" " .. message)
+									addon:AlwaysPrint("" .. message)
 								end
 							end,
 							width = 0.6,
@@ -793,14 +793,14 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 						func = function()
 							local success, message = self:ReuniteSeparatedMount(mountData.mountID)
 							if success then
-								addon:AlwaysPrint(" " .. message)
+								addon:AlwaysPrint("" .. message)
 								self:PopulateSeparationManagementUI()
 								-- Also refresh the main Mount List UI
 								if addon.PopulateFamilyManagementUI then
 									addon:PopulateFamilyManagementUI()
 								end
 							else
-								addon:AlwaysPrint(" " .. message)
+								addon:AlwaysPrint("" .. message)
 							end
 						end,
 						width = 0.4,

@@ -23,7 +23,7 @@ function MountSummon:Initialize()
 	-- Zone-specific configuration for G-99 abilities using location IDs
 	self.G99_ZONES = {
 		[2346] = 1215279, -- Undermine - Original G-99 zone
-		[2406] = 1218373, -- Nerub-ar Palace - Raid zone
+		[2406] = 1215279, -- Undermine raid - Raid zone
 		-- Add more location IDs here as needed
 	}
 	-- Cache system for zone abilities
@@ -55,6 +55,56 @@ end
 -- ============================================================================
 -- MOUNT TYPE & CAPABILITY DETECTION
 -- ============================================================================
+-- Get dynamic mount type traits that adjust based on current flight mode
+function MountSummon:GetEffectiveMountTypeTraits(mountID)
+	-- Get the base mount traits
+	local baseTraits = self:GetMountTypeTraits(mountID)
+	-- Get the mount's type ID to check for special cases
+	local typeID = addon.mountIDtoTypeID[mountID]
+	if not typeID then
+		local _, _, _, _, mountType = C_MountJournal.GetMountInfoExtraByID(mountID)
+		typeID = mountType
+	end
+
+	-- Handle mount type 436 (and potentially others) with dynamic capabilities
+	if typeID == 436 then
+		-- Mount type 436: All capabilities in steady flight, limited in skyriding
+		local effectiveTraits = {}
+		for k, v in pairs(baseTraits) do
+			effectiveTraits[k] = v
+		end
+
+		-- If in skyriding mode, aquatic capability is disabled
+		if self.isInSkyridingMode then
+			effectiveTraits.isAquatic = false
+			addon:DebugSummon("Mount " .. mountID .. " (type 436): Aquatic disabled in skyriding mode")
+		else
+			-- In steady flight mode, all capabilities are available
+			effectiveTraits.isAquatic = baseTraits.isAquatic
+			addon:DebugSummon("Mount " .. mountID .. " (type 436): All capabilities available in steady flight mode")
+		end
+
+		return effectiveTraits
+	end
+
+	-- For all other mount types, return base traits unchanged
+	return baseTraits
+end
+
+function MountSummon:CanMountFlyEffective(mountID)
+	local traits = self:GetEffectiveMountTypeTraits(mountID)
+	return traits.isSteadyFly or traits.isSkyriding
+end
+
+function MountSummon:CanMountSkyridingEffective(mountID)
+	local traits = self:GetEffectiveMountTypeTraits(mountID)
+	return traits.isSkyriding
+end
+
+function MountSummon:CanMountSwimEffective(mountID)
+	local traits = self:GetEffectiveMountTypeTraits(mountID)
+	return traits.isAquatic
+end
 -- Get mount type traits for a given mount ID
 function MountSummon:GetMountTypeTraits(mountID)
 	-- Get the mount's type ID
@@ -77,24 +127,22 @@ function MountSummon:GetMountTypeTraits(mountID)
 	}
 end
 
--- Check if a mount can fly (either steady flying or skyriding)
-function MountSummon:CanMountFly(mountID)
-	local traits = self:GetMountTypeTraits(mountID)
-	return traits.isSteadyFly or traits.isSkyriding
+function MountSummon:IsPlayerTrulyUnderwater()
+	-- Get breath timer info (index 2 = BREATH timer)
+	local breathTimer, breathInitial, breathMax, breathScale, breathPaused = GetMirrorTimerInfo(2)
+	local breathValue = GetMirrorTimerProgress("BREATH")
+	-- Only consider truly underwater if:
+	-- 1. Breath timer is active (type = "BREATH")
+	-- 2. Breath value > 0
+	-- 3. Breath is decreasing (scale < 0)
+	local isBreathActive = (breathTimer == "BREATH" and breathValue > 0)
+	local isBreathDecreasing = isBreathActive and breathScale and breathScale < 0
+	addon:DebugSummon("Breath check - Timer: " .. tostring(breathTimer) ..
+		", Value: " .. tostring(breathValue) ..
+		", Scale: " .. tostring(breathScale) ..
+		", Decreasing: " .. tostring(isBreathDecreasing))
+	return isBreathDecreasing
 end
-
--- Check if a mount can do dragonriding/skyriding
-function MountSummon:CanMountSkyriding(mountID)
-	local traits = self:GetMountTypeTraits(mountID)
-	return traits.isSkyriding
-end
-
--- Check if a mount can swim underwater
-function MountSummon:CanMountSwim(mountID)
-	local traits = self:GetMountTypeTraits(mountID)
-	return traits.isAquatic
-end
-
 -- Function to check current flight style using C_Spell.GetSpellInfo
 function MountSummon:CheckCurrentFlightStyle()
 	-- Check for "Switch to Steady Flight" (460002) spell - if present, player is in skyriding mode
@@ -202,17 +250,6 @@ function MountSummon:GetCurrentContext()
 
 	if IsAdvancedFlyableArea then
 		context.canDragonride = IsAdvancedFlyableArea()
-	else
-		local mapID = C_Map.GetBestMapForUnit("player")
-		if mapID then
-			local dragonIslesZones = {
-				[2022] = true, -- Waking Shores
-				-- ... rest of zones
-			}
-			context.canDragonride = dragonIslesZones[mapID] or false
-		else
-			context.canDragonride = false
-		end
 	end
 
 	local mapID = C_Map.GetBestMapForUnit("player")
@@ -220,7 +257,7 @@ function MountSummon:GetCurrentContext()
 		context.inZone = mapID
 	end
 
-	context.isUnderwater = IsSubmerged()
+	context.isUnderwater = self:IsPlayerTrulyUnderwater()
 	-- NEW: Cache the result
 	self.cachedContext = context
 	self.lastContextCheck = currentTime
@@ -637,9 +674,9 @@ function MountSummon:BuildMountPools()
 			-- Mount weight of 0 means explicitly excluded
 			if mountWeight ~= 0 then
 				-- Get mount capabilities
-				local canFly = self:CanMountFly(mountID)
-				local canSwim = self:CanMountSwim(mountID)
-				local traits = self:GetMountTypeTraits(mountID)
+				local canFly = self:CanMountFlyEffective(mountID)
+				local canSwim = self:CanMountSwimEffective(mountID)
+				local traits = self:GetEffectiveMountTypeTraits(mountID)
 				-- Always add to unified pool (for non-contextual summoning)
 				self:AddMountToPool("unified", mountID, name, familyName, superGroup, mountWeight)
 				-- Add to contextual pools based on EXCLUSIVE logic
@@ -861,7 +898,7 @@ end
 -- Summon a specific mount by ID
 function MountSummon:SummonMount(mountID)
 	if not mountID then
-		addon:AlwaysPrint(" No mount ID provided.")
+		addon:AlwaysPrint("No mount ID provided.")
 		-- Clear any stale pending summon
 		self:ClearPendingSummon()
 		return false
@@ -957,7 +994,7 @@ function MountSummon:SelectMountFromPoolWithFilter(poolName, mountTypeFilter)
 		(mountTypeFilter and (" + " .. mountTypeFilter) or " (no filter)") .. " ===")
 	local originalPool = self.mountPools[poolName]
 	if not originalPool then
-		addon:AlwaysPrint(" Invalid pool name:", poolName)
+		addon:AlwaysPrint("Invalid pool name:", poolName)
 		return nil, nil
 	end
 
@@ -1042,7 +1079,7 @@ function MountSummon:SelectSpecificMountTypeFromFilteredPoolIgnoreWeights(pool, 
 			for _, mountID in ipairs(pool.mountsByFamily[family.name] or {}) do
 				local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
 				if isUsable then
-					local traits = self:GetMountTypeTraits(mountID)
+					local traits = self:GetEffectiveMountTypeTraits(mountID)
 					local isEligible = false
 					-- Check if this mount matches the desired type
 					if mountType == "skyriding" and traits.isSkyriding then
@@ -1134,7 +1171,7 @@ function MountSummon:SelectSpecificMountTypeFromFilteredPool(pool, poolName, mou
 					for _, mountID in ipairs(pool.mountsByFamily[familyName] or {}) do
 						local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
 						if isUsable then
-							local traits = self:GetMountTypeTraits(mountID)
+							local traits = self:GetEffectiveMountTypeTraits(mountID)
 							local isEligible = false
 							-- Check if this mount matches the desired type
 							if mountType == "skyriding" and traits.isSkyriding then
@@ -1185,7 +1222,7 @@ function MountSummon:SelectSpecificMountTypeFromFilteredPool(pool, poolName, mou
 			for _, mountID in ipairs(pool.mountsByFamily[familyName] or {}) do
 				local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
 				if isUsable then
-					local traits = self:GetMountTypeTraits(mountID)
+					local traits = self:GetEffectiveMountTypeTraits(mountID)
 					local isEligible = false
 					-- Check if this mount matches the desired type
 					if mountType == "skyriding" and traits.isSkyriding then
@@ -1616,7 +1653,7 @@ end
 function MountSummon:SelectSpecificMountTypeFromPool(poolName, mountType)
 	local pool = self.mountPools[poolName]
 	if not pool then
-		addon:AlwaysPrint(" Invalid pool name:", poolName)
+		addon:AlwaysPrint("Invalid pool name:", poolName)
 		return nil, nil
 	end
 
@@ -1725,7 +1762,7 @@ function MountSummon:SelectSpecificMountTypeFromPool(poolName, mountType)
 					local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
 					-- Skip unusable mounts
 					if isUsable then
-						local traits = self:GetMountTypeTraits(mountID)
+						local traits = self:GetEffectiveMountTypeTraits(mountID)
 						local isEligible = false
 						-- Check if this mount matches the desired type
 						if mountType == "skyriding" and traits.isSkyriding then

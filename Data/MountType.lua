@@ -420,7 +420,7 @@ MountTypeTraits_Input_Helper = {
 		-- TypeName: "7"
 		-- Relevant Caps: Capability_0=494, Capability_1=468, Capability_2=473, Capability_3=474, Capability_4=479, Capability_5=480
 		isGround = true,
-		isAquatic = false,
+		isAquatic = true,
 		isSteadyFly = true,
 		isSkyriding = true,
 		isUnused = false,

@@ -60,7 +60,7 @@ function SearchSystem:ExecuteSearch(searchTerm)
 				addon:DebugUI("Match found - " .. (groupData.displayName or groupData.key))
 			end
 		else
-			addon:AlwaysPrint(" Invalid group data structure encountered")
+			addon:AlwaysPrint("Invalid group data structure encountered")
 		end
 	end
 

@@ -12,7 +12,7 @@ local CACHE_DURATION = 1 -- Cache for 1 second
 -- Zone-specific configuration for G-99 abilities using location IDs
 local G99_ZONES = {
 	[2346] = 1215279, -- Undermine - Original G-99 zone
-	[2406] = 1215279, -- Nerub-ar Palace - Raid zone
+	[2406] = 1215279, -- Undermine raid - Raid zone
 	-- Add more location IDs here as needed
 }
 -- Cache system for zone abilities with validation

@@ -677,7 +677,7 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 							if actualSG then
 								local success, message = self:AssignFamilyToSuperGroup(familyInfo.familyName, actualSG)
 								if success then
-									addon:AlwaysPrint(" " .. message)
+									addon:AlwaysPrint("" .. message)
 									-- Refresh all UIs
 									addon.SuperGroupManager:PopulateSuperGroupManagementUI()
 									self:PopulateFamilyAssignmentUI()
@@ -685,7 +685,7 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 										addon:PopulateFamilyManagementUI()
 									end
 								else
-									addon:AlwaysPrint(" " .. message)
+									addon:AlwaysPrint("" .. message)
 								end
 							end
 						end,

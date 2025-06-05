@@ -577,7 +577,7 @@ end
 
 function FavoriteSync:ShowSyncCompletedMessage(counters)
 	if counters.mountsUpdated > 0 or counters.familiesUpdated > 0 or counters.superGroupsUpdated > 0 then
-		addon:AlwaysPrint(" Favorite mount sync completed - Updated " .. counters.mountsUpdated ..
+		addon:DebugOptions("Favorite mount sync completed - Updated " .. counters.mountsUpdated ..
 			" mounts, " .. counters.familiesUpdated .. " families, " ..
 			counters.superGroupsUpdated .. " supergroups")
 		-- Add verification after sync

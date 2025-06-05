@@ -197,7 +197,7 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 				addon:DecrementGroupWeight(groupKey)
 				-- Show brief reminder if sync is active
 				if weightProps.shouldWarn then
-					addon:AlwaysPrint(" Weight changed. Note: FavoriteSync may override this change.")
+					addon:AlwaysPrint("Weight changed. Note: FavoriteSync may override this change.")
 				end
 			end,
 			disabled = function() return addon:GetGroupWeight(groupKey) == 0 end,
@@ -247,7 +247,7 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 				addon:IncrementGroupWeight(groupKey)
 				-- Show brief reminder if sync is active
 				if weightProps.shouldWarn then
-					addon:AlwaysPrint(" Weight changed. Note: FavoriteSync may override this change.")
+					addon:AlwaysPrint("Weight changed. Note: FavoriteSync may override this change.")
 				end
 			end,
 			disabled = function() return addon:GetGroupWeight(groupKey) == 6 end,
@@ -600,7 +600,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 				addon:DecrementGroupWeight(familyName)
 				-- Show brief reminder if sync is active
 				if weightProps.shouldWarn then
-					addon:AlwaysPrint(" Weight changed. Note: FavoriteSync may override this change.")
+					addon:AlwaysPrint("Weight changed. Note: FavoriteSync may override this change.")
 				end
 			end,
 			disabled = function() return addon:GetGroupWeight(familyName) == 0 end,
@@ -648,7 +648,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 				addon:IncrementGroupWeight(familyName)
 				-- Show brief reminder if sync is active
 				if weightProps.shouldWarn then
-					addon:AlwaysPrint(" Weight changed. Note: FavoriteSync may override this change.")
+					addon:AlwaysPrint("Weight changed. Note: FavoriteSync may override this change.")
 				end
 			end,
 			disabled = function() return addon:GetGroupWeight(familyName) == 6 end,
@@ -985,7 +985,7 @@ function MountUIComponents:BuildMountEntry(mountData, order, familyPrefix)
 				addon:DecrementGroupWeight("mount_" .. mountID)
 				-- Show brief reminder if sync is active
 				if weightProps.shouldWarn then
-					addon:AlwaysPrint(" Weight changed. Note: FavoriteSync may override this change.")
+					addon:AlwaysPrint("Weight changed. Note: FavoriteSync may override this change.")
 				end
 			end,
 			disabled = function() return addon:GetGroupWeight("mount_" .. mountID) == 0 end,
@@ -1040,7 +1040,7 @@ function MountUIComponents:BuildMountEntry(mountData, order, familyPrefix)
 				addon:IncrementGroupWeight("mount_" .. mountID)
 				-- Show brief reminder if sync is active
 				if weightProps.shouldWarn then
-					addon:AlwaysPrint(" Weight changed. Note: FavoriteSync may override this change.")
+					addon:AlwaysPrint("Weight changed. Note: FavoriteSync may override this change.")
 				end
 			end,
 			disabled = function() return addon:GetGroupWeight("mount_" .. mountID) == 6 end,

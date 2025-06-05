@@ -2761,8 +2761,8 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/rocmaldraxxusmount/rocmaldraxxusmount.m2"] = {
 		familyName = "Roc",
-		superGroup = nil,
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		superGroup = "Dread ravens",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
 	},
 	["creature/salamanderwatermount/salamanderwatermount.m2"] = {
 		familyName = "Salamanther",
