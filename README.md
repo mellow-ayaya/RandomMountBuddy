@@ -53,7 +53,7 @@ All you need to do after installing the addon is to set a keybind for it ingame,
 ### &nbsp;
 ### Need Help?
 
-If you have questions or run into issues, post in the Curseforge comments. For bug reports, please enable the relevant debugging option in the Debug tab first and provide relevant logs.
+If you have questions or run into issues, post in the Curseforge comments. For bug reports, please enable the Debugging Messages and provide them along with the issue description.
 ### &nbsp;
 ### Disclaimer
 
