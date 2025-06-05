@@ -1,3 +1,6 @@
+# 0.9.10
+Fixed missing debug for summoning.
+
 # 0.9.9
 Improved mount selection so that when floating on the top of a water body you can now summon a flying mount instead of an aquatic one.
 

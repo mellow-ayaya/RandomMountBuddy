@@ -261,12 +261,11 @@ function MountSummon:GetCurrentContext()
 	-- NEW: Cache the result
 	self.cachedContext = context
 	self.lastContextCheck = currentTime
-	addon:DebugSummon("Current context:",
-		"canFly =", context.canFly,
-		"canDragonride =", context.canDragonride,
-		"isInSkyridingMode =", context.isInSkyridingMode,
-		"isUnderwater =", context.isUnderwater,
-		"zone =", context.inZone)
+addon:DebugSummon("Current context: canFly=" .. tostring(context.canFly) ..
+	", canDragonride=" .. tostring(context.canDragonride) ..
+	", isInSkyridingMode=" .. tostring(context.isInSkyridingMode) ..
+	", isUnderwater=" .. tostring(context.isUnderwater) ..
+	", zone=" .. tostring(context.inZone))
 	return context
 end
 
@@ -905,7 +904,7 @@ function MountSummon:SummonMount(mountID)
 	end
 
 	local name = C_MountJournal.GetMountInfoByID(mountID)
-	addon:DebugSummon("Summoning mount:", name, "ID:", mountID)
+	addon:DebugSummon("Summoning mount: " .. tostring(name) .. " (ID: " .. tostring(mountID) .. ")")
 	-- Store the current time to detect failed summons
 	self.lastSummonAttempt = GetTime()
 	-- Use Blizzard's function to summon the mount
@@ -1495,7 +1494,7 @@ function MountSummon:SelectGroupFromPool(pool)
 	for _, group in ipairs(eligibleGroups) do
 		currentSum = currentSum + group.weight
 		if roll <= currentSum then
-			addon:DebugSummon("Selected group:", group.name, group.type)
+			addon:DebugSummon("Selected group: " .. tostring(group.name) .. " (" .. tostring(group.type) .. ")")
 			return group.name, group.type
 		end
 	end
@@ -1554,12 +1553,12 @@ function MountSummon:SelectFamilyFromPoolSuperGroup(pool, superGroupName)
 
 	-- Weighted random selection
 	local roll = math.random(1, totalWeight)
-	addon:DebugSummon("Family selection roll:", roll, "out of", totalWeight)
+	addon:DebugSummon("Family selection roll: " .. tostring(roll) .. " out of " .. tostring(totalWeight))
 	local currentSum = 0
 	for _, family in ipairs(eligibleFamilies) do
 		currentSum = currentSum + family.weight
 		if roll <= currentSum then
-			addon:DebugSummon("Selected family:", family.name)
+			addon:DebugSummon("Selected family: " .. tostring(family.name))
 			return family.name
 		end
 	end
@@ -1640,7 +1639,7 @@ function MountSummon:SelectMountFromPoolFamily(pool, familyName)
 	for _, mount in ipairs(eligibleMounts) do
 		currentSum = currentSum + mount.weight
 		if roll <= currentSum then
-			addon:DebugSummon("Selected mount:", mount.name)
+			addon:DebugSummon("Selected mount: " .. tostring(mount.name))
 			return mount.id, mount.name
 		end
 	end
