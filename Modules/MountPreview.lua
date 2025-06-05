@@ -1,5 +1,5 @@
 -- MountPreview.lua
--- Mount preview dialog and functionality
+-- Mount preview dialog and functionality.
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
 addon:DebugCore("MountPreview.lua START.")

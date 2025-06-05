@@ -1,5 +1,5 @@
 -- MountTooltips.lua
--- Tooltip management and generation for mount interface
+-- Tooltip management and generation for mount interface.
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
 addon:DebugCore("MountTooltips.lua START.")

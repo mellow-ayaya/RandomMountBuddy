@@ -710,6 +710,7 @@ function addon:OnInitialize()
 	}
 	self:DebugCore("OnInitialize END.")
 end
+
 function addon:OnEnable()
 	self:DebugCore("OnEnable CALLED.")
 	-- Initialize all mount system modules in proper dependency order
@@ -1378,7 +1379,7 @@ function addon:NotifyModulesSettingChanged(key, value)
 		self.MountPreview:OnSettingChanged(key, value)
 	end
 
-	-- ADD THESE LINES: Notify FavoriteSync
+	--  Notify FavoriteSync
 	if self.FavoriteSync and self.FavoriteSync.OnSettingChanged then
 		self.FavoriteSync:OnSettingChanged(key, value)
 	end

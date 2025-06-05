@@ -105,6 +105,7 @@ function MountSummon:CanMountSwimEffective(mountID)
 	local traits = self:GetEffectiveMountTypeTraits(mountID)
 	return traits.isAquatic
 end
+
 -- Get mount type traits for a given mount ID
 function MountSummon:GetMountTypeTraits(mountID)
 	-- Get the mount's type ID
@@ -143,6 +144,7 @@ function MountSummon:IsPlayerTrulyUnderwater()
 		", Decreasing: " .. tostring(isBreathDecreasing))
 	return isBreathDecreasing
 end
+
 -- Function to check current flight style using C_Spell.GetSpellInfo
 function MountSummon:CheckCurrentFlightStyle()
 	-- Check for "Switch to Steady Flight" (460002) spell - if present, player is in skyriding mode

@@ -851,12 +851,14 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			hidden = not shouldShowTraits,
 			disabled = false,
 		},
+
 		spacerReset = {
 			order = order + 0.74,
 			type = "description",
 			name = " ",
 			width = 0.01,
 		},
+
 		-- Reset traits button for families
 		resetTraits = {
 			order = order + 0.75,

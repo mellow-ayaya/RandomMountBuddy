@@ -1,4 +1,4 @@
--- SuperGroupManager.lua - Supergroup Creation, Editing, and Management
+-- SuperGroupManager.lua - Supergroup Creation, Editing, and Management.
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
 addon:DebugCore("SuperGroupManager.lua START.")

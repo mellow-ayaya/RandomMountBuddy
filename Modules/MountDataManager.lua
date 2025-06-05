@@ -1,5 +1,5 @@
 -- MountDataManager.lua
--- Centralized data processing and caching for mount information
+-- Centralized data processing and caching for mount information.
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
 addon:DebugCore("MountDataManager.lua START.")

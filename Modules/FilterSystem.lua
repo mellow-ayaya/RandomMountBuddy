@@ -1,4 +1,4 @@
--- FilterSystem.lua - Advanced Mount Filtering System
+-- FilterSystem.lua - Advanced Mount Filtering System.
 -- Handles comprehensive filtering for mount groups and individual mounts
 local addonName, addonTable = ...
 local addon = RandomMountBuddy

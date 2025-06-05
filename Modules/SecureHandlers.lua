@@ -32,6 +32,7 @@ local function getLocalizedG99Name()
 
 	return G99_LOCALIZED_NAME
 end
+
 -- Common macro templates to reduce duplication
 local MACRO_TEMPLATES = {
 	prefix =
@@ -64,7 +65,7 @@ local MACRO_TEMPLATES = {
 local function getUndermineZoneMacro()
 	local g99Name = getLocalizedG99Name()
 	-- FIXED: Add form cancellation logic that's smart about travel forms
-	local macro = "/cancelform [form:2]\n" ..          -- Cancel bear/cat/moonkin but not travel form
+	local macro = "/cancelform [form:2]\n" .. -- Cancel bear/cat/moonkin but not travel form
 			"/cast " .. g99Name .. "\n" ..
 			"/run RMB:SRM(true)"
 	addonTable:DebugCore("G99: Built Undermine macro with form handling and spell:", g99Name)

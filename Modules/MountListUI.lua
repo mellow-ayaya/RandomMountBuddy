@@ -1,4 +1,4 @@
--- MountListUI.lua - Fixed to Use Dynamic Grouping
+-- MountListUI.lua - Fixed to Use Dynamic Grouping.
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
 addon:DebugCore("MountListUI.lua (Fixed Dynamic Grouping) START.")

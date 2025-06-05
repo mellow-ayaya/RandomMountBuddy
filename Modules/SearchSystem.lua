@@ -1,5 +1,5 @@
 -- SearchSystem.lua - Modular Search Implementation
--- Handles all search functionality for mount groups and individual mounts
+-- Handles all search functionality for mount groups and individual mounts.
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
 addon:DebugCore("SearchSystem.lua START.")

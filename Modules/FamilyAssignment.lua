@@ -458,7 +458,7 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 	args.desc_assign = {
 		order = order,
 		type = "description",
-		name ="",
+		name = "",
 		fontSize = "medium",
 	}
 	order = order + 1

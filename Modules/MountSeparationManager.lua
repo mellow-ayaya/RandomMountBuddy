@@ -489,7 +489,7 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 	args.description = {
 		order = order,
 		type = "description",
-		name ="",
+		name = "",
 		fontSize = "medium",
 	}
 	order = order + 1

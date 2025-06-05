@@ -1,4 +1,4 @@
--- FavoriteSync.lua - Favorite Mount Synchronization System (Optimized)
+-- FavoriteSync.lua - Favorite Mount Synchronization System
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
 addon:DebugCore("FavoriteSync.lua START (Optimized).")

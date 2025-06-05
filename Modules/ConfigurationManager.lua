@@ -1,4 +1,4 @@
--- ConfigurationManager.lua - Import/Export and Data Validation
+-- ConfigurationManager.lua - Import/Export/Reset and Data Validation
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
 addon:DebugCore("ConfigurationManager.lua START.")
