@@ -1,14 +1,14 @@
 ### Random Mount Buddy
 
-Improve your summon-random-favorite-mount experience with Random Mount Buddy! Minimum setup required.
+Improve your summon-random-favorite-mount experience with RandomMountBuddy! Minimal setup required: just set up the keybind and you're good to!
 
 ![image4](TBD "")
 
 ### About
 
-Tired of your "random" mount button giving you the same few mounts over and over? With hundreds of mounts in the game, why do you keep getting that one Cloud Serpent recolor when you have Ashes of Al'ar sitting unused in your collection?
+Tired of your "random" mount button giving you recolors of the same mounts over and over again? With hundreds of mounts in the game, why do you keep getting Cloud Serpents when you have Ashes of Al'ar sitting unused in your collection?
 
-Random Mount Buddy organizes your mounts, then picks randomly from mount types instead of individual mounts. This means your 15 different horse recolors count as one "horse" entry, giving your unique mounts like Invincible or Ashes of Al'ar a fair chance to be selected.
+Random Mount Buddy organizes your mounts, then picks randomly from mount types instead of individual mounts. This means your 15 different Cloud Serpent recolors count as one "Cloud Seprent" entry, giving your unique mounts like Invincible or Ashes of Al'ar a fair chance to be selected.
 
 Here's what you can expect: mount categorization based on model, settings that allow you to easily configure which types of mounts should be considered unique, automatic summon chance managing based on your favorite mounts, and more!
 ### &nbsp;
