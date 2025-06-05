@@ -1,13 +1,13 @@
 ## Interface: 110105, 110107
 ## Title: Random Mount Buddy
 ## Author: mellow_ayaya
-## Version: # 0.9.13
+## Version: # 1.0.0
 ## IconTexture: Interface\AddOns\RandomMountBuddy\Media\icon.tga
 ## Notes: Enhances random mount summoning with grouping.
 ## SavedVariables: RandomMountBuddy_SavedVars
 
 ## X-License: GNU General Public License version 3 (GPLv3)
-## X-Curse-Project-ID: TBD
+## X-Curse-Project-ID: 1280769
 
 # Libraries
 Libs\LibStub\LibStub.lua
