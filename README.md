@@ -1,9 +1,7 @@
 ### Random Mount Buddy
 
 Improve your summon-random-favorite-mount experience with RandomMountBuddy! Minimal setup required: just set up the keybind and you're good to!
-
-![image4](TBD "")
-
+### &nbsp;
 ### About
 
 Tired of your "random" mount button giving you recolors of the same mounts over and over again? With hundreds of mounts in the game, why do you keep getting Cloud Serpents when you have Ashes of Al'ar sitting unused in your collection?
