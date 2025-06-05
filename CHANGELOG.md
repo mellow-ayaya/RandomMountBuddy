@@ -1,3 +1,6 @@
+# 0.9.13
+Improved conditionals for druid and shaman spells.
+
 # 0.9.12
 Added better checks for when to summon G99.
 

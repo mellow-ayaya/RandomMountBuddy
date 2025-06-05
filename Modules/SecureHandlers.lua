@@ -37,11 +37,8 @@ local MACRO_TEMPLATES = {
 	prefix =
 	"/run RMB:SRM(true)\n/run UIErrorsFrame:Hide() C_Timer.After(0, function() UIErrorsFrame:Clear() UIErrorsFrame:Show() end)",
 
-	-- G99 zones: Try G99 first, then regular mount (using localized name)
-	-- Note: This will be built dynamically using getUndermineZoneMacro()
-
-	-- Regular zones: Just regular mount
-	regularZone = "/run RMB:SRM(true)",
+	-- Regular zones: Handle forms, then regular mount
+	regularZone = "/cancelform [form:2]\n/run RMB:SRM(true)",
 
 	druidSmart = {
 		keepActive = "/cast [swimming,noform:3][outdoors,noform:3] %s\n/cast [indoors,noform:2] %s",
@@ -55,7 +52,7 @@ local MACRO_TEMPLATES = {
 
 	shaman = {
 		keepActive = "/cast [noform:1] %s",
-		normal = "/cast %s",
+		normal = "/cancelform [form:1]\n/cast %s",
 	},
 
 	falling = {
@@ -66,8 +63,11 @@ local MACRO_TEMPLATES = {
 }
 local function getUndermineZoneMacro()
 	local g99Name = getLocalizedG99Name()
-	local macro = "/cast " .. g99Name .. "\n/run RMB:SRM(true)"
-	addonTable:DebugCore("G99: Built Undermine macro with spell:", g99Name)
+	-- FIXED: Add form cancellation logic that's smart about travel forms
+	local macro = "/cancelform [form:2]\n" ..          -- Cancel bear/cat/moonkin but not travel form
+			"/cast " .. g99Name .. "\n" ..
+			"/run RMB:SRM(true)"
+	addonTable:DebugCore("G99: Built Undermine macro with form handling and spell:", g99Name)
 	return macro
 end
 -- Function to safely get cached settings
