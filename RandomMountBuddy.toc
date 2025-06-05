@@ -1,9 +1,9 @@
 ## Interface: 110105, 110107
 ## Title: Random Mount Buddy
 ## Author: mellow_ayaya
-## Version: # 0.9.11
+## Version: # 0.9.12
 ## IconTexture: Interface\AddOns\RandomMountBuddy\Media\icon.tga
-## Notes: Enhances random mount summoning with intelligent grouping and caching.
+## Notes: Enhances random mount summoning with grouping.
 ## SavedVariables: RandomMountBuddy_SavedVars
 
 ## X-License: GNU General Public License version 3 (GPLv3)

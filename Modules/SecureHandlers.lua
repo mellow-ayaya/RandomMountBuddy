@@ -1,6 +1,6 @@
--- SecureHandlers.lua - Robust Version with Fixed PostClick Implementation
+-- SecureHandlers.lua - Simplified Zone-Based Approach
 local addonName, addonTable = ...
-addonTable:DebugCore("SecureHandlers.lua START (Robust Version).")
+addonTable:DebugCore("SecureHandlers.lua START (Simplified Version).")
 -- Create SecureHandlers class to avoid global pollution
 local SecureHandlers = {}
 RandomMountBuddy.SecureHandlers = SecureHandlers
@@ -9,31 +9,39 @@ local settingsCache = {}
 local spellCache = {}
 local lastCacheTime = 0
 local CACHE_DURATION = 1 -- Cache for 1 second
--- Zone-specific configuration for G-99 abilities using location IDs
-local G99_ZONES = {
-	[2346] = 1215279, -- Undermine - Original G-99 zone
-	[2406] = 1215279, -- Undermine raid - Raid zone
-	-- Add more location IDs here as needed
-}
--- Cache system for zone abilities with validation
-local zoneAbilityCache = {
-	currentLocationID = -1, -- Use -1 as sentinel instead of nil
-	cachedSpellID = nil,
-	hasZoneAbility = false,
-	lastUpdateTime = 0,
-	lastValidationTime = 0,
-}
 -- Cooldown tracking to prevent spam
 local actionCooldowns = {
-	postClick = 0,
-	zoneAbility = 0,
-	mountAttempt = 0,
+	visibleButton = 0,
 }
+-- Add this near the top, after the existing caches:
+local G99_LOCALIZED_NAME = nil
+local G99_SPELL_ID = 1215279
+-- Function to get localized G99 spell name
+local function getLocalizedG99Name()
+	if not G99_LOCALIZED_NAME then
+		local spellInfo = C_Spell.GetSpellInfo(G99_SPELL_ID)
+		if spellInfo and spellInfo.name then
+			G99_LOCALIZED_NAME = spellInfo.name
+			addonTable:DebugCore("G99: Cached localized spell name:", G99_LOCALIZED_NAME)
+		else
+			-- Fallback for different locales or if spell not found
+			G99_LOCALIZED_NAME = "G-99 Breakneck" -- English fallback
+			addonTable:DebugCore("G99: Using English fallback name")
+		end
+	end
+
+	return G99_LOCALIZED_NAME
+end
 -- Common macro templates to reduce duplication
 local MACRO_TEMPLATES = {
-	prefix = [[
-/run RMB:SRM(true)
-/run UIErrorsFrame:Hide() C_Timer.After(0, function() UIErrorsFrame:Clear() UIErrorsFrame:Show() end)]],
+	prefix =
+	"/run RMB:SRM(true)\n/run UIErrorsFrame:Hide() C_Timer.After(0, function() UIErrorsFrame:Clear() UIErrorsFrame:Show() end)",
+
+	-- G99 zones: Try G99 first, then regular mount (using localized name)
+	-- Note: This will be built dynamically using getUndermineZoneMacro()
+
+	-- Regular zones: Just regular mount
+	regularZone = "/run RMB:SRM(true)",
 
 	druidSmart = {
 		keepActive = "/cast [swimming,noform:3][outdoors,noform:3] %s\n/cast [indoors,noform:2] %s",
@@ -56,6 +64,12 @@ local MACRO_TEMPLATES = {
 		withTarget = "/cast [%s] %s",
 	},
 }
+local function getUndermineZoneMacro()
+	local g99Name = getLocalizedG99Name()
+	local macro = "/cast " .. g99Name .. "\n/run RMB:SRM(true)"
+	addonTable:DebugCore("G99: Built Undermine macro with spell:", g99Name)
+	return macro
+end
 -- Function to safely get cached settings
 local function getCachedSetting(key)
 	local currentTime = GetTime()
@@ -70,6 +84,7 @@ local function getCachedSetting(key)
 
 	return settingsCache[key]
 end
+
 -- Function to safely get spell info with caching
 local function getCachedSpellInfo(spellID, defaultName)
 	if not spellCache[spellID] then
@@ -88,7 +103,7 @@ end
 -- Function to check cooldowns and prevent spam
 local function isActionOnCooldown(actionType, cooldownDuration)
 	local currentTime = GetTime()
-	cooldownDuration = cooldownDuration or 2.0
+	cooldownDuration = cooldownDuration or 0.5
 	if currentTime - (actionCooldowns[actionType] or 0) < cooldownDuration then
 		return true
 	end
@@ -107,127 +122,6 @@ local function buildMacro(parts)
 	return result
 end
 
--- Function to get current location ID for zone ability detection
-local function getCurrentLocationID()
-	local mapInfo = C_Map.GetBestMapForUnit("player")
-	return mapInfo -- Can be nil during teleportation
-end
-
--- Enhanced function to validate zone abilities
-local function validateZoneAbility(spellID)
-	if not spellID then return false end
-
-	-- Check if spell exists and has correct name
-	local spellInfo = C_Spell.GetSpellInfo(spellID)
-	if not (spellInfo and spellInfo.name) then
-		return false
-	end
-
-	-- Validate name contains G-99 or Breakneck
-	if not (spellInfo.name:find("G%-99") or spellInfo.name:find("Breakneck")) then
-		return false
-	end
-
-	-- Check if spell is known by player
-	if not IsPlayerSpell(spellID) then
-		return false
-	end
-
-	-- Check if spell is on cooldown
-	local cooldownInfo = C_Spell.GetSpellCooldown(spellID)
-	if cooldownInfo and cooldownInfo.startTime > 0 and cooldownInfo.duration > 0 then
-		return false -- On cooldown
-	end
-
-	return true
-end
-
--- Function to find G-99 ability by location ID with validation
-local function findG99AbilityForLocation()
-	local locationID = getCurrentLocationID()
-	if not locationID then
-		addonTable:DebugCore("No location ID available")
-		return nil
-	end
-
-	addonTable:DebugCore("Checking G99 for location ID: " .. tostring(locationID))
-	local spellID = G99_ZONES[locationID]
-	addonTable:DebugCore("Found spell ID: " .. tostring(spellID))
-	if spellID and validateZoneAbility(spellID) then
-		addonTable:DebugCore("G99 validation passed")
-		return spellID
-	else
-		addonTable:DebugCore("G99 validation failed - spellID: " .. tostring(spellID))
-	end
-
-	return nil
-end
-
--- Function to update zone ability cache with proper validation
-local function updateZoneAbilityCache(forceRefresh)
-	if InCombatLockdown() then
-		return
-	end
-
-	local currentLocationID = getCurrentLocationID()
-	local currentTime = GetTime()
-	-- If location is nil (during teleportation), clear the cache completely
-	if not currentLocationID then
-		zoneAbilityCache.currentLocationID = -1
-		zoneAbilityCache.cachedSpellID = nil
-		zoneAbilityCache.hasZoneAbility = false
-		zoneAbilityCache.lastUpdateTime = currentTime
-		zoneAbilityCache.lastValidationTime = currentTime
-		return
-	end
-
-	-- Only refresh if location changed, forced refresh, or cache is old
-	if not forceRefresh and
-			zoneAbilityCache.currentLocationID == currentLocationID and
-			zoneAbilityCache.currentLocationID ~= -1 and
-			(currentTime - zoneAbilityCache.lastUpdateTime) < 30 then
-		-- Still validate the cached spell periodically
-		if (currentTime - zoneAbilityCache.lastValidationTime) > 0.5 and zoneAbilityCache.cachedSpellID then -- Check more frequently
-			local isValid = validateZoneAbility(zoneAbilityCache.cachedSpellID)
-			if not isValid then
-				-- Check WHY it failed - don't invalidate cache for temporary issues like cooldowns
-				local spellInfo = C_Spell.GetSpellInfo(zoneAbilityCache.cachedSpellID)
-				local cooldownInfo = C_Spell.GetSpellCooldown(zoneAbilityCache.cachedSpellID)
-				if not (spellInfo and spellInfo.name) or not IsPlayerSpell(zoneAbilityCache.cachedSpellID) then
-					-- Spell genuinely missing - invalidate cache
-					zoneAbilityCache.cachedSpellID = nil
-					zoneAbilityCache.hasZoneAbility = false
-					addonTable:DebugCore("Invalidated cached zone ability - spell missing or unknown")
-				elseif cooldownInfo and cooldownInfo.startTime > 0 and cooldownInfo.duration > 0 then
-					-- Just on cooldown - keep cache but mark temporarily unavailable
-					-- Don't invalidate the cache, just let this validation cycle fail
-					addonTable:DebugCore("Zone ability on cooldown, keeping cache but skipping this attempt")
-				else
-					-- Some other validation failure - invalidate cache
-					zoneAbilityCache.cachedSpellID = nil
-					zoneAbilityCache.hasZoneAbility = false
-					addonTable:DebugCore("Invalidated cached zone ability - validation failed for unknown reason")
-				end
-			end
-
-			zoneAbilityCache.lastValidationTime = currentTime
-		end
-
-		return
-	end
-
-	local zoneAbilitySpellID = findG99AbilityForLocation()
-	-- Update cache with valid location ID
-	zoneAbilityCache.currentLocationID = currentLocationID
-	zoneAbilityCache.cachedSpellID = zoneAbilitySpellID
-	zoneAbilityCache.hasZoneAbility = (zoneAbilitySpellID ~= nil)
-	zoneAbilityCache.lastUpdateTime = currentTime
-	zoneAbilityCache.lastValidationTime = currentTime
-	if zoneAbilityCache.hasZoneAbility then
-		addonTable:DebugCore("Zone ability available - Spell ID:", zoneAbilitySpellID)
-	end
-end
-
 -- Function to detect if the player is falling
 function addonTable:IsPlayerFalling()
 	return IsFalling()
@@ -235,7 +129,20 @@ end
 
 -- Prevent infinite recursion
 addonTable.isUpdatingMacros = false
--- Optimized macro builders (unchanged from original)
+-- SIMPLIFIED: Get mount macro based on current zone
+local function getMountMacroForCurrentZone()
+	local locationID = C_Map.GetBestMapForUnit("player")
+	-- Undermine zones: Try G99 first, then regular mount
+	if locationID == 2346 or locationID == 2406 then
+		addonTable:DebugCore("Mount macro: Using Undermine macro (G99 + fallback)")
+		return getUndermineZoneMacro()
+	else
+		addonTable:DebugCore("Mount macro: Using regular zone macro")
+		return MACRO_TEMPLATES.regularZone
+	end
+end
+
+-- Optimized macro builders
 local function buildDruidMacro(travelFormName, catFormName, useSmartFormSwitching, keepTravelFormActive)
 	local parts = { MACRO_TEMPLATES.prefix }
 	if useSmartFormSwitching then
@@ -269,75 +176,7 @@ local function buildFallingMacro(spellName, keepActive, targetLogic)
 	return buildMacro(parts)
 end
 
--- Enhanced mount macro with robust zone ability handling
-local function buildMountMacro()
-	updateZoneAbilityCache(false)
-	-- If no zone ability available, use standard mount macro
-	if not zoneAbilityCache.hasZoneAbility or not zoneAbilityCache.cachedSpellID then
-		return "/run RMB:SRM(true)"
-	end
-
-	-- Create zone ability macro that tries the zone spell first
-	return string.format(
-		"/cast %d\n/run if not IsMounted() then C_Timer.After(0.3, function() if not InCombatLockdown() and not IsMounted() then RMB:SRM(true) end end) end",
-		zoneAbilityCache.cachedSpellID)
-end
-
--- Robust PostClick implementation with proper safeguards
-local function createPostClickHandler()
-	return function(self, button, down)
-		-- Prevent spam clicking
-		if isActionOnCooldown("postClick", 1.5) then
-			return
-		end
-
-		local success, err = pcall(function()
-			-- Check for mount success with polling and timeout
-			local attempts = 0
-			local maxAttempts = 15 -- 1.5 seconds max
-			local function checkMountStatus()
-				attempts = attempts + 1
-				-- Stop checking if mounted, in combat, or timed out
-				if IsMounted() or InCombatLockdown() or attempts > maxAttempts then
-					return
-				end
-
-				-- After reasonable delay, try fallback
-				if attempts == 8 then -- After 0.8 seconds
-					if not InCombatLockdown() and not isActionOnCooldown("mountAttempt", 1.0) then
-						if RandomMountBuddy and RandomMountBuddy.SRM then
-							addonTable:DebugCore("Zone ability failed, using fallback mount")
-							RandomMountBuddy:SRM(true)
-						end
-					end
-
-					return
-				end
-
-				-- Continue polling
-				C_Timer.After(0.1, checkMountStatus)
-			end
-
-			-- Start checking after brief delay
-			C_Timer.After(0.1, checkMountStatus)
-		end)
-		if not success then
-			addonTable:DebugCore("PostClick error:", err)
-		end
-	end
-end
-
--- Cleanup helper button when no longer needed
-local function cleanupZoneHelperButton()
-	if addonTable.zoneHelperButton then
-		addonTable.zoneHelperButton:Hide()
-		addonTable.zoneHelperButton:SetScript("PostClick", nil)
-		addonTable.zoneHelperButton:SetAttribute("spell", nil)
-		addonTable:DebugCore("Cleaned up zone helper button")
-	end
-end
-
--- Function to update all shapeshift form macros based on settings
+-- SIMPLIFIED: Update all shapeshift form macros based on settings
 function addonTable:UpdateShapeshiftMacros()
 	-- Prevent recursion with better checking
 	if self.isUpdatingMacros then
@@ -355,8 +194,6 @@ function addonTable:UpdateShapeshiftMacros()
 
 	-- Use pcall to catch any errors and prevent infinite loops
 	local success, errorMsg = pcall(function()
-		-- Update zone ability cache
-		updateZoneAbilityCache(true)
 		-- Cache all spell names at once
 		local travelFormName = getCachedSpellInfo(783, "Travel Form")
 		local catFormName = getCachedSpellInfo(768, "Cat Form")
@@ -400,7 +237,7 @@ function addonTable:UpdateShapeshiftMacros()
 	end
 end
 
--- Helper function to update individual button macros
+-- SIMPLIFIED: Helper function to update individual button macros
 function addonTable:updateButtonMacros(travelFormName, catFormName, ghostWolfName, zenFlightName,
 		slowFallName, levitateName, settings, slowFallTarget, levitateTarget)
 	-- Update druid Travel Form button
@@ -439,69 +276,57 @@ function addonTable:updateButtonMacros(travelFormName, catFormName, ghostWolfNam
 		self.levitateButton:SetAttribute("macrotext", macro)
 	end
 
-	-- Update mount button with enhanced zone ability handling
+	-- SIMPLIFIED: Update mount button and smart button with zone-appropriate macro
+	local mountMacro = getMountMacroForCurrentZone()
 	if self.mountButton then
-		local macro = buildMountMacro()
 		self.mountButton:SetAttribute("type", "macro")
-		self.mountButton:SetAttribute("macrotext", macro)
+		self.mountButton:SetAttribute("macrotext", mountMacro)
 	end
 
-	-- Update smart button based on current state
-	self:updateSmartButton(travelFormName, catFormName, ghostWolfName, zenFlightName,
-		slowFallName, levitateName, settings, slowFallTarget, levitateTarget)
+	if self.smartButton then
+		self:updateSmartButton(travelFormName, catFormName, ghostWolfName, zenFlightName,
+			slowFallName, levitateName, settings, slowFallTarget, levitateTarget, mountMacro)
+	end
 end
 
--- Enhanced smart button update with robust zone ability support
+-- SIMPLIFIED: Smart button update
 function addonTable:updateSmartButton(travelFormName, catFormName, ghostWolfName, zenFlightName,
-		slowFallName, levitateName, settings, slowFallTarget, levitateTarget)
+		slowFallName, levitateName, settings, slowFallTarget, levitateTarget, mountMacro)
 	if not self.smartButton or not self.updateFrame then return end
 
-	-- Update zone ability cache
-	updateZoneAbilityCache(false)
-	-- Handle zone abilities with robust implementation
-	if zoneAbilityCache.hasZoneAbility and zoneAbilityCache.cachedSpellID then
-		-- Validate the zone ability one more time
-		if validateZoneAbility(zoneAbilityCache.cachedSpellID) then
-			-- Set button to cast zone ability directly
-			self.smartButton:SetAttribute("type", "spell")
-			self.smartButton:SetAttribute("spell", zoneAbilityCache.cachedSpellID)
-			-- Set up robust PostClick fallback
-			self.smartButton:SetScript("PostClick", createPostClickHandler())
-			return
-		else
-			-- Zone ability no longer valid, clear cache
-			zoneAbilityCache.hasZoneAbility = false
-			zoneAbilityCache.cachedSpellID = nil
-		end
-	end
-
-	-- Clear PostClick script if no zone ability
-	self.smartButton:SetScript("PostClick", nil)
+	-- Handle shapeshift logic for different classes
 	local _, playerClass = UnitClass("player")
 	local isMoving = self.updateFrame.lastMoving
 	local isFalling = self.updateFrame.lastFalling
 	local isIndoors = IsIndoors()
-	-- Use clean interface instead of hardcoded macro
-	local macro = RandomMountBuddy:GetSmartButtonAction() -- Default from clean interface
+	-- Default to mount macro (which handles G99 automatically based on zone)
+	local macro = mountMacro
 	if playerClass == "DRUID" and ((isMoving and settings.useTravelFormWhileMoving) or
 				(isIndoors and settings.useSmartFormSwitching)) then
 		macro = buildDruidMacro(travelFormName, catFormName,
 			settings.useSmartFormSwitching, settings.keepTravelFormActive)
+		addonTable:DebugCore("Smart button: Using Druid macro")
 	elseif playerClass == "SHAMAN" and ((isMoving or isIndoors) and settings.useGhostWolfWhileMoving) then
 		macro = buildShamanMacro(ghostWolfName, settings.keepGhostWolfActive)
+		addonTable:DebugCore("Smart button: Using Shaman macro")
 	elseif playerClass == "MONK" and (isMoving or isFalling) and settings.useZenFlightWhileMoving then
 		macro = buildFallingMacro(zenFlightName, settings.keepZenFlightActive)
+		addonTable:DebugCore("Smart button: Using Monk macro")
 	elseif playerClass == "MAGE" and isFalling and settings.useSlowFallWhileFalling then
 		macro = buildFallingMacro(slowFallName, false, slowFallTarget)
+		addonTable:DebugCore("Smart button: Using Mage macro")
 	elseif playerClass == "PRIEST" and isFalling and settings.useLevitateWhileFalling then
 		macro = buildFallingMacro(levitateName, false, levitateTarget)
+		addonTable:DebugCore("Smart button: Using Priest macro")
+	else
+		addonTable:DebugCore("Smart button: Using zone-appropriate mount macro")
 	end
 
 	self.smartButton:SetAttribute("type", "macro")
 	self.smartButton:SetAttribute("macrotext", macro)
 end
 
--- Helper function to build combat macros (unchanged from original)
+-- Helper function to build combat macros
 function addonTable:buildCombatMacros(travelFormName, catFormName, ghostWolfName, zenFlightName,
 		slowFallName, levitateName, settings, slowFallTarget, levitateTarget)
 	-- Build class-specific combat macros
@@ -512,14 +337,14 @@ function addonTable:buildCombatMacros(travelFormName, catFormName, ghostWolfName
 			buildShamanMacro(ghostWolfName, true) -- Fallback for dungeon compatibility
 	self.monkCombatMacro = settings.useZenFlightWhileMoving and
 			buildFallingMacro(zenFlightName, settings.keepZenFlightActive) or
-			MACRO_TEMPLATES.prefix -- Simple fallback
+			MACRO_TEMPLATES.regularZone -- Simple fallback
 	self.mageCombatMacro = settings.useSlowFallWhileFalling and
 			buildFallingMacro(slowFallName, false, slowFallTarget) or
-			MACRO_TEMPLATES.prefix
+			MACRO_TEMPLATES.regularZone
 	self.priestCombatMacro = settings.useLevitateWhileFalling and
 			buildFallingMacro(levitateName, false, levitateTarget) or
-			MACRO_TEMPLATES.prefix
-	-- Set the current combat macro
+			MACRO_TEMPLATES.regularZone
+	-- Set the current combat macro using localized zone macro
 	local _, playerClass = UnitClass("player")
 	local combatMacros = {
 		DRUID = self.druidCombatMacro,
@@ -528,7 +353,8 @@ function addonTable:buildCombatMacros(travelFormName, catFormName, ghostWolfName
 		MAGE = self.mageCombatMacro,
 		PRIEST = self.priestCombatMacro,
 	}
-	self.combatMacro = combatMacros[playerClass] or MACRO_TEMPLATES.prefix
+	self.combatMacro = combatMacros[playerClass] or getMountMacroForCurrentZone()
+	addonTable:DebugCore("Combat macro set for", playerClass or "unknown", "class")
 end
 
 -- Optimized secure handlers setup
@@ -551,8 +377,8 @@ function addonTable:SetupSecureHandlers()
 		addonTable:createVisibleButton()
 		-- Create smart button with optimized update handler
 		addonTable:createSmartButton()
-		-- Setup zone ability event handling
-		addonTable:setupZoneAbilityHandling()
+		-- Setup zone change event handling
+		addonTable:setupZoneChangeHandling()
 		-- Initialize macros
 		addonTable:UpdateShapeshiftMacros()
 		addonTable:DebugCore("Secure handlers initialized")
@@ -563,7 +389,7 @@ function addonTable:SetupSecureHandlers()
 	end)
 end
 
--- Helper function to create all secure buttons (unchanged from original)
+-- Helper function to create all secure buttons
 function addonTable:createSecureButtons()
 	local buttons = {}
 	local buttonConfigs = {
@@ -579,10 +405,13 @@ function addonTable:createSecureButtons()
 		button:SetSize(1, 1)
 		button:SetPoint("CENTER")
 		button:RegisterForClicks("AnyUp", "AnyDown")
+		-- Set default mount macro (will be updated by updateButtonMacros)
 		if config.name == "mountButton" then
+			-- Clear the spell name cache to ensure fresh lookup
+			G99_LOCALIZED_NAME = nil
 			button:SetAttribute("type", "macro")
-			local mountMacro = RandomMountBuddy:GetSmartButtonAction()
-			button:SetAttribute("macrotext", mountMacro)
+			button:SetAttribute("macrotext", getMountMacroForCurrentZone())
+			addonTable:DebugCore("Mount button: Created with localized zone-appropriate macro")
 		end
 
 		buttons[config.name] = button
@@ -591,7 +420,7 @@ function addonTable:createSecureButtons()
 	return buttons
 end
 
--- Enhanced visible button creation with improved zone ability support
+-- SIMPLIFIED: Visible button creation
 function addonTable:createVisibleButton()
 	local visibleButton = CreateFrame("Button", "RMBVisibleButton", UIParent)
 	visibleButton:SetSize(1, 1)
@@ -602,8 +431,7 @@ function addonTable:createVisibleButton()
 	-- Optimized drag handlers
 	visibleButton:SetScript("OnDragStart", visibleButton.StartMoving)
 	visibleButton:SetScript("OnDragStop", visibleButton.StopMovingOrSizing)
-	-- Enhanced click handler with proper error handling
-	local _, playerClass = UnitClass("player")
+	-- SIMPLIFIED: Enhanced click handler that just delegates to smart button
 	visibleButton:SetScript("OnClick", function()
 		-- Prevent spam clicking
 		if isActionOnCooldown("visibleButton", 0.5) then
@@ -611,64 +439,12 @@ function addonTable:createVisibleButton()
 		end
 
 		local success, err = pcall(function()
-			-- Check for zone abilities first
-			updateZoneAbilityCache(false)
-			if zoneAbilityCache.hasZoneAbility and not InCombatLockdown() and
-					validateZoneAbility(zoneAbilityCache.cachedSpellID) then
-				-- Create temporary secure button for zone ability
-				local zoneButton = CreateFrame("Button", "RMBTempZoneButton", UIParent, "SecureActionButtonTemplate")
-				zoneButton:SetAttribute("type", "spell")
-				zoneButton:SetAttribute("spell", zoneAbilityCache.cachedSpellID)
-				zoneButton:Click()
-				-- Clean up and set up fallback
-				C_Timer.After(0.1, function()
-					zoneButton:Hide()
-					-- Check if mount succeeded, fallback if not
-					C_Timer.After(0.3, function()
-						if not IsMounted() and not InCombatLockdown() then
-							if RandomMountBuddy and RandomMountBuddy.SRM then
-								RandomMountBuddy:SRM(true)
-							end
-						end
-					end)
-				end)
-				addonTable:DebugCore("Used zone ability " .. zoneAbilityCache.cachedSpellID)
-				return
-			end
-
-			local isMoving = IsPlayerMoving()
-			local isFalling = addonTable:IsPlayerFalling()
-			local isIndoors = IsIndoors()
-			local inCombat = InCombatLockdown()
-			-- Use lookup table for button selection
-			local buttonActions = {
-				DRUID = function()
-					return (isMoving and getCachedSetting("useTravelFormWhileMoving")) or
-							(isIndoors and getCachedSetting("useSmartFormSwitching"))
-							and not inCombat and addonTable.travelButton
-				end,
-				SHAMAN = function()
-					return ((isMoving or isIndoors) and getCachedSetting("useGhostWolfWhileMoving"))
-							and not inCombat and addonTable.ghostWolfButton
-				end,
-				MONK = function()
-					return ((isMoving or isFalling) and getCachedSetting("useZenFlightWhileMoving"))
-							and not inCombat and addonTable.zenFlightButton
-				end,
-				MAGE = function()
-					return (isFalling and getCachedSetting("useSlowFallWhileFalling"))
-							and addonTable.slowFallButton
-				end,
-				PRIEST = function()
-					return (isFalling and getCachedSetting("useLevitateWhileFalling"))
-							and addonTable.levitateButton
-				end,
-			}
-			local actionFunc = buttonActions[playerClass]
-			local targetButton = actionFunc and actionFunc() or addonTable.mountButton
-			if targetButton then
-				targetButton:Click()
-				addonTable:DebugCore("Clicked " .. (targetButton == addonTable.mountButton and "mount" or "form") .. " button")
+			addonTable:DebugCore("Visible button: Delegating to smart button")
+			-- Always just click the smart button - it has the zone-appropriate logic
+			if addonTable.smartButton then
+				addonTable.smartButton:Click()
+			else
+				addonTable:DebugCore("Visible button: ERROR - Smart button not found!")
 			end
 		end)
 		if not success then
@@ -687,14 +463,14 @@ function addonTable:createVisibleButton()
 	RandomMountBuddy.visibleButton = visibleButton
 end
 
--- Enhanced smart button creation with robust zone ability support
+-- Smart button creation with optimized update handler
 function addonTable:createSmartButton()
 	local smartButton = CreateFrame("Button", "RMBSmartButton", UIParent, "SecureActionButtonTemplate")
 	smartButton:SetSize(1, 1)
 	smartButton:SetPoint("CENTER")
 	smartButton:RegisterForClicks("AnyUp", "AnyDown")
 	smartButton:SetAttribute("type", "macro")
-	smartButton:SetAttribute("macrotext", "/run RMB:SRM(true)")
+	smartButton:SetAttribute("macrotext", getMountMacroForCurrentZone())
 	-- Optimized update frame with reduced frequency
 	local updateFrame = CreateFrame("Frame")
 	updateFrame.elapsed = 0
@@ -738,7 +514,8 @@ function addonTable:createSmartButton()
 				getCachedSetting("useSlowFallOnOthers") and
 				"@target,help,exists][@mouseover,help,exists][@player" or "@player",
 				getCachedSetting("useLevitateOnOthers") and
-				"@target,help,exists][@mouseover,help,exists][@player" or "@player"
+				"@target,help,exists][@mouseover,help,exists][@player" or "@player",
+				getMountMacroForCurrentZone() -- Pass current zone macro
 			)
 		end
 	end)
@@ -746,21 +523,33 @@ function addonTable:createSmartButton()
 	updateFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 	updateFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 	updateFrame:SetScript("OnEvent", function(self, event)
-		if InCombatLockdown() then return end
-
 		if event == "PLAYER_REGEN_DISABLED" then
-			-- Clear any PostClick handlers during combat
-			smartButton:SetScript("PostClick", nil)
-			smartButton:SetAttribute("type", "macro")
-			smartButton:SetAttribute("macrotext", addonTable.combatMacro or "/run RMB:SRM(true)")
+			-- Entering combat - set combat macro immediately
+			if not InCombatLockdown() then -- Safety check
+				smartButton:SetAttribute("type", "macro")
+				smartButton:SetAttribute("macrotext", addonTable.combatMacro or getMountMacroForCurrentZone())
+				addonTable:DebugCore("Combat: Set combat macro")
+			end
 		elseif event == "PLAYER_REGEN_ENABLED" then
-			-- Reset to normal operation after combat
-			C_Timer.After(0.1, function()
-				if not InCombatLockdown() then
-					self.lastMoving = nil -- Force update
-					self.lastFalling = nil
-				end
-			end)
+			-- FIXED: Leaving combat - update macro IMMEDIATELY, no delay
+			if not InCombatLockdown() then
+				-- Force immediate macro update
+				self.lastMoving = nil -- Force movement update
+				self.lastFalling = nil -- Force falling update
+				-- Clear spell name cache in case it changed during combat
+				G99_LOCALIZED_NAME = nil
+				-- Immediately update to current zone macro
+				local currentZoneMacro = getMountMacroForCurrentZone()
+				smartButton:SetAttribute("type", "macro")
+				smartButton:SetAttribute("macrotext", currentZoneMacro)
+				addonTable:DebugCore("Combat: Immediately updated to post-combat macro")
+				-- Also force a full macro update after a brief moment for other buttons
+				C_Timer.After(0.05, function()
+					if not InCombatLockdown() then
+						addonTable:UpdateShapeshiftMacros()
+					end
+				end)
+			end
 		end
 	end)
 	self.smartButton = smartButton
@@ -769,29 +558,27 @@ function addonTable:createSmartButton()
 	RandomMountBuddy.updateFrame = updateFrame
 end
 
--- Enhanced zone ability event handling with cleanup
-function addonTable:setupZoneAbilityHandling()
+-- SIMPLIFIED: Zone change event handling
+function addonTable:setupZoneChangeHandling()
 	local zoneUpdateFrame = CreateFrame("Frame")
 	zoneUpdateFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 	zoneUpdateFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+	zoneUpdateFrame:RegisterEvent("SPELLS_CHANGED") -- In case G99 spell changes
 	zoneUpdateFrame:SetScript("OnEvent", function(self, event)
-		if event == "ZONE_CHANGED_NEW_AREA" then
-			-- Clean up old zone abilities immediately
-			cleanupZoneHelperButton()
-			-- Update cache and macros
-			updateZoneAbilityCache(true)
-			-- Clean up if no zone ability available
-			if not zoneAbilityCache.hasZoneAbility then
-				cleanupZoneHelperButton()
-			end
-
-			addonTable:UpdateShapeshiftMacros()
-		elseif event == "PLAYER_ENTERING_WORLD" then
-			C_Timer.After(3, function()
-				updateZoneAbilityCache(true)
-				addonTable:UpdateShapeshiftMacros()
-			end)
+		addonTable:DebugCore("Zone/spell change event:", event, "- Updating macros")
+		-- Clear cached spell name on any relevant event
+		if event == "SPELLS_CHANGED" or event == "ZONE_CHANGED_NEW_AREA" then
+			G99_LOCALIZED_NAME = nil
+			addonTable:DebugCore("Cleared G99 spell name cache")
 		end
+
+		-- Update macros with appropriate delay
+		local delay = (event == "SPELLS_CHANGED") and 0.5 or 1.0
+		C_Timer.After(delay, function()
+			if not InCombatLockdown() then
+				addonTable:UpdateShapeshiftMacros()
+			end
+		end)
 	end)
 end
 
@@ -855,4 +642,4 @@ end
 
 -- Initialize
 addonTable:SetupSecureHandlers()
-addonTable:DebugCore("SecureHandlers.lua END (Robust Version).")
+addonTable:DebugCore("SecureHandlers.lua END (Simplified Version).")

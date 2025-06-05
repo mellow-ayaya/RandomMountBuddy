@@ -1,3 +1,6 @@
+# 0.9.12
+Added better checks for when to summon G99.
+
 # 0.9.11
 More conistent fix for missing debug.
 
