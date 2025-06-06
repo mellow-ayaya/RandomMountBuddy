@@ -28,7 +28,7 @@ Mount Summoning related features:
 - Weight System: Prioritize your favorites while still getting variety
 - Favorite Sync: Automatically sync with your WoW Mount Journal favorites
 - D.R.I.V.E. support: Automatically summon G-99 Breakneck when in the correct zones.
-- Macros: You can create macros that use the addon's summoning logic, however, summoning a mount via this method does not support class spells or G-99 Breakneck. The command for macros is /run RMB:SRM(true)
+- Macros: You can create macros that use the addon's summoning logic, however, summoning a mount via this method does not support class spells or G-99 Breakneck. The command for macros is /run RMB:SRM(true) or /rmb s
 
 Utility features:
 

@@ -681,14 +681,6 @@ function addon:OnInitialize()
 	if LibAceConsole then
 		self:RegisterChatCommand("rmb", "SlashCommandHandler")
 		self:RegisterChatCommand("randommountbuddy", "SlashCommandHandler")
-		self:RegisterChatCommand("rmm", function()
-			addon:DebugCore("'rmm' slash command executed from Core.lua")
-			if self.ClickSecureButton then
-				self:ClickSecureButton()
-			else
-				addon:DebugSecure("ClickSecureButton method not found!")
-			end
-		end)
 		self:DebugCore("Slash commands registered.")
 	else
 		self:DebugCore("LibAceConsole missing.")
@@ -724,6 +716,26 @@ function addon:OnEnable()
 	end
 
 	self:DebugCore("OnEnable END.")
+end
+
+-- Slash commands
+function addon:SlashCommandHandler(input)
+	input = string.lower(string.trim(input or ""))
+	if input == "" or input == "help" then
+		self:AlwaysPrint("Random Mount Buddy commands:")
+		self:AlwaysPrint("/rmb s - Summon a random mount")
+		self:AlwaysPrint("/rmb help - Show this help")
+		self:AlwaysPrint("/rmb config - Open configuration")
+	elseif input == "config" then
+		if Settings and Settings.OpenToCategory then
+			Settings.OpenToCategory("Random Mount Buddy")
+		end
+	elseif input == "s" then
+		self:SummonRandomMount(true)
+	else
+		-- Default action - summon mount
+		self:SummonRandomMount(true)
+	end
 end
 
 -- Centralized module initialization
