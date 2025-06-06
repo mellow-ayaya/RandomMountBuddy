@@ -202,7 +202,7 @@ addon.fmCurrentPage = 1
 addon.fmItemsPerPage = 14
 -- Keybinding headers
 BINDING_HEADER_RANDOMMOUNTBUDDY = "Random Mount Buddy"
-BINDING_NAME_CLICK_RMBSmartButton_LeftButton = "Smart Mount/Travel Form"
+_G["BINDING_NAME_CLICK RMBSmartButton:LeftButton"] = "RandomMountBuddy Summon"
 -- Add shortcuts
 RMB = RandomMountBuddy
 function RMB:SRM(useContext)

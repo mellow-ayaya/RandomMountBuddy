@@ -1,5 +1,5 @@
 <Bindings>
   <!-- Smart button -->
-  <Binding name="Random Mount Buddy Summon" header="RANDOMMOUNTBUDDY" category="ADDONS">
+  <Binding name="CLICK RMBSmartButton:LeftButton" header="RANDOMMOUNTBUDDY" category="ADDONS">
   </Binding>
 </Bindings>
