@@ -1,4 +1,4 @@
-### <img src="https://media.forgecdn.net/attachments/1211/871/iconv1-png.png" alt="Random Mount Buddy Icon" height="20" style="vertical-align: middle;"> Random Mount Buddy
+### Random Mount Buddy
 
 Improve your summon-random-favorite-mount experience with RandomMountBuddy! Minimal setup required: just set up the keybind and you're good to!
 ### &nbsp;
