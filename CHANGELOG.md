@@ -1,3 +1,6 @@
+# 1.0.5
+Curseforge push attempt #2
+
 # 1.0.4
 Curseforge release
 
