@@ -7,4 +7,4 @@ manual-changelog: CHANGELOG.md
 # Optional: Ignore files you don't want packaged
 ignore:
   - README.md
-  - doodads
+  - _RMB tools and misc
