@@ -1,3 +1,7 @@
+# 1.0.7
+Changed Contextual summoning Off behavior: it no longer tries to summon ground mounts in flying areas.
+Aquatic mounts will always be summoned underwater with regardless of the Contextual summoning checkbox, falling back on a random mount if no aquatic mounts are available.
+
 # 1.0.6
 Curseforge push attempt #3
 

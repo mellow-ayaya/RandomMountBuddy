@@ -278,6 +278,10 @@ function addon:InitializeProcessedData()
 				unavailableGroups = {},
 				pendingSummon = nil,
 			},
+			groundUsable = {
+				unavailableGroups = {},
+				pendingSummon = nil,
+			},
 		}
 	end
 
@@ -699,6 +703,7 @@ function addon:OnInitialize()
 		flying = { superGroups = {}, families = {}, mountsByFamily = {} },
 		ground = { superGroups = {}, families = {}, mountsByFamily = {} },
 		underwater = { superGroups = {}, families = {}, mountsByFamily = {} },
+		groundUsable = { superGroups = {}, families = {}, mountsByFamily = {} },
 	}
 	self:DebugCore("OnInitialize END.")
 end

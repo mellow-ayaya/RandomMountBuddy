@@ -924,7 +924,7 @@ end
 -- ============================================================================
 function addon:DecrementGroupWeight(groupKey)
 	if not (self.db and self.db.profile and self.db.profile.groupWeights) then
-		addon:DebugWeight("DB or profile not available")
+		addon:DebugOptions("DB or profile not available")
 		return
 	end
 
@@ -933,14 +933,14 @@ function addon:DecrementGroupWeight(groupKey)
 	if newWeight ~= currentWeight then
 		-- Use SetGroupWeight which handles syncing
 		self:SetGroupWeight(groupKey, newWeight)
-		addon:DebugWeight("Decremented " .. tostring(groupKey) .. " to " .. tostring(newWeight))
+		addon:DebugOptions("Decremented " .. tostring(groupKey) .. " to " .. tostring(newWeight))
 		self:TriggerFamilyManagementUIRefresh()
 	end
 end
 
 function addon:IncrementGroupWeight(groupKey)
 	if not (self.db and self.db.profile and self.db.profile.groupWeights) then
-		addon:DebugWeight("DB or profile not available")
+		addon:DebugOptions("DB or profile not available")
 		return
 	end
 
@@ -949,7 +949,7 @@ function addon:IncrementGroupWeight(groupKey)
 	if newWeight ~= currentWeight then
 		-- Use SetGroupWeight which handles syncing
 		self:SetGroupWeight(groupKey, newWeight)
-		addon:DebugWeight("Incremented " .. tostring(groupKey) .. " to " .. tostring(newWeight))
+		addon:DebugOptions("Incremented " .. tostring(groupKey) .. " to " .. tostring(newWeight))
 		self:TriggerFamilyManagementUIRefresh()
 	end
 end

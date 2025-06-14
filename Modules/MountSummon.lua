@@ -19,6 +19,7 @@ function MountSummon:Initialize()
 		flying = { superGroups = {}, families = {}, mountsByFamily = {}, mountWeights = {} },
 		ground = { superGroups = {}, families = {}, mountsByFamily = {}, mountWeights = {} },
 		underwater = { superGroups = {}, families = {}, mountsByFamily = {}, mountWeights = {} },
+		groundUsable = { superGroups = {}, families = {}, mountsByFamily = {}, mountWeights = {} },
 	}
 	-- Zone-specific configuration for G-99 abilities using location IDs
 	self.G99_ZONES = {
@@ -694,6 +695,11 @@ function MountSummon:BuildMountPools()
 					-- FIXED: Only add to ground pool if it CAN'T fly (ground-only mounts)
 					self:AddMountToPool("ground", mountID, name, familyName, superGroup, mountWeight)
 				end
+
+				-- NEW: Add to groundUsable pool if mount can be used on ground
+				if traits.isGround then
+					self:AddMountToPool("groundUsable", mountID, name, familyName, superGroup, mountWeight)
+				end
 			else
 				addon:DebugSummon("Mount " .. name .. " explicitly excluded (weight 0)")
 			end
@@ -952,35 +958,58 @@ function MountSummon:SummonRandomMount(useContext)
 	-- Determine which pool to use based on context
 	local poolName = "unified" -- Default to unified pool
 	local mountTypeFilter = nil -- No specific type filter by default
-	if useContext and addon:GetSetting("contextualSummoning") then
-		local context = self:GetCurrentContext()
-		if context.isUnderwater then
-			-- Underwater context
-			poolName = "underwater"
-			addon:DebugSummon("Using underwater pool based on context")
-		elseif context.canFly then
-			-- Flying context - determine which type
-			poolName = "flying"
-			if context.isInSkyridingMode and context.canDragonride then
-				-- Player is in skyriding mode and can dragonride in this zone
-				mountTypeFilter = "skyriding"
-				addon:DebugSummon("Using flying pool with skyriding filter based on context")
-			else
-				-- Player is in steady flight mode or can't dragonride here
-				mountTypeFilter = "steadyflight"
-				addon:DebugSummon("Using flying pool with steady flight filter based on context")
-			end
+	-- NEW: Always detect context, but respect contextual setting only for ground areas
+	local context = self:GetCurrentContext()
+	if context.isUnderwater then
+		-- Always use underwater pool regardless of context setting
+		poolName = "underwater"
+		addon:DebugSummon("Using underwater pool")
+	elseif context.canFly then
+		-- Always use flying pool in flying areas regardless of context setting
+		poolName = "flying"
+		if context.isInSkyridingMode and context.canDragonride then
+			mountTypeFilter = "skyriding"
+			addon:DebugSummon("Using flying pool with skyriding filter")
 		else
-			-- Ground-only context
-			poolName = "ground"
-			addon:DebugSummon("Using ground pool based on context")
+			mountTypeFilter = "steadyflight"
+			addon:DebugSummon("Using flying pool with steady flight filter")
 		end
 	else
-		addon:DebugSummon("Using unified pool (contextual summoning disabled)")
+		-- Ground-only context - respect contextual summoning setting
+		if useContext and addon:GetSetting("contextualSummoning") then
+			poolName = "ground"
+			addon:DebugSummon("Using ground pool (context enabled)")
+		else
+			poolName = "groundUsable"
+			addon:DebugSummon("Using groundUsable pool (context disabled or not requested)")
+		end
 	end
 
 	-- Select mount from the appropriate pool with proper deterministic integration
 	local mountID, mountName = self:SelectMountFromPoolWithFilter(poolName, mountTypeFilter)
+	-- NEW: Underwater fallback logic
+	if not mountID and poolName == "underwater" then
+		addon:DebugSummon("No underwater mounts available, attempting fallback...")
+		self:ClearPendingSummon() -- Clear failed underwater attempt
+		local context = self:GetCurrentContext()
+		local fallbackPoolName, fallbackFilter
+		if context.canFly then
+			fallbackPoolName = "flying"
+			if context.isInSkyridingMode and context.canDragonride then
+				fallbackFilter = "skyriding"
+			else
+				fallbackFilter = "steadyflight"
+			end
+		else
+			fallbackPoolName = addon:GetSetting("contextualSummoning") and "ground" or "groundUsable"
+			fallbackFilter = nil
+		end
+
+		addon:DebugSummon("Falling back to " .. fallbackPoolName .. " pool" ..
+			(fallbackFilter and (" with " .. fallbackFilter .. " filter") or ""))
+		mountID, mountName = self:SelectMountFromPoolWithFilter(fallbackPoolName, fallbackFilter)
+	end
+
 	if mountID then
 		return self:SummonMount(mountID)
 	else
