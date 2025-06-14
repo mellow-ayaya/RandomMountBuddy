@@ -224,14 +224,31 @@ function addon:BuildFamilyManagementArgs()
 				return -- Ignore separators and empty selection
 			end
 
-			-- Parse the selection
-			local scope, priority = value:match("^([^_]+)_(%d+)$")
-			if not scope or not priority then
-				return
+			-- Map numeric keys to scope and priority
+			local keyMapping = {
+				["0"] = { scope = "page", priority = 0 },
+				["1"] = { scope = "page", priority = 1 },
+				["2"] = { scope = "page", priority = 2 },
+				["3"] = { scope = "page", priority = 3 },
+				["4"] = { scope = "page", priority = 4 },
+				["5"] = { scope = "page", priority = 5 },
+				["6"] = { scope = "page", priority = 6 },
+				["8"] = { scope = "all", priority = 0 },
+				["9"] = { scope = "all", priority = 1 },
+				["10"] = { scope = "all", priority = 2 },
+				["11"] = { scope = "all", priority = 3 },
+				["12"] = { scope = "all", priority = 4 },
+				["13"] = { scope = "all", priority = 5 },
+				["14"] = { scope = "all", priority = 6 },
+			}
+			local mapping = keyMapping[value]
+			if not mapping then
+				return -- Unknown key
 			end
 
-			priority = tonumber(priority)
-			if not priority or priority < 0 or priority > 6 then
+			local scope = mapping.scope
+			local priority = mapping.priority
+			if not scope or not priority or priority < 0 or priority > 6 then
 				return
 			end
 

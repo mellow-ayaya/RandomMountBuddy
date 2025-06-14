@@ -735,14 +735,20 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 				mountHeader2 = {
 					order = 2,
 					type = "description",
-					name = "   |cffffd700Mount -> New Family|r",
+					name = "            |cffffd700Mount -> New Family|r",
 					width = 1.8,
+				},
+				spacer_h_info_reunite = {
+					order = 2.5,
+					type = "description",
+					name = "",
+					width = 0.55,
 				},
 				actionHeader2 = {
 					order = 3,
 					type = "description",
-					name = "   |cffffd700Action|r",
-					width = 0.4,
+					name = "           |cffffd700Action|r",
+					width = 0.5,
 				},
 			},
 		}
@@ -784,6 +790,13 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 						width = 1.8,
 					},
 
+					spacer_info_reunite = {
+						order = 2.5,
+						type = "description",
+						name = "",
+						width = 0.55,
+					},
+
 					-- Reunite button
 					reunite = {
 						order = 3,
@@ -803,7 +816,7 @@ function MountSeparationManager:BuildSeparationManagementArgs()
 								addon:AlwaysPrint("" .. message)
 							end
 						end,
-						width = 0.4,
+						width = 0.6,
 					},
 				},
 			}
