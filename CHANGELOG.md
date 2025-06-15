@@ -1,3 +1,7 @@
+# 1.0.9
+Added comments in ManualFamilyDefinitions to help categorize mounts in the future.
+Improved Curseforge packaging.
+
 # 1.0.8
 Fixed Adjust all weights dropdown in Mount list.
 Made sparate mounts UI in the Advanced menu more consistent.

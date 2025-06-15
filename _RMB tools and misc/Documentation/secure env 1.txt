@@ -1,0 +1,513 @@
+--1
+# Creating Keybinding Addons in World of Warcraft: A Comprehensive Guide
+
+## 1. Introduction to WoW's Secure Environment
+
+World of Warcraft employs a security model that divides addon functionality into secure and insecure environments to prevent automation, botting, and exploits. Understanding this security model is essential for creating functioning keybinding addons.
+
+### 1.1 Protected Functions
+
+Protected functions include spell casting, targeting, movement, and other gameplay-affecting actions. These protected functions cannot be called directly from insecure addon code, especially during combat.
+
+```lua
+-- INCORRECT: This will cause an error if used in insecure addon code
+CastSpellByID(783) -- "ADDON_ACTION_FORBIDDEN" error
+```
+
+### 1.2 Secure vs. Insecure Environment
+
+- **Secure Environment**: Can execute protected actions but has limited API access
+- **Insecure Environment**: Has full API access but cannot execute protected actions
+
+## 2. Keybinding Fundamentals in WoW
+
+### 2.1 How Keybindings Work
+
+When a user presses a key combination that's bound to an addon function, WoW checks if the binding is valid and executes the associated action. If the action requires protected functions, it must be executed within the secure environment.
+
+### 2.2 Key Documentation on Bindings
+
+From official documentation:
+
+```
+Creating key bindings
+Key bindings allow addons to perform actions when a user presses a specific combination of modifier keys and keyboard or mouse buttons. If the addon always offers the same set of bindings, the Bindings.xml file can be used to declare these in advance, and FrameXML will include these in the built-in Key Bindings UI. Alternatively, addons may create bindings manually using the SetBinding and SetOverrideBinding families of API functions.
+
+Setting key bindings is protected in combat -- addons can only change bindings in combat by using the binding-related functions present on frame handles in a restricted environment.
+
+Using Bindings.xml to create static bindings:
+The built-in Key Bindings customization UI
+
+If you know the exact list of actions you want to let users configure keybindings for, you can use the Bindings.xml file to specify static bindings. This method of creating bindings also allows you to rely on Blizzard's Key Bindings UI to allow users to customize your bindings, vastly reducing the amount of binding-handling code you'll need to write.
+```
+
+## 3. Correct Bindings.xml Structure
+
+The Bindings.xml file is a special file that WoW automatically loads (do not list it in your TOC file). It defines the keybindings available in the Key Bindings UI.
+
+### 3.1 Basic Structure
+
+```xml
+<Bindings>
+  <Binding name="BINDING_NAME" header="ADDON_HEADER" category="ADDONS">
+    -- Code here (optional)
+  </Binding>
+</Bindings>
+```
+
+### 3.2 Clicking Secure Buttons (CRITICAL)
+
+The most reliable way to cast spells via keybinds is to use the `CLICK` binding pattern with an empty body:
+
+```xml
+<Bindings>
+  <Binding name="CLICK ButtonName:LeftButton" header="ADDON_HEADER" category="ADDONS">
+  </Binding>
+</Bindings>
+```
+
+This pattern directly clicks the specified button in the secure environment when the keybind is pressed. **The binding body should be empty when using CLICK.**
+
+### 3.3 Common Mistakes
+
+```xml
+<!-- INCORRECT: Calling a function from the binding -->
+<Binding name="ADDON_CAST" header="ADDON_HEADER" category="ADDONS">
+  AddonName:CastSpell();  <!-- This won't work for protected actions -->
+</Binding>
+
+<!-- CORRECT: Using CLICK with an empty body -->
+<Binding name="CLICK AddonButton:LeftButton" header="ADDON_HEADER" category="ADDONS">
+</Binding>
+```
+
+## 4. Binding Global Variables
+
+WoW uses global variables to display binding names in the Key Bindings UI.
+
+### 4.1 Naming Convention (CRITICAL)
+
+```lua
+-- For regular bindings:
+BINDING_HEADER_ADDONNAME = "Addon Name"
+BINDING_NAME_ADDONACTION = "Action Description"
+
+-- For CLICK bindings (note the underscores instead of spaces and colons):
+BINDING_HEADER_ADDONNAME = "Addon Name"
+BINDING_NAME_CLICK_ButtonName_LeftButton = "Action Description"
+```
+
+Getting this naming convention wrong is a common reason keybinds don't appear or work correctly.
+
+## 5. Creating Secure Buttons
+
+Secure buttons are the core of functional keybinding addons that perform protected actions.
+
+### 5.1 Using SecureActionButtonTemplate
+
+```lua
+local button = CreateFrame("Button", "AddonButton", UIParent, "SecureActionButtonTemplate")
+button:SetAttribute("type", "spell")
+button:SetAttribute("spell", spellID)
+button:RegisterForClicks("AnyUp")
+```
+
+### 5.2 Attribute Types and Options
+
+```lua
+-- For casting spells:
+button:SetAttribute("type", "spell")
+button:SetAttribute("spell", spellID) -- or spell name
+
+-- For running macros:
+button:SetAttribute("type", "macro")
+button:SetAttribute("macrotext", "/cast SpellName")
+
+-- For targeting units:
+button:SetAttribute("type", "target")
+button:SetAttribute("unit", "target")
+```
+
+### 5.3 Button Creation Timing
+
+Create secure buttons early during addon initialization, such as during the PLAYER_LOGIN event:
+
+```lua
+local frame = CreateFrame("Frame")
+frame:RegisterEvent("PLAYER_LOGIN")
+frame:SetScript("OnEvent", function(self, event)
+    -- Create secure button here
+    self:UnregisterEvent(event)
+end)
+```
+
+## 6. Working Example: Moonfire Casting Addon
+
+Below is a complete, working example of an addon that creates a keybinding to cast Moonfire.
+
+### 6.1 File Structure
+- MoonfireCaster/
+  - MoonfireCaster.toc
+  - MoonfireCaster.lua
+  - Bindings.xml
+
+### 6.2 TOC File (MoonfireCaster.toc)
+```
+## Interface: 110105
+## Title: MoonfireCaster
+## Notes: Simple addon to cast Moonfire (Spell ID 8921) with a keybind
+## Author: You
+## Version: 1.0
+## SavedVariables: MoonfireCasterDB
+## IconTexture: Interface\Icons\Spell_Nature_StarFall
+MoonfireCaster.lua
+```
+
+**Note: Bindings.xml is not listed in the TOC file as WoW loads it automatically.**
+
+### 6.3 Bindings.xml
+```xml
+<Bindings>
+  <Binding name="CLICK MoonfireCasterButton:LeftButton" header="MOONFIRECASTER" category="ADDONS">
+  </Binding>
+</Bindings>
+```
+
+### 6.4 Lua File (MoonfireCaster.lua)
+```lua
+-- Define our binding globals
+BINDING_HEADER_MOONFIRECASTER = "Moonfire Caster"
+BINDING_NAME_CLICK_MoonfireCasterButton_LeftButton = "Cast Moonfire"
+
+-- Create a frame for initialization
+local frame = CreateFrame("Frame")
+
+-- Create the secure button immediately
+local button = CreateFrame("Button", "MoonfireCasterButton", UIParent, "SecureActionButtonTemplate")
+button:SetAttribute("type", "macro")
+button:SetAttribute("macrotext", "/cast Moonfire")
+button:RegisterForClicks("AnyUp", "AnyDown")
+button:SetSize(50, 50)
+button:SetPoint("CENTER")
+
+-- Initialize the addon
+frame:RegisterEvent("PLAYER_LOGIN")
+frame:SetScript("OnEvent", function(self, event)
+    self:UnregisterEvent(event)
+
+    -- Create a texture for the button
+    local texture = button:CreateTexture(nil, "BACKGROUND")
+    texture:SetAllPoints(button)
+    texture:SetColorTexture(0, 0, 1, 0.5) -- Semi-transparent blue
+    button:Show() -- Keep visible for testing
+
+    -- Check if spell exists
+    local spellInfo = C_Spell.GetSpellInfo(8921)
+    if spellInfo and spellInfo.name then
+        print("|cFF00FF00MoonfireCaster|r: Ready to cast " .. spellInfo.name)
+    else
+        print("|cFFFF0000MoonfireCaster|r: WARNING - Spell ID 8921 (Moonfire) not found")
+    end
+
+    print("|cFF00FF00MoonfireCaster|r: Addon loaded. You can:")
+    print("1. Click the blue button directly")
+    print("2. Use your keybind (set in ESC → Key Bindings → Addons)")
+    print("3. Type /mfc cast to test via slash command")
+end)
+
+-- Create slash command
+SLASH_MOONFIRECASTER1 = "/mfc"
+SLASH_MOONFIRECASTER2 = "/moonfirecaster"
+
+function SlashCmdList.MOONFIRECASTER(msg, editBox)
+    msg = string.lower(msg or "")
+
+    if msg == "help" or msg == "" then
+        print("|cFF00FF00MoonfireCaster|r: Simple addon to cast Moonfire with a keybind")
+        print("Set your keybind in the game's Keybinding menu (ESC → Key Bindings → Addons → Moonfire Caster)")
+        print("Commands:")
+        print("/mfc help - Show this help message")
+        print("/mfc cast - Cast Moonfire by clicking the button")
+        print("/mfc status - Show addon status")
+        print("/mfc show - Make the button visible")
+        print("/mfc hide - Hide the button")
+        print("/mfc macro - Use macro approach (current)")
+        print("/mfc spell - Use spell approach")
+    elseif msg == "cast" then
+        print("|cFF00FF00MoonfireCaster|r: Clicking button")
+        if MoonfireCasterButton then
+            MoonfireCasterButton:Click("LeftButton")
+        else
+            print("|cFFFF0000MoonfireCaster|r: Error - Button not found")
+        end
+    elseif msg == "status" then
+        print("|cFF00FF00MoonfireCaster Status:|r")
+
+        -- Button info
+        print("Button exists: " .. (MoonfireCasterButton and "Yes" or "No"))
+        if MoonfireCasterButton then
+            local btnType = MoonfireCasterButton:GetAttribute("type")
+            print("Button type: " .. (btnType or "nil"))
+            if btnType == "spell" then
+                print("Button spell: " .. (MoonfireCasterButton:GetAttribute("spell") or "nil"))
+            elseif btnType == "macro" then
+                print("Button macro: " .. (MoonfireCasterButton:GetAttribute("macrotext") or "nil"))
+            end
+            print("Button visible: " .. (MoonfireCasterButton:IsVisible() and "Yes" or "No"))
+        end
+
+        -- Check binding name in globals
+        print("Binding name global: " .. (BINDING_NAME_CLICK_MoonfireCasterButton_LeftButton or "nil"))
+
+        -- Check binding
+        local bindingAction = "CLICK MoonfireCasterButton:LeftButton"
+        local key = GetBindingKey(bindingAction)
+        print("Binding action: " .. bindingAction)
+        print("Bound to key: " .. (key or "None"))
+
+        -- SpellInfo
+        local spellInfo = C_Spell.GetSpellInfo(8921)
+        if spellInfo and spellInfo.name then
+            print("Spell check: " .. spellInfo.name)
+            print("Spell ID: " .. (spellInfo.spellID or "unknown"))
+        else
+            print("Spell check: FAILED - Moonfire not found")
+        end
+    elseif msg == "show" then
+        if MoonfireCasterButton then
+            MoonfireCasterButton:Show()
+            print("|cFF00FF00MoonfireCaster|r: Button is now visible")
+        end
+    elseif msg == "hide" then
+        if MoonfireCasterButton then
+            MoonfireCasterButton:Hide()
+            print("|cFF00FF00MoonfireCaster|r: Button is now hidden")
+        end
+    elseif msg == "macro" then
+        if MoonfireCasterButton then
+            MoonfireCasterButton:SetAttribute("type", "macro")
+            MoonfireCasterButton:SetAttribute("macrotext", "/cast Moonfire")
+            print("|cFF00FF00MoonfireCaster|r: Using macro approach")
+        end
+    elseif msg == "spell" then
+        if MoonfireCasterButton then
+            MoonfireCasterButton:SetAttribute("type", "spell")
+            MoonfireCasterButton:SetAttribute("spell", 8921)
+            print("|cFF00FF00MoonfireCaster|r: Using spell approach")
+        end
+    end
+end
+```
+
+## 7. Special Cases and Advanced Topics
+
+### 7.1 Shape-Shifting Spells (e.g., Druid Forms)
+
+Shape-shifting spells like Travel Form require special handling because they need to toggle between casting and canceling:
+
+```lua
+-- Checking if in a form:
+local function IsInTravelForm()
+    local id = GetShapeshiftForm()
+    if id > 0 then
+        local _, _, _, spellID = GetShapeshiftFormInfo(id)
+        return spellID == 783 -- Travel Form spell ID
+    end
+    return false
+end
+
+-- Toggle function
+function ToggleForm()
+    if IsInTravelForm() then
+        CancelShapeshiftForm()
+    else
+        -- Use secure button to cast
+        SecureButton:Click()
+    end
+end
+```
+
+### 7.2 SecureHandlerStateTemplate
+
+For more complex state-based keybindings, use SecureHandlerStateTemplate:
+
+```lua
+local frame = CreateFrame("Frame", "StateFrame", UIParent, "SecureHandlerStateTemplate")
+frame:SetAttribute("_onstate-keybind", [[
+    -- Code in this string runs in the secure environment
+    if newstate == "down" then
+        -- Do something when key is pressed
+    elseif newstate == "up" then
+        -- Do something when key is released
+    end
+]])
+RegisterStateDriver(frame, "keybind", "down")
+```
+
+### 7.3 Why Slash Commands Can't Cast Spells
+
+When you try to cast a spell via a slash command like `/cast`, you get an error because:
+
+1. Slash commands execute in the insecure environment
+2. When they try to call SecureButton:Click(), they're crossing from insecure to secure
+3. WoW blocks this transition for protected actions
+
+This is why keybinds work but slash commands don't for casting spells.
+
+## 8. Debugging Keybind Addons
+
+### 8.1 Common Issues and Solutions
+
+1. **Keybind doesn't appear in UI**
+   - Check if Bindings.xml is in the correct format
+   - Verify that binding globals are correctly named
+
+2. **Keybind appears but doesn't work**
+   - Make sure the secure button exists and is properly configured
+   - Check if the button name in the binding matches the actual button name
+
+3. **Button clicks but doesn't cast**
+   - Verify that the spell ID or name is correct
+   - Try using macro text approach instead of direct spell casting
+
+### 8.2 Useful Debugging Code
+
+```lua
+-- Check binding status
+local bindingAction = "CLICK ButtonName:LeftButton"
+local key = GetBindingKey(bindingAction)
+print("Binding action: " .. bindingAction)
+print("Bound to key: " .. (key or "None"))
+
+-- Check button attributes
+print("Button type: " .. (button:GetAttribute("type") or "nil"))
+print("Button spell: " .. (button:GetAttribute("spell") or "nil"))
+print("Button macro: " .. (button:GetAttribute("macrotext") or "nil"))
+
+-- Verify spell exists
+local spellInfo = C_Spell.GetSpellInfo(spellID)
+if spellInfo and spellInfo.name then
+    print("Spell check: " .. spellInfo.name)
+    print("Spell ID: " .. (spellInfo.spellID or "unknown"))
+else
+    print("Spell check: FAILED - Spell not found")
+end
+```
+
+## 9. WoW's Restricted Environment
+
+The restricted environment has limited API access for secure frame handlers. Here's what's available:
+
+```
+Restricted environment refers to the environment in which restricted addon code (SecureHandler snippets) is executed. A limited subset of the WoW API is available within the environment.
+
+Available API:
+    SecureCmdOptionParse("conditionalString") : parses a macro conditional.
+    GetShapeshiftForm() : returns current shape shift form.
+    IsStealthed() : returns 1 if the player is stealthed
+    UnitExists("unit") : returns 1 if the unit exists.
+    UnitIsDead("unit") : returns 1 if the unit is dead.
+    UnitIsGhost("unit") : returns 1 if the unit is a ghost.
+    UnitPlayerOrPetInParty("unit") : returns 1 if the unit is a player or a pet in your party.
+    UnitPlayerOrPetInRaid("unit") : returns 1 if the unit is a player or a pet in your raid.
+    IsRightAltKeyDown(), IsLeftAltKeyDown(), IsAltKeyDown() : return 1 if the relevant key is held down.
+    IsRightControlKeyDown(), IsLeftControlKeyDown(), IsControlKeyDown() : return 1 if the relevant key is held down.
+    IsRightShiftKeyDown(), IsLeftShiftKeyDown(), IsShiftKeyDown() : return 1 if the relevant key is held down.
+    IsModifierKeyDown() : returns 1 if any alt, control or shift key is held down.
+    IsModifiedClick("modifierType") : returns 1 if the associated modifier is held down.
+    GetMouseButtonClicked() : returns the mouse button responsible for the hardware click.
+    GetActionBarPage() : returns the current action bar page.
+    GetBonusBarOffset() : returns the current action bar "bonus" offset (stance-specific bars).
+    IsMounted() : returns 1 if the player is mounted.
+    IsSwimming() : returns 1 if the player is swimming.
+    IsSubmerged() : returns 1 if the player is in a body of water.
+    IsFlying() : returns 1 if the player is flying.
+    IsFlyableArea() : returns 1 if the player is in a flyable area (Northrend, Outland).
+    IsIndoors() : returns 1 if the player is indoors.
+    IsOutdoors() : returns 1 if the player is outdoors.
+```
+
+### 9.1 Restricted Function Definitions
+
+In the restricted environment, you **cannot** use the `function` keyword to define functions. This will cause errors:
+
+```lua
+-- INCORRECT: This causes an error in restricted environment
+frame:SetAttribute("_onstate-keybind", [[
+    local function IsInForm()  -- Error: function keyword not permitted
+        -- Function body
+    end
+]])
+
+-- CORRECT: Use inline code instead
+frame:SetAttribute("_onstate-keybind", [[
+    -- Inline the code directly
+    local inForm = false
+    local id = GetShapeshiftForm()
+    if id > 0 then
+        -- rest of the logic
+    end
+]])
+```
+
+## 10. Differences Between Binding Types
+
+### 10.1 Click Bindings vs. Function Bindings
+
+```xml
+<!-- Click Binding: Directly clicks a button in the secure environment -->
+<Binding name="CLICK ButtonName:LeftButton" header="HEADER" category="ADDONS">
+</Binding>
+
+<!-- Function Binding: Calls a Lua function in the insecure environment -->
+<Binding name="ADDON_FUNCTION" header="HEADER" category="ADDONS">
+  MyAddon:DoSomething();
+</Binding>
+```
+
+Function bindings cannot perform protected actions directly, but can perform non-protected actions like opening UI panels, printing messages, etc.
+
+### 10.2 When to Use Each Type
+
+- **Use Click Bindings for**: Casting spells, using items, targeting units, and other protected actions
+- **Use Function Bindings for**: Opening configuration panels, toggling addon features, and other non-protected actions
+
+## 11. Conclusion
+
+Creating keybinding addons in WoW requires understanding the secure environment and following specific patterns. By using secure templates, proper binding formats, and correct global naming conventions, you can create addons that seamlessly integrate with WoW's keybinding system.
+
+Remember these key points:
+1. Use Bindings.xml with the CLICK pattern for protected actions
+2. Create secure buttons early during addon initialization
+3. Use proper naming conventions for binding globals
+4. Use macro text approach for special cases like shape-shifting spells
+5. Understand the limitations of the secure/insecure boundary
+
+
+### Additional Important Information:
+
+1. **TOC File Omissions**:
+   - Emphasize more strongly that **Bindings.xml should NEVER be listed in the TOC file**. WoW automatically loads this file, and including it in the TOC leads to errors.
+
+2. **API Changes**:
+   - Add information about `C_Spell.GetSpellInfo()` replacing the older `GetSpellInfo()` function in newer WoW versions.
+   - Note that `SetBackdrop()` is deprecated and we should use `CreateTexture()` and `SetColorTexture()` instead.
+
+3. **Binding Recognition**:
+   - Clarify that even if the binding appears to be set up correctly, WoW may not recognize it until the game is restarted (not just reloaded).
+
+4. **Debugging Strategies**:
+   - Add more specific troubleshooting steps such as checking binding status with `/dump GetBindingAction("KEY")`
+   - Include information on how to verify if the button exists in the global namespace with `/dump _G["ButtonName"]`
+
+5. **XML Error Checking**:
+   - Add information about checking the WoW error log for XML parsing errors, which can be subtle but prevent bindings from working.
+
+6. **Critical "Gotchas"**:
+   - Highlight that using the wrong format for binding globals is the #1 reason keybinds don't appear
+   - Emphasize that any code in a binding body is executed in the insecure environment, which is why the CLICK pattern with an empty body is necessary
+
+Adding these specific details would make the documentation even more robust and help someone avoid the subtle issues we encountered.
+
+
+Following these guidelines will help you create reliable and functional keybinding addons for World of Warcraft.
