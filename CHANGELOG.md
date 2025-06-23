@@ -1,3 +1,6 @@
+# 1.0.10
+Fixed annoying class spell triggering when trying to dismount in midair and updated error hiding command.
+
 # 1.0.9
 Added comments in ManualFamilyDefinitions to help categorize mounts in the future.
 Improved Curseforge packaging.

@@ -36,7 +36,7 @@ end
 -- Common macro templates to reduce duplication
 local MACRO_TEMPLATES = {
 	prefix =
-	"/run RMB:SRM(true)\n/run UIErrorsFrame:Hide() C_Timer.After(0, function() UIErrorsFrame:Clear() UIErrorsFrame:Show() end)",
+	"/run RMB:SRM(true)\n/run UIErrorsFrame:SuppressMessagesThisFrame()\n/stopmacro [mounted]",
 
 	-- Regular zones: Handle forms, then regular mount
 	regularZone = "/cancelform [form:2]\n/run RMB:SRM(true)",
