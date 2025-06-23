@@ -1,5 +1,7 @@
 # 1.0.10
 Fixed annoying class spell triggering when trying to dismount in midair and updated error hiding command.
+Changed default for Keep Zen Flight active from true to false, since it doesn't behave like Travel/Cat form and Ghost Wolf.
+TOC update.
 
 # 1.0.9
 Added comments in ManualFamilyDefinitions to help categorize mounts in the future.

@@ -1,4 +1,4 @@
-## Interface: 110105, 110107
+## Interface: 110107
 ## Title: Random Mount Buddy
 ## Author: mellow_ayaya
 ## Version: # 1.0.10

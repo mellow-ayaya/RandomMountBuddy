@@ -41,7 +41,7 @@ local dbDefaults = {
 		useSlowFallOnOthers = false,
 		-- Monk
 		useZenFlightWhileMoving = true,
-		keepZenFlightActive = true,
+		keepZenFlightActive = false,
 		-- Priest Spells
 		useLevitateWhileFalling = true,
 		useLevitateOnOthers = false,
