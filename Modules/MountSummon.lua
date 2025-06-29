@@ -150,7 +150,7 @@ end
 function MountSummon:CheckCurrentFlightStyle()
 	-- Check for "Switch to Steady Flight" (460002) spell - if present, player is in skyriding mode
 	-- Check for "Switch to Dragonriding" (460003) spell - if present, player is in steady flight mode
-	local steadySpellID = 460003   -- Switch TO skyriding (player is currently in steady flight)
+	local steadySpellID = 460003 -- Switch TO skyriding (player is currently in steady flight)
 	local skyridingSpellID = 460002 -- Switch TO steady flight (player is currently in skyriding)
 	-- Use C_Spell.GetSpellInfo to check if the player knows these spells
 	local skyridingSpellInfo = C_Spell.GetSpellInfo(skyridingSpellID)
@@ -192,9 +192,11 @@ function MountSummon:RegisterFlightStyleEvents()
 						-- Check if this is a mount summon spell (NEW)
 						local isMountSpell, mountID = self:IsMountSummonSpell(spellID)
 						if isMountSpell and mountID then
-							addon:DebugSummon("Detected successful mount summon - Spell: " .. spellID .. ", Mount: " .. mountID)
+							addon:DebugSummon("Detected successful mount summon - Spell: " ..
+								spellID .. ", Mount: " .. mountID)
 							-- Find which pool this summon was from by checking pending summons
-							local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+							local deterministicCache = addon.db and addon.db.profile and
+								addon.db.profile.deterministicCache
 							if deterministicCache then
 								for poolName, cache in pairs(deterministicCache) do
 									local pendingSummon = cache and cache.pendingSummon
@@ -491,7 +493,7 @@ function MountSummon:FilterPoolForDeterministic(pool, poolName)
 		superGroups = {},
 		families = {},
 		mountsByFamily = pool.mountsByFamily, -- Keep mount lists unchanged
-		mountWeights = pool.mountWeights,   -- Keep weights unchanged
+		mountWeights = pool.mountWeights, -- Keep weights unchanged
 	}
 	-- Filter supergroups
 	for sgName, families in pairs(pool.superGroups) do
@@ -964,12 +966,12 @@ function MountSummon:SummonRandomMount(useContext)
 		-- Always use underwater pool regardless of context setting
 		poolName = "underwater"
 		addon:DebugSummon("Using underwater pool")
-	elseif context.canFly then
-		-- Always use flying pool in flying areas regardless of context setting
+	elseif context.canFly or context.canDragonride then
+		-- FIXED: Use flying pool if EITHER traditional flying OR dragonriding is available
 		poolName = "flying"
 		if context.isInSkyridingMode and context.canDragonride then
 			mountTypeFilter = "skyriding"
-			addon:DebugSummon("Using flying pool with skyriding filter")
+			addon:DebugSummon("Using flying pool with skyriding filter (dragonriding area)")
 		else
 			mountTypeFilter = "steadyflight"
 			addon:DebugSummon("Using flying pool with steady flight filter")
@@ -1046,7 +1048,7 @@ function MountSummon:SelectMountFromPoolWithFilter(poolName, mountTypeFilter)
 
 	if not hasGroups then
 		addon:DebugSummon("No available groups after filtering, falling back to random mode")
-		pool = originalPool          -- Fall back to original pool
+		pool = originalPool      -- Fall back to original pool
 		isDeterministicFallback = true -- Flag that we're in fallback mode
 	end
 
@@ -1393,7 +1395,7 @@ end
 function MountSummon:OnSettingChanged(key, value)
 	-- Refresh mount pools if needed
 	if key == "contextualSummoning" or
-			key:find("treat") and key:find("AsDistinct") then
+		key:find("treat") and key:find("AsDistinct") then
 		addon:DebugSummon("Setting changed, refreshing mount pools")
 		self:BuildMountPools()
 	end

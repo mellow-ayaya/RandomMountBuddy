@@ -1,3 +1,6 @@
+# 1.0.12 - 2025-06-29
+Fixed not being able to summon during and after the Tindral fight.
+
 # 1.0.11 - 2025-06-23
 - Changelog.md format update
 - Packaging fix (oops..)
