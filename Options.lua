@@ -1473,7 +1473,7 @@ StaticPopupDialogs["RMB_RESET_ASSIGNMENTS_CONFIRM"] = {
 			local success, message = addon.ConfigurationManager:ResetToDefaults("assignments")
 			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
 			if success then
-				-- FIXED: Use enhanced refresh method that updates ALL UIs
+				-- Use enhanced refresh method that updates ALL UIs
 				if addon.ConfigurationManager.RefreshAllUIs then
 					addon.ConfigurationManager:RefreshAllUIs()
 				end
@@ -1496,7 +1496,7 @@ StaticPopupDialogs["RMB_RESET_CUSTOM_CONFIRM"] = {
 			local success, message = addon.ConfigurationManager:ResetToDefaults("custom")
 			print(success and ("RMB: " .. message) or ("RMB Error: " .. message))
 			if success then
-				-- FIXED: Use enhanced refresh method that updates ALL UIs
+				-- Use enhanced refresh method that updates ALL UIs
 				if addon.ConfigurationManager.RefreshAllUIs then
 					addon.ConfigurationManager:RefreshAllUIs()
 				end

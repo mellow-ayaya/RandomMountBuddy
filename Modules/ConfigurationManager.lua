@@ -223,7 +223,7 @@ function ConfigurationManager:ResetToDefaults(resetType)
 			end
 		end
 
-		-- FIXED: Also restore deleted supergroups when resetting custom
+		-- Also restore deleted supergroups when resetting custom
 		-- This makes "Reset Supergroup Manager" actually restore deleted supergroups
 		if addon.db.profile.deletedSuperGroups then
 			resetStats.deletions = addon:CountTableEntries(addon.db.profile.deletedSuperGroups)

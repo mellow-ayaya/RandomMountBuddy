@@ -53,7 +53,7 @@ end
 
 -- References for dynamic UI content (same pattern as Mount List)
 SuperGroupManager.existingListArgsRef = {}
--- NEW: Pagination helper methods
+-- Pagination helper methods
 function SuperGroupManager:GetCurrentPage()
 	return self.uiState.currentPage or 1
 end
@@ -95,7 +95,7 @@ function SuperGroupManager:PrevPage()
 	end
 end
 
--- NEW: Search and filtering methods
+-- Search and filtering methods
 function SuperGroupManager:GetFilteredSuperGroups()
 	local allSGs = self:GetAllSuperGroups()
 	local searchTerm = self.uiState.searchTerm or ""
@@ -116,7 +116,7 @@ function SuperGroupManager:GetFilteredSuperGroups()
 	return filteredSGs
 end
 
--- NEW: Pagination controls creation
+-- Pagination controls creation
 function SuperGroupManager:CreateSuperGroupPaginationControls(currentPage, totalPages, order)
 	if totalPages <= 1 then
 		return {}
@@ -183,7 +183,7 @@ function SuperGroupManager:CreateSuperGroupPaginationControls(currentPage, total
 	}
 end
 
--- NEW: Page range calculation function
+-- Page range calculation function
 function SuperGroupManager:CalculatePageRange(currentPage, totalPages)
 	local maxButtons = 23 -- Maximum page buttons to show
 	local range = {}
@@ -709,7 +709,7 @@ function SuperGroupManager:BuildSuperGroupManagementArgs()
 								if success then
 									addon:AlwaysPrint("" .. message)
 									self.deleteConfirmation[sgInfo.name] = nil
-									-- FIXED: Don't call multiple immediate refreshes - DeleteSuperGroup already requests refresh
+									-- Don't call multiple immediate refreshes - DeleteSuperGroup already requests refresh
 									-- The polling system will handle the refresh automatically
 								else
 									addon:AlwaysPrint("" .. message)
@@ -928,7 +928,7 @@ function SuperGroupManager:DoesNameConflict(nameToCheck, excludeSuperGroup)
 	return false, nil -- No conflict
 end
 
--- Updated CreateSuperGroup with simplified input
+-- CreateSuperGroup with simplified input
 function SuperGroupManager:CreateSuperGroup(userInputName)
 	if not userInputName or userInputName:trim() == "" then
 		return false, "Supergroup name cannot be empty"
@@ -1101,7 +1101,7 @@ function SuperGroupManager:DeleteSuperGroup(sgName)
 
 	-- Trigger rebuild
 	addon:RebuildMountGrouping()
-	-- FIXED: Just request refresh, don't do it directly
+	-- Just request refresh, don't do it directly
 	self:RequestRefresh()
 	return true, "Supergroup deleted successfully"
 end

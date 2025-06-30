@@ -461,7 +461,7 @@ function addon:BuildFamilyManagementArgs()
 		end
 	end
 
-	-- FIXED: Add empty group slots to maintain consistent pagination position
+	-- Add empty group slots to maintain consistent pagination position
 	-- Only apply this fix when using exactly 14 items per page
 	if not usingSearchResults then
 		local maxItemsPerPage = self:FMG_GetItemsPerPage()
@@ -719,7 +719,7 @@ function addon:GetExpandedGroupDetailsArgs(groupKey, groupType)
 	return detailsArgs
 end
 
--- FIXED: Now uses dynamic grouping instead of original grouping
+-- Now uses dynamic grouping instead of original grouping
 function addon:BuildSuperGroupDetails(groupKey, startOrder, showUncollected)
 	local detailsArgs = {}
 	local displayOrder = startOrder

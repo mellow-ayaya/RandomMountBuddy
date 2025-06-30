@@ -13,7 +13,6 @@ local CACHE_DURATION = 1 -- Cache for 1 second
 local actionCooldowns = {
 	visibleButton = 0,
 }
--- Add this near the top, after the existing caches:
 local G99_LOCALIZED_NAME = nil
 local G99_SPELL_ID = 1215279
 -- Function to get localized G99 spell name
@@ -64,7 +63,7 @@ local MACRO_TEMPLATES = {
 }
 local function getUndermineZoneMacro()
 	local g99Name = getLocalizedG99Name()
-	-- FIXED: Add form cancellation logic that's smart about travel forms
+	-- Add form cancellation logic that's smart about travel forms
 	local macro = "/cancelform [form:2]\n" .. -- Cancel bear/cat/moonkin but not travel form
 			"/cast " .. g99Name .. "\n" ..
 			"/run RMB:SRM(true)"
@@ -532,7 +531,7 @@ function addonTable:createSmartButton()
 				addonTable:DebugCore("Combat: Set combat macro")
 			end
 		elseif event == "PLAYER_REGEN_ENABLED" then
-			-- FIXED: Leaving combat - update macro IMMEDIATELY, no delay
+			-- Leaving combat - update macro IMMEDIATELY, no delay
 			if not InCombatLockdown() then
 				-- Force immediate macro update
 				self.lastMoving = nil -- Force movement update

@@ -238,7 +238,7 @@ function MountDataManager:ShouldShowTraits(groupKey, groupType)
 	end
 
 	local shouldShow = false
-	-- FIX: Check if this is a separated family first
+	-- Check if this is a separated family first
 	if addon.db and addon.db.profile and addon.db.profile.separatedMounts then
 		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
 			if separationData.familyName == groupKey then

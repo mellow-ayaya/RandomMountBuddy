@@ -1,3 +1,7 @@
+# 1.0.13 - 2025-06-30
+- Attempted fix for rarely being unable to summon mounts after teleporting, added debug in case issue persists.
+- Tidied up old comments that still said "New:", "Updated:", "Fixed:" etc, for changes that were made a while back.
+
 # 1.0.12 - 2025-06-29
 - Fixed not being able to summon during and after the Tindral fight.
 

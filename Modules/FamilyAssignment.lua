@@ -57,7 +57,7 @@ function FamilyAssignment:GetAllFamilyAssignments()
 		addon:DebugSupergr("Added " .. uncollectedFamilyCount .. " new families from uncollected mounts")
 	end
 
-	-- FIXED: Also include separated families
+	-- Also include separated families
 	if addon.db and addon.db.profile and addon.db.profile.separatedMounts then
 		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
 			local newFamilyName = separationData.familyName
@@ -73,7 +73,7 @@ function FamilyAssignment:GetAllFamilyAssignments()
 	for familyName, _ in pairs(allFamilies) do
 		local originalSG = addon:GetOriginalSuperGroup(familyName) -- Before any changes
 		local effectiveSG = addon:GetEffectiveSuperGroup(familyName) -- Final result after all processing
-		-- FIXED: Determine intended supergroup (what user wants, regardless of trait strictness)
+		-- Determine intended supergroup (what user wants, regardless of trait strictness)
 		local intendedSG = originalSG                              -- Start with original
 		local hasUserOverride = false
 		-- Check if there's a user override (this becomes the intended assignment)
@@ -89,7 +89,7 @@ function FamilyAssignment:GetAllFamilyAssignments()
 			end
 		end
 
-		-- FIXED: Check if trait strictness is separating this family from its intended assignment
+		-- Check if trait strictness is separating this family from its intended assignment
 		local isSeparatedByStrictness = false
 		local separationReason = nil
 		-- If intended assignment differs from effective assignment, check if it's due to trait strictness
@@ -378,7 +378,7 @@ end
 -- Get available supergroups for assignment dropdown
 function FamilyAssignment:GetAvailableSuperGroups()
 	local availableSGs = {}
-	-- FIXED: Use prefixed keys to force Ace sorting order
+	-- Use prefixed keys to force Ace sorting order
 	-- Start with standalone
 	availableSGs["0_<Standalone>"] = "Standalone"
 	-- Add custom supergroups first (prefix with 1_)
@@ -520,7 +520,7 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 		end
 	end
 
-	-- FIXED: Use same pagination style as MountSeparationManager
+	-- Use same pagination style as MountSeparationManager
 	local itemsPerPage = 15
 	local totalItems = #filteredFamilies
 	local totalPages = math.max(1, math.ceil(totalItems / itemsPerPage))
@@ -599,7 +599,7 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 						width = 0.3,
 					},
 
-					-- UPDATED: Family name (simplified, no status indicators)
+					-- Family name (simplified, no status indicators)
 					family_name = {
 						order = 2,
 						type = "description",
@@ -692,7 +692,7 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 						width = 1.0,
 					},
 
-					-- NEW: Reset to default button
+					-- Reset to default button
 					reset_button = {
 						order = 4,
 						type = "execute",
@@ -731,7 +731,7 @@ function FamilyAssignment:BuildFamilyAssignmentArgs()
 		end
 	end
 
-	-- FIXED: Use same pagination style as MountSeparationManager
+	-- Use same pagination style as MountSeparationManager
 	if totalPages > 1 then
 		local paginationComponents = self:CreateFamilyAssignmentPaginationControls(
 			currentPage, totalPages, order)
@@ -799,7 +799,7 @@ function FamilyAssignment:CalculatePageRange(currentPage, totalPages)
 	return range
 end
 
--- NEW: Create pagination controls matching MountSeparationManager style
+-- Create pagination controls matching MountSeparationManager style
 function FamilyAssignment:CreateFamilyAssignmentPaginationControls(currentPage, totalPages, order)
 	if totalPages <= 1 then
 		return {}

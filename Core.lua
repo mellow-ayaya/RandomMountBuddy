@@ -731,12 +731,15 @@ function addon:SlashCommandHandler(input)
 		self:AlwaysPrint("/rmb s - Summon a random mount")
 		self:AlwaysPrint("/rmb help - Show this help")
 		self:AlwaysPrint("/rmb config - Open configuration")
+		self:AlwaysPrint("/rmb diag - Diagnostic info")
 	elseif input == "config" then
 		if Settings and Settings.OpenToCategory then
 			Settings.OpenToCategory("Random Mount Buddy")
 		end
 	elseif input == "s" then
 		self:SummonRandomMount(true)
+	elseif input == "diag" then
+		self:DiagnoseZoneChangeIssue()
 	else
 		-- Default action - summon mount
 		self:SummonRandomMount(true)
@@ -779,7 +782,7 @@ function addon:InitializeAllMountModules()
 		self:InitializeFavoriteSync()
 	end
 
-	-- UPDATED: Initialize the three supergroup modules in the correct order
+	-- Initialize the three supergroup modules in the correct order
 	-- 1. SuperGroupManager first (core supergroup operations)
 	if self.InitializeSuperGroupManager then
 		self:InitializeSuperGroupManager()
@@ -816,14 +819,16 @@ function addon:OnPlayerLoginAttemptProcessData(eventArg)
 end
 
 -- ============================================================================
--- MOUNT COLLECTION DETECTION
+-- MOUNT COLLECTION DETECTION & ZONE CHANGE HANDLING
 -- ============================================================================
 function addon:RegisterMountCollectionEvents()
 	addon:DebugEvent("Registering mount collection event handlers...")
-	-- Register for mount collection events
 	if self.RegisterEvent then
 		self:RegisterEvent("NEW_MOUNT_ADDED", "OnNewMountAdded")
-		addon:DebugEvent("Registered for mount collection events")
+		-- Add zone change events that can invalidate mount pools
+		self:RegisterEvent("ZONE_CHANGED_NEW_AREA", "OnZoneChanged")
+		self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnPlayerEnteringWorld")
+		addon:DebugEvent("Registered for mount collection and zone change events")
 	else
 		print("RMB_EVENTS_ERROR: Cannot register events - RegisterEvent not available")
 	end
@@ -833,6 +838,71 @@ end
 function addon:OnNewMountAdded(eventName, mountID)
 	addon:DebugEvent("NEW_MOUNT_ADDED - Mount ID: " .. tostring(mountID))
 	self:HandleMountCollectionChange("new_mount", mountID)
+end
+
+-- Zone change handler (optimized timing)
+function addon:OnZoneChanged(eventName)
+	addon:DebugEvent("ZONE_CHANGED_NEW_AREA - Checking if mount pools need refresh")
+	-- Mark that we recently had a zone change (for immediate validation)
+	self.lastZoneChangeTime = GetTime()
+	-- Use a shorter delay to avoid rapid-fire events but still catch issues quickly
+	if self.zoneChangeTimer then
+		self.zoneChangeTimer:Cancel()
+	end
+
+	self.zoneChangeTimer = C_Timer.NewTimer(0.5, function() -- Reduced from 2.0 to 0.5
+		self:ValidateMountPoolsAfterZoneChange("delayed_validation")
+	end)
+end
+
+-- Player entering world handler (optimized timing)
+function addon:OnPlayerEnteringWorld(eventName, isLogin, isReload)
+	addon:DebugEvent("PLAYER_ENTERING_WORLD - isLogin: " .. tostring(isLogin) .. ", isReload: " .. tostring(isReload))
+	-- Skip if this is initial login/reload (already handled)
+	if isLogin or isReload then
+		return
+	end
+
+	-- Mark that we recently had a zone change
+	self.lastZoneChangeTime = GetTime()
+	-- This is a zone transition - validate mount pools with shorter delay
+	if self.zoneChangeTimer then
+		self.zoneChangeTimer:Cancel()
+	end
+
+	self.zoneChangeTimer = C_Timer.NewTimer(0.3, function() -- Reduced from 1.5 to 0.3
+		self:ValidateMountPoolsAfterZoneChange("entering_world")
+	end)
+end
+
+-- Validation function with source tracking
+function addon:ValidateMountPoolsAfterZoneChange(source)
+	if InCombatLockdown() then
+		addon:DebugEvent("Deferring mount pool validation - in combat (source: " .. (source or "unknown") .. ")")
+		return
+	end
+
+	addon:DebugEvent("Validating mount pools after zone change (source: " .. (source or "unknown") .. ")...")
+	-- Check if mount pools are empty when they shouldn't be
+	if self.MountSummon and not self.MountSummon:ArePoolsInitialized() then
+		addon:DebugEvent("ZONE_ISSUE: Mount pools are empty after zone change - rebuilding (source: " ..
+			(source or "unknown") .. ")")
+		if self.RMB_DataReadyForUI and self.processedData then
+			-- Try to rebuild pools
+			self.MountSummon:BuildMountPools()
+			if self.MountSummon:ArePoolsInitialized() then
+				addon:DebugEvent("ZONE_FIX: Successfully rebuilt mount pools (source: " .. (source or "unknown") .. ")")
+			else
+				addon:DebugEvent("ZONE_ERROR: Failed to rebuild mount pools (source: " .. (source or "unknown") .. ")")
+				-- As last resort, re-initialize all processed data
+				self:RefreshMountDataAndUI("zone_change_validation", nil)
+			end
+		else
+			addon:DebugEvent("ZONE_ERROR: Cannot rebuild pools - data not ready (source: " .. (source or "unknown") .. ")")
+		end
+	else
+		addon:DebugEvent("Mount pools validation passed (source: " .. (source or "unknown") .. ")")
+	end
 end
 
 -- Method to handle all mount collection changes:
@@ -904,7 +974,7 @@ function addon:RebuildMountGrouping()
 	-- Create temporary tables for the new organization
 	local newSuperGroupMap = {}
 	local newStandaloneFamilies = {}
-	-- FIX: First, preserve all separated families as standalone
+	-- First, preserve all separated families as standalone
 	if self.db and self.db.profile and self.db.profile.separatedMounts then
 		for mountID, separationData in pairs(self.db.profile.separatedMounts) do
 			local newFamilyName = separationData.familyName
@@ -1084,7 +1154,7 @@ function addon:RebuildMountGrouping()
 		end
 	end
 
-	-- FIXED: Also check families that were assigned from standalone to supergroups
+	-- Also check families that were assigned from standalone to supergroups
 	if self.db and self.db.profile and self.db.profile.superGroupOverrides then
 		for familyName, override in pairs(self.db.profile.superGroupOverrides) do
 			if type(override) == "string" and override ~= "" then
@@ -1407,7 +1477,7 @@ function addon:NotifyModulesSettingChanged(key, value)
 		self:RebuildMountGrouping()
 	end
 
-	-- FIXED: Add secure handler notifications
+	-- Add secure handler notifications
 	if self.SecureHandlers and self.SecureHandlers.OnSettingChanged then
 		self.SecureHandlers:OnSettingChanged(key, value)
 	end
@@ -1530,7 +1600,7 @@ function addon:SyncWeightForSingleMountFamily(groupKey, weight)
 			if currentMountWeight ~= weight then
 				self.db.profile.groupWeights[mountKey] = weight
 				addon:DebugSync("Family '" .. groupKey .. "' synced weight " .. weight .. " to mount '" .. mountKey .. "'")
-				-- FIX: Add debug for separated mounts
+				-- Add debug for separated mounts
 				if self.db and self.db.profile and self.db.profile.separatedMounts and self.db.profile.separatedMounts[mountID] then
 					addon:DebugSync("^^^ This was a separated mount sync")
 				end
@@ -1556,7 +1626,7 @@ function addon:SyncWeightForSingleMountFamily(groupKey, weight)
 					if currentFamilyWeight ~= weight then
 						self.db.profile.groupWeights[familyName] = weight
 						addon:DebugSync("Mount '" .. groupKey .. "' synced weight " .. weight .. " to family '" .. familyName .. "'")
-						-- FIX: Add debug for separated mounts
+						-- Add debug for separated mounts
 						if self.db and self.db.profile and self.db.profile.separatedMounts and self.db.profile.separatedMounts[currentMountID] then
 							addon:DebugSync("^^^ This was a separated mount family sync")
 						end
@@ -1789,7 +1859,7 @@ function addon:GetAllDatabaseGroupKeys()
 	return groupKeys
 end
 
--- NEW FUNCTION: Get all group keys that match current filters/search (across all pages)
+-- FUNCTION: Get all group keys that match current filters/search (across all pages)
 function addon:GetAllFilteredGroupKeys()
 	if not self.RMB_DataReadyForUI or not self.processedData then
 		return {}
@@ -2220,7 +2290,7 @@ function addon:GetDisplayableGroups()
 		end
 	end
 
-	-- FIXED: Sort groups with custom supergroups first, then alphabetically
+	-- Sort groups with custom supergroups first, then alphabetically
 	table.sort(displayableGroups, function(a, b)
 		-- Get custom status for both groups
 		local aIsCustom = false
@@ -2345,7 +2415,7 @@ function addon:GetOriginalTraits(familyName)
 	if not familyName then return {} end
 
 	local originalTraits = {}
-	-- FIX: Check if this is a separated family first
+	-- Check if this is a separated family first
 	if self.db and self.db.profile and self.db.profile.separatedMounts then
 		for mountID, separationData in pairs(self.db.profile.separatedMounts) do
 			if separationData.familyName == familyName then
@@ -2414,7 +2484,7 @@ function addon:ResetFamilyTraits(familyName)
 	self:RebuildMountGrouping()
 end
 
--- New notification system for trait changes
+-- notification system for trait changes
 function addon:NotifyModulesTraitChanged(familyName, traitName, value)
 	addon:DebugUI("Notifying modules of trait change for " .. familyName)
 	-- Notify MountDataManager to invalidate cache
@@ -2764,7 +2834,7 @@ function addon:NotifyModulesDataReady()
 		-- Use a small delay to ensure all other modules are ready
 		C_Timer.After(0.1, function()
 			self.SuperGroupManager:PopulateSuperGroupManagementUI()
-			-- UPDATED: Also refresh FamilyAssignment UI
+			-- Also refresh FamilyAssignment UI
 			if self.FamilyAssignment and self.FamilyAssignment.PopulateFamilyAssignmentUI then
 				self.FamilyAssignment:PopulateFamilyAssignmentUI()
 			end
@@ -2811,6 +2881,43 @@ end
 -- ============================================================================
 -- UTILITY FUNCTIONS
 -- ============================================================================
+-- Diagnostic function for zone change issues
+function addon:DiagnoseZoneChangeIssue()
+	addon:DebugEvent("=== ZONE CHANGE DIAGNOSTIC ===")
+	-- Check current zone
+	local mapID = C_Map.GetBestMapForUnit("player")
+	local zoneText = GetZoneText()
+	addon:DebugEvent("Current zone: " .. tostring(zoneText) .. " (mapID: " .. tostring(mapID) .. ")")
+	-- Check API availability
+	local mountIDs = C_MountJournal.GetMountIDs()
+	addon:DebugEvent("C_MountJournal.GetMountIDs() returned: " .. tostring(mountIDs and #mountIDs or "nil"))
+	-- Check data state
+	addon:DebugEvent("RMB_DataReadyForUI: " .. tostring(self.RMB_DataReadyForUI))
+	addon:DebugEvent("processedData exists: " .. tostring(self.processedData ~= nil))
+	if self.processedData then
+		local collectedCount = 0
+		for _ in pairs(self.processedData.allCollectedMountFamilyInfo or {}) do
+			collectedCount = collectedCount + 1
+		end
+
+		addon:DebugEvent("Processed collected mounts: " .. collectedCount)
+	end
+
+	-- Check mount pools
+	if self.MountSummon then
+		addon:DebugEvent("MountSummon module exists: true")
+		local poolsInitialized = self.MountSummon:ArePoolsInitialized()
+		addon:DebugEvent("Pools initialized: " .. tostring(poolsInitialized))
+		if not poolsInitialized then
+			addon:DebugEvent("^^^ THIS IS THE PROBLEM - POOLS ARE EMPTY")
+		end
+	else
+		addon:DebugEvent("MountSummon module exists: false")
+	end
+
+	addon:DebugEvent("=== END DIAGNOSTIC ===")
+end
+
 function addon:CountTableEntries(tbl)
 	local count = 0
 	if tbl then

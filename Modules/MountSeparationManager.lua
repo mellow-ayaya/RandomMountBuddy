@@ -65,7 +65,7 @@ function MountSeparationManager:SeparateMount(mountID, customName)
 		customTraits = {}, -- Will be populated below
 		separatedAt = time(),
 	}
-	-- FIX: Preserve original traits from the mount
+	-- Preserve original traits from the mount
 	local originalTraits = {}
 	if mountInfo.traits then
 		-- Copy original traits
@@ -82,7 +82,7 @@ function MountSeparationManager:SeparateMount(mountID, customName)
 
 	-- Store the original traits in the separation data for reference
 	addon.db.profile.separatedMounts[mountID].originalTraits = originalTraits
-	-- FIX: Initialize weights for the new family and mount
+	-- Initialize weights for the new family and mount
 	-- Initialize database structures if needed
 	if not addon.db.profile.groupWeights then
 		addon.db.profile.groupWeights = {}
@@ -98,7 +98,7 @@ function MountSeparationManager:SeparateMount(mountID, customName)
 		newFamilyName .. "' and Mount '" .. mountKey .. "' both set to " .. currentMountWeight)
 	addon:DebugSeparation("Separated mount '" ..
 		mountName .. "' from family '" .. originalFamily .. "' into new family '" .. newFamilyName .. "'")
-	-- FIX: Trigger complete data reinitialization instead of just rebuild
+	-- Trigger complete data reinitialization instead of just rebuild
 	addon.lastProcessingEventName = "mount_separation"
 	addon:InitializeProcessedData()
 	addon.lastProcessingEventName = nil
@@ -143,7 +143,7 @@ function MountSeparationManager:ReuniteSeparatedMount(mountID)
 	end
 
 	addon:DebugSeparation("Reunited mount " .. mountID .. " with original family '" .. originalFamily .. "'")
-	-- FIX: Trigger complete data reinitialization instead of just rebuild
+	-- Trigger complete data reinitialization instead of just rebuild
 	addon.lastProcessingEventName = "mount_reunification"
 	addon:InitializeProcessedData()
 	addon.lastProcessingEventName = nil
@@ -409,7 +409,7 @@ function MountSeparationManager:CreateSeparationPaginationControls(currentPage, 
 				order = buttonOrder,
 				type = "execute",
 				name = isCurrentPage and ("|cffffd700" .. tostring(pageNum) .. "|r") or tostring(pageNum),
-				desc = isCurrentPage and "Current page" or "", -- FIXED: Use empty string instead of concatenation
+				desc = isCurrentPage and "Current page" or "", -- Use empty string instead of concatenation
 				func = function() self:GoToPage(pageNum) end,
 				width = pageButtonWidth,
 				image = "Interface\\AddOns\\RandomMountBuddy\\Media\\Empty",
