@@ -1,3 +1,6 @@
+# 1.0.14 - 2025-06-30
+- Fixed occasionally summoning a random mount instead of G99.
+
 # 1.0.13 - 2025-06-30
 - Attempted fix for rarely being unable to summon mounts after teleporting, added debug in case issue persists.
 - Tidied up old comments that still said "New:", "Updated:", "Fixed:" etc, for changes that were made a while back.

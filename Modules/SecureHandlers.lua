@@ -478,7 +478,7 @@ function addonTable:createSmartButton()
 	updateFrame.lastFalling = false
 	updateFrame:SetScript("OnUpdate", function(self, elapsed)
 		self.elapsed = self.elapsed + elapsed
-		if self.elapsed < 0.2 then return end -- Single throttle: 0.2 seconds
+		if self.elapsed < 0.05 then return end -- Single throttle
 
 		self.elapsed = 0
 		if InCombatLockdown() then return end
