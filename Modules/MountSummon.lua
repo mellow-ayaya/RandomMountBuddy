@@ -178,7 +178,18 @@ function MountSummon:RegisterFlightStyleEvents()
 	if not self.eventFrame then
 		self.eventFrame = CreateFrame("Frame")
 		self.eventFrame:SetScript("OnEvent", function(frame, event, ...)
-			if event == "UNIT_SPELLCAST_SUCCEEDED" then
+			if event == "UNIT_SPELLCAST_START" then
+				local unit, castGUID, spellID = ...
+				if unit == "player" then
+					-- Check if this is a mount summon spell
+					local isMountSpell, mountID = self:IsMountSummonSpell(spellID)
+					if isMountSpell and mountID then
+						addon:DebugSummon("Mount cast STARTED - Spell: " .. spellID .. ", Mount: " .. mountID)
+						-- Store pending summon now that we know cast actually started
+						self:StorePendingSummonFromCastStart(mountID)
+					end
+				end
+			elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
 				local unit, castGUID, spellID = ...
 				if unit == "player" then
 					-- Handle flight style changes (existing code)
@@ -189,23 +200,12 @@ function MountSummon:RegisterFlightStyleEvents()
 						self.isInSkyridingMode = false
 						addon:DebugCore("Switched TO steady flight mode")
 					else
-						-- Check if this is a mount summon spell (NEW)
+						-- Check if this is a mount summon spell
 						local isMountSpell, mountID = self:IsMountSummonSpell(spellID)
 						if isMountSpell and mountID then
-							addon:DebugSummon("Detected successful mount summon - Spell: " ..
-								spellID .. ", Mount: " .. mountID)
-							-- Find which pool this summon was from by checking pending summons
-							local deterministicCache = addon.db and addon.db.profile and
-									addon.db.profile.deterministicCache
-							if deterministicCache then
-								for poolName, cache in pairs(deterministicCache) do
-									local pendingSummon = cache and cache.pendingSummon
-									if pendingSummon and pendingSummon.mountID and pendingSummon.mountID == mountID then
-										self:ProcessSuccessfulSummon(poolName)
-										break
-									end
-								end
-							end
+							addon:DebugSummon("Mount cast COMPLETED - Spell: " .. spellID .. ", Mount: " .. mountID)
+							-- Process the ban since the cast completed successfully
+							self:ProcessSuccessfulMountSummon(mountID)
 						end
 					end
 				end
@@ -213,8 +213,9 @@ function MountSummon:RegisterFlightStyleEvents()
 		end)
 	end
 
+	self.eventFrame:RegisterEvent("UNIT_SPELLCAST_START")
 	self.eventFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-	addon:DebugCore("Registered for flight style change and mount summon events")
+	addon:DebugCore("Registered for flight style change and mount summon tracking events")
 end
 
 -- ============================================================================
@@ -599,6 +600,106 @@ function MountSummon:StorePendingSummon(poolName, groupKey, groupType, mountID)
 	addon:DebugSummon("Stored pending summon - Group: " .. groupKey .. ", Mount: " .. mountID)
 end
 
+-- Store pending summon when cast starts (prevents spam-click overwrites)
+function MountSummon:StorePendingSummonFromCastStart(mountID)
+	if not self:IsDeterministicModeEnabled() then
+		return
+	end
+
+	local poolName, groupName, groupType = self:FindMountPoolAndGroup(mountID)
+	if poolName and groupName and groupType then
+		local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+		local cache = deterministicCache and deterministicCache[poolName]
+		if cache then
+			cache.pendingSummon = {
+				groupKey = groupName,
+				groupType = groupType,
+				mountID = mountID,
+				timestamp = GetTime(),
+			}
+			addon:DebugSummon("Stored pending summon from cast start - Group: " .. groupName .. ", Mount: " .. mountID)
+		end
+	end
+end
+
+-- Helper to find which pool/group a mount belongs to (reverse lookup)
+function MountSummon:FindMountPoolAndGroup(mountID)
+	-- We need to determine which pool was used for this summon
+	-- Check the mount's capabilities and current context to deduce the likely pool
+	local context = self:GetCurrentContext()
+	local traits = self:GetEffectiveMountTypeTraits(mountID)
+	-- Determine most likely pool based on context and mount capabilities
+	local likelyPool = "unified" -- Default fallback
+	if context.isUnderwater and traits.isAquatic then
+		likelyPool = "underwater"
+	elseif (context.canFly or context.canDragonride) and (traits.isSteadyFly or traits.isSkyriding) then
+		likelyPool = "flying"
+	elseif traits.isGround and not (traits.isSteadyFly or traits.isSkyriding) then
+		likelyPool = "ground"
+	elseif traits.isGround then
+		likelyPool = "groundUsable"
+	end
+
+	-- Find the mount in the likely pool
+	local pool = self.mountPools[likelyPool]
+	if pool then
+		for familyName, mounts in pairs(pool.mountsByFamily) do
+			for _, mID in ipairs(mounts) do
+				if mID == mountID then
+					-- Found the family, determine if it's in a supergroup
+					local superGroup = addon:GetDynamicSuperGroup(familyName)
+					if superGroup then
+						return likelyPool, superGroup, "superGroup"
+					else
+						return likelyPool, familyName, "family"
+					end
+				end
+			end
+		end
+	end
+
+	-- Fallback: search all pools if not found in likely pool
+	for poolName, pool in pairs(self.mountPools) do
+		if poolName ~= likelyPool then -- Skip the one we already checked
+			for familyName, mounts in pairs(pool.mountsByFamily) do
+				for _, mID in ipairs(mounts) do
+					if mID == mountID then
+						local superGroup = addon:GetDynamicSuperGroup(familyName)
+						if superGroup then
+							return poolName, superGroup, "superGroup"
+						else
+							return poolName, familyName, "family"
+						end
+					end
+				end
+			end
+		end
+	end
+
+	addon:DebugSummon("Could not find pool/group for mount ID: " .. mountID)
+	return nil, nil, nil
+end
+
+-- Process the actual ban when cast completes successfully
+function MountSummon:ProcessSuccessfulMountSummon(mountID)
+	if not self:IsDeterministicModeEnabled() then
+		return
+	end
+
+	-- Find which pool this mount was summoned from by checking pending summons
+	local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+	if deterministicCache then
+		for poolName, cache in pairs(deterministicCache) do
+			local pendingSummon = cache and cache.pendingSummon
+			if pendingSummon and pendingSummon.mountID and pendingSummon.mountID == mountID then
+				addon:DebugSummon("Processing successful summon for pool: " .. poolName)
+				self:ProcessSuccessfulSummon(poolName)
+				break
+			end
+		end
+	end
+end
+
 -- Process successful summon
 function MountSummon:ProcessSuccessfulSummon(poolName)
 	if not self:IsDeterministicModeEnabled() then
@@ -944,6 +1045,33 @@ function MountSummon:SummonMount(mountID)
 	addon:DebugSummon("Summoning mount:", name, "ID:", mountID)
 	-- Store the current time to detect failed summons
 	self.lastSummonAttempt = GetTime()
+	-- Clear any very old pending summons (older than 10 seconds) as they're likely stale
+	if self:IsDeterministicModeEnabled() then
+		local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+		if deterministicCache then
+			local currentTime = GetTime()
+			for poolName, cache in pairs(deterministicCache) do
+				if cache and cache.pendingSummon then
+					local pendingSummon = cache.pendingSummon
+					-- Check if timestamp field exists and is a valid number
+					local timestamp = pendingSummon and pendingSummon["timestamp"]
+					if timestamp and type(timestamp) == "number" then
+						local age = currentTime - timestamp
+						if age > 10.0 then
+							addon:DebugSummon("Clearing very old pending summon (age: " ..
+								string.format("%.1f", age) .. "s) for pool: " .. poolName)
+							cache.pendingSummon = nil
+						end
+					else
+						-- If no timestamp or invalid timestamp, this is legacy data - clear it
+						addon:DebugSummon("Clearing pending summon with no/invalid timestamp for pool: " .. poolName)
+						cache.pendingSummon = nil
+					end
+				end
+			end
+		end
+	end
+
 	-- Use Blizzard's function to summon the mount
 	C_MountJournal.SummonByID(mountID)
 	-- Set up a timer to detect failed summons
@@ -1238,11 +1366,6 @@ function MountSummon:SelectMountFromFilteredPool(pool, poolName)
 
 	-- Step 3: Select mount from family
 	local mountID, mountName = self:SelectMountFromPoolFamily(pool, familyName)
-	-- Store pending summon for deterministic tracking
-	if mountID then
-		self:StorePendingSummon(poolName, groupName, groupType, mountID)
-	end
-
 	return mountID, mountName
 end
 
@@ -1376,7 +1499,6 @@ function MountSummon:SelectSpecificMountTypeFromFilteredPool(pool, poolName, mou
 	if #priority6Mounts > 0 then
 		local selectedMount = priority6Mounts[math.random(#priority6Mounts)]
 		addon:DebugSummon("SUCCESS - P6 " .. selectedMount.name)
-		self:StorePendingSummon(poolName, selectedMount.groupName, selectedMount.groupType, selectedMount.id)
 		return selectedMount.id, selectedMount.name
 	end
 
@@ -1398,7 +1520,6 @@ function MountSummon:SelectSpecificMountTypeFromFilteredPool(pool, poolName, mou
 		currentSum = currentSum + mount.weight
 		if roll <= currentSum then
 			addon:DebugSummon("SUCCESS - " .. mount.name .. " (weight: " .. mount.originalWeight .. ")")
-			self:StorePendingSummon(poolName, mount.groupName, mount.groupType, mount.id)
 			return mount.id, mount.name
 		end
 	end
@@ -1406,7 +1527,6 @@ function MountSummon:SelectSpecificMountTypeFromFilteredPool(pool, poolName, mou
 	-- Fallback to first mount if something goes wrong
 	local fallbackMount = allEligibleMounts[1]
 	addon:DebugSummon("FALLBACK - " .. fallbackMount.name)
-	self:StorePendingSummon(poolName, fallbackMount.groupName, fallbackMount.groupType, fallbackMount.id)
 	return fallbackMount.id, fallbackMount.name
 end
 

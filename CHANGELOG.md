@@ -1,3 +1,7 @@
+# 1.0.16 - 2025-07-17
+- Added Jelly to Jellyfishes group (whoops) and as a result, toggled on Heavy Armor checkbox for Aurelids.
+- Changed logic for IMproved randomness so that when enabled, it no longer gets confused if the user spams the mount button.
+
 # 1.0.15 - 2025-07-17
 - Added auto detection for mounts that haven't been manually added, they can be summoned and interacted with normally. Traits and Advanced settings are not supported for these mounts because it would probably break stuff when I manually add them to the addon (which should only be a few days at most).
 

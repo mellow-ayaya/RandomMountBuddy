@@ -1238,7 +1238,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/facelessmount/facelessmount2.m2"] = {
 		familyName = "Jelly",
-		superGroup = nil,
+		superGroup = "Jellyfishes",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Fathom Dweller (MountID: 838)
@@ -3009,7 +3009,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	["creature/progenitorjellyfishmount/progenitorjellyfishmount.m2"] = {
 		familyName = "Progenitor Aurelid",
 		superGroup = "Jellyfishes",
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Cryptic Aurelid (MountID: 1551)
 		--   Deepstar Aurelid (MountID: 1434)
