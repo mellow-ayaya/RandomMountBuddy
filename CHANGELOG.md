@@ -1,3 +1,6 @@
+# 1.0.17 - 2025-07-17
+- Fixed mount pool refresh not always happening on weight changes.
+
 # 1.0.16 - 2025-07-17
 - Added Jelly to Jellyfishes group (whoops) and as a result, toggled on Heavy Armor checkbox for Aurelids.
 - Changed logic for IMproved randomness so that when enabled, it no longer gets confused if the user spams the mount button.

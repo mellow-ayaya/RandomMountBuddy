@@ -1514,6 +1514,15 @@ function addon:NotifyModulesSettingChanged(key, value)
 		self:RebuildMountGrouping()
 	end
 
+	--  Handle weight changes with pool refresh
+	if key == "groupWeights" then
+		addon:DebugCore("Group weight changed, refreshing mount pools")
+		-- Refresh mount pools so changes take effect immediately in summoning
+		if self.MountSummon and self.MountSummon.RefreshMountPools then
+			self.MountSummon:RefreshMountPools()
+		end
+	end
+
 	-- Add secure handler notifications
 	if self.SecureHandlers and self.SecureHandlers.OnSettingChanged then
 		self.SecureHandlers:OnSettingChanged(key, value)
@@ -1683,18 +1692,14 @@ function addon:SyncWeightForSingleMountFamily(groupKey, weight)
 		end
 	end
 
-	-- If we synced something, trigger all the same refreshes that normal weight changes use
+	-- If we synced something, invalidate cache (pool refresh will be handled by NotifyModulesSettingChanged)
 	if refreshNeeded then
 		-- Invalidate data manager cache (important for weight-based operations)
 		if self.MountDataManager and self.MountDataManager.InvalidateCache then
 			self.MountDataManager:InvalidateCache("weight_sync")
 		end
 
-		-- Refresh mount pools so changes take effect immediately in summoning
-		if self.RefreshMountPools then
-			self:RefreshMountPools()
-			addon:DebugSync("Refreshed mount pools for immediate sync effect")
-		end
+		addon:DebugSync("Weight sync completed - mount pools will be refreshed by settings notification")
 	end
 end
 
