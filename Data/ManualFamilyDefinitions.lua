@@ -4672,4 +4672,125 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		-- Mounts using this model:
 		--   Wildseed Cradle (MountID: 1397)
 	},
+
+   ["new_mount/mount_2532.m2"] = {
+     familyName = "Herald of Sa'bak",
+     superGroup = "Plaguebats",
+     traits = { hasMinorArmor = false, hasMajorArmor = false, isUniqueEffect = false, hasModelVariant = true },
+   },
+
+	-- To update as info comes out:
+	["creature/brewfestmount/brewfestmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Brewfest Barrel Bomber (MountID: 2640)
+	},
+
+	["creature/cosmicdragonmount/cosmicdragonmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Unbound Star-Eater (MountID: 2569)
+	},
+
+	["creature/dwarfgryphonmount/dwarfgryphonmount.m2"] = {
+		familyName = "Gryphons",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Adorned Northeron Gryphon (MountID: 2626)
+		--   Cinder-Plumed Highland Gryphon (MountID: 2628)
+		--   Emberwing Sky Guide (MountID: 2629)
+		--   High Shaman's Aerie Gryphon (MountID: 2627)
+	},
+
+	["creature/elekkfelmount/elekkfelmount.m2"] = {
+		familyName = "Elekks",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Cinder-seared Elekk (MountID: 2619)
+		--   Legion Forged Elekk (MountID: 2621)
+		--   Thunder-ridged Elekk (MountID: 2618)
+		--   Void-Razed Elekk (MountID: 2620)
+	},
+
+	["creature/headlesshorsemanmount2/headlesshorsemanmount2.m2"] = {
+		familyName = "Flying Horses",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   The Headless Horseman's Burning Charger (MountID: 2624)
+		--   The Headless Horseman's Chilling Charger (MountID: 2622)
+		--   The Headless Horseman's Ghoulish Charger (MountID: 2623)
+		--   The Headless Horseman's Hallowed Charger (MountID: 2625)
+	},
+
+	["creature/kareshflyermount/kareshflyermount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Lavender K'arroc (MountID: 2552)
+		--   Resplendent K'arroc (MountID: 2505)
+		--   Umbral K'arroc (MountID: 2549)
+	},
+
+	["creature/kareshroamermount/kareshroamermount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Blue Barry (MountID: 2560)
+		--   Curious Slateback (MountID: 2561)
+		--   Phase-Lost Slateback (MountID: 2655)
+	},
+
+	["creature/viciousvoidcreepermount/viciousvoidcreepermount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Vicious Void Creeper (MountID: 2570)
+		--   Vicious Void Creeper (MountID: 2571)
+	},
+
+	["creature/voidcreepermount/voidcreepermount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Acidic Void Creeper (MountID: 2557)
+		--   Ruby Void Creeper (MountID: 2556)
+		--   The Bone Freezer (MountID: 2555)
+	},
+
+	["creature/voidflyermount/voidflyermount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Terror of the Night (MountID: 2511)
+		--   Terror of the Wastes (MountID: 2510)
+	},
+
+	["creature/voidflyermountmythic/voidflyermountmythic.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Azure Void Flyer (MountID: 2633)
+		--   Scarlet Void Flyer (MountID: 2631)
+	},
+
+	["models/creature/unk_exp10_6104542/6104542.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Royal Voidwing (MountID: 2606)
+	},
 }

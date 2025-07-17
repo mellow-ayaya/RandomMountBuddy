@@ -1,3 +1,6 @@
+# 1.0.15 - 2025-07-17
+- Added auto detection for mounts that haven't been manually added, they can be summoned and interacted with normally. Traits and Advanced settings are not supported for these mounts because it would probably break stuff when I manually add them to the addon (which should only be a few days at most).
+
 # 1.0.14 - 2025-06-30
 - Fixed occasionally summoning a random mount instead of G99.
 

@@ -306,6 +306,7 @@ function MountDataManager:GetGroupDisplayName(groupInfo)
 	local superGroupIndicator = "|cffa335ee[G]|r" -- Purple
 	local familyIndicator = "|cff0070dd[F]|r"    -- Blue
 	local mountIndicator = "|cff1eff00[M]|r"     -- Green
+	local newMountIndicator = "|cffff6600[NEW]|r" -- Orange for new mounts
 	if groupInfo.type == "superGroup" then
 		-- Supergroups always get [G] indicator
 		if collectedCount > 0 and uncollectedCount > 0 then
@@ -318,24 +319,44 @@ function MountDataManager:GetGroupDisplayName(groupInfo)
 					superGroupIndicator .. " " .. groupInfo.displayName .. " (" .. uncollectedCount .. ")|r"
 		end
 	elseif groupInfo.type == "familyName" then
-		-- Families get [F] for multi-mount or [M] for single-mount
-		local indicator = (totalMounts == 1) and mountIndicator or familyIndicator
-		if totalMounts == 1 then
-			-- Single mount family - use [M] indicator
-			if collectedCount == 1 then
-				displayName = indicator .. " " .. groupInfo.displayName .. ""
-			else
-				displayName = "|cff9d9d9d" .. indicator .. " " .. groupInfo.displayName .. "|r"
+		-- Check if this is a new mount (auto-detected)
+		-- We need to check if any mount in this family is auto-detected
+		local isNewMount = false
+		if addon.processedData and addon.processedData.familyToMountIDsMap then
+			local mountIDs = addon.processedData.familyToMountIDsMap[groupInfo.key] or {}
+			for _, mountID in ipairs(mountIDs) do
+				if addon.processedData.allCollectedMountFamilyInfo and
+						addon.processedData.allCollectedMountFamilyInfo[mountID] and
+						addon.processedData.allCollectedMountFamilyInfo[mountID].isAutoDetected then
+					isNewMount = true
+					break
+				end
 			end
+		end
+
+		if isNewMount then
+			-- New mounts get special orange [NEW] indicator
+			displayName = newMountIndicator .. " " .. groupInfo.displayName
 		else
-			-- Multi-mount family - use [F] indicator
-			if collectedCount > 0 and uncollectedCount > 0 then
-				displayName = indicator .. " " .. groupInfo.displayName .. " (" .. collectedCount ..
-						" + |cff9d9d9d" .. uncollectedCount .. "|r)"
-			elseif collectedCount > 0 then
-				displayName = indicator .. " " .. groupInfo.displayName .. " (" .. collectedCount .. ")"
+			-- Families get [F] for multi-mount or [M] for single-mount
+			local indicator = (totalMounts == 1) and mountIndicator or familyIndicator
+			if totalMounts == 1 then
+				-- Single mount family - use [M] indicator
+				if collectedCount == 1 then
+					displayName = indicator .. " " .. groupInfo.displayName .. ""
+				else
+					displayName = "|cff9d9d9d" .. indicator .. " " .. groupInfo.displayName .. "|r"
+				end
 			else
-				displayName = "|cff9d9d9d" .. indicator .. " " .. groupInfo.displayName .. " (" .. uncollectedCount .. ")|r"
+				-- Multi-mount family - use [F] indicator
+				if collectedCount > 0 and uncollectedCount > 0 then
+					displayName = indicator .. " " .. groupInfo.displayName .. " (" .. collectedCount ..
+							" + |cff9d9d9d" .. uncollectedCount .. "|r)"
+				elseif collectedCount > 0 then
+					displayName = indicator .. " " .. groupInfo.displayName .. " (" .. collectedCount .. ")"
+				else
+					displayName = "|cff9d9d9d" .. indicator .. " " .. groupInfo.displayName .. " (" .. uncollectedCount .. ")|r"
+				end
 			end
 		end
 	else
