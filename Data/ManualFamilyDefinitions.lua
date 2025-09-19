@@ -1271,7 +1271,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		--   Prized Gladiator's Fel Bat (MountID: 2298)
 	},
 	["creature/felbatmountforsaken/felbatmountforsaken.m2"] = {
-		familyName = "Plaguebat",
+		familyName = "Fel Bat",
 		superGroup = "Plaguebats",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
@@ -2294,6 +2294,13 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		-- Mounts using this model:
 		--   Archmage's Prismatic Disc (MountID: 860)
 	},
+	["creature/magemount_fel/magemount_fel.m2"] = {
+		familyName = "Archmage's Felscorned Disc",
+		superGroup = "Flying Discs",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Archmage's Felscorned Disc (MountID: 2724)
+	},
 	["creature/magicalfishmount/magicalfishmount.m2"] = {
 		familyName = "Wondrous Wavewhisker",
 		superGroup = "Flying Fishes",
@@ -2476,13 +2483,6 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		--   Mechagon Peacekeeper (MountID: 1252)
 		--   Rusty Mechanocrawler (MountID: 1229)
 		--   Scrapforged Mechaspider (MountID: 1253)
-	},
-	["creature/mechanicalparrotmount/mechanicalparrotmount.m2"] = {
-		familyName = "Wonderwing",
-		superGroup = "Parrots",
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
-		-- Mounts using this model:
-		--   Wonderwing 2.0 (MountID: 1224)
 	},
 	["creature/mechanicaltiger/mechanicaltiger.m2"] = {
 		familyName = "X-995 Mechanocat",
@@ -2919,8 +2919,8 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/parrotmount/parrotmount.m2"] = {
 		familyName = "Parrot",
-		superGroup = "Parrots",
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		superGroup = "Birds (flying idle)",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Quawks (MountID: 1575)
 		--   Royal Seafeather (MountID: 994)
@@ -2929,11 +2929,18 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/parrotpiratemount/parrotpiratemount.m2"] = {
 		familyName = "Pirate Parrot",
-		superGroup = "Parrots",
+		superGroup = "Birds (flying idle)",
 		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Hooktalon (MountID: 2324)
 		--   Polly Roger (MountID: 2090)
+	},
+	["creature/mechanicalparrotmount/mechanicalparrotmount.m2"] = {
+		familyName = "Mechanical Parrot",
+		superGroup = "Birds (flying idle)",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+		-- Mounts using this model:
+		--   Wonderwing 2.0 (MountID: 1224)
 	},
 	["creature/peacockmount/peacockmount.m2"] = {
 		familyName = "Peafowl",
@@ -2992,7 +2999,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/progenitorbotmount/progenitorbotmount.m2"] = {
 		familyName = "Zereth Overseer",
-		superGroup = nil,
+		superGroup = "Zereth Overseers",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Zereth Overseer (MountID: 1587)
@@ -3644,7 +3651,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/roguemount/roguemount.m2"] = {
 		familyName = "Shadowblade's Omen",
-		superGroup = "Parrots",
+		superGroup = "Birds (flying idle)",
 		traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Shadowblade's Baneful Omen (MountID: 890)
@@ -3774,6 +3781,13 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Farseer's Raging Tempest (MountID: 888)
+	},
+	["creature/shamanmount_fel/shamanmount_fel.m2"] = {
+		familyName = "Farseer's Felscorned Tempest",
+		superGroup = "Elementals",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Farseer's Felscorned Tempest (MountID: 2729)
 	},
 	["creature/sharkraymount/sharkraymount.m2"] = {
 		familyName = "Waveray",
@@ -3977,22 +3991,22 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		--   Great Sea Ray (MountID: 1166)
 	},
 	["creature/stormcrowmount/stormcrowmount.m2"] = {
-		familyName = "Thrayir",
-		superGroup = "Stormcrows",
+		familyName = "Stormcrow",
+		superGroup = "Birds (flying idle)",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Thrayir, Eyes of the Siren (MountID: 2322)
 	},
 	["creature/stormcrowmount_solar/stormcrowmount_arcane.m2"] = {
-		familyName = "Violet Spellwing",
-		superGroup = "Stormcrows",
+		familyName = "Stormcrow",
+		superGroup = "Birds (flying idle)",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Violet Spellwing (MountID: 978)
 	},
 	["creature/stormcrowmount_solar/stormcrowmount_solar.m2"] = {
-		familyName = "Solar Spirehawk",
-		superGroup = "Stormcrows",
+		familyName = "Stormcrow",
+		superGroup = "Birds (flying idle)",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Solar Spirehawk (MountID: 634)
@@ -4447,7 +4461,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		--   Vicious War Ram (MountID: 640)
 	},
 	["creature/voiddragonmount/voiddragonmount.m2"] = {
-		familyName = "Uncorrupted Voidwing",
+		familyName = "Voidwing",
 		superGroup = "Drakes",
 		traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
@@ -4469,7 +4483,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/vulturemount/vulturemount.m2"] = {
 		familyName = "Albatross",
-		superGroup = nil,
+		superGroup = "Birds (flying idle)",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Gold-Toed Albatross (MountID: 1778)
@@ -4673,74 +4687,69 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		--   Wildseed Cradle (MountID: 1397)
 	},
 
-   ["new_mount/mount_2532.m2"] = {
-     familyName = "Herald of Sa'bak",
-     superGroup = "Plaguebats",
-     traits = { hasMinorArmor = false, hasMajorArmor = false, isUniqueEffect = false, hasModelVariant = true },
-   },
-
+	["creature/crocsunmount/crocsunmount.m2"] = {
+		familyName = "Herald of Sa'bak",
+		superGroup = "Plaguebats",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+		-- Mounts using this model:
+		--   Herald of Sa'bak (MountID: 2532)
+	},
 	-- To update as info comes out:
 	["creature/brewfestmount/brewfestmount.m2"] = {
-		familyName = "UnknownFamily",
-		superGroup = nil,
+		familyName = "Propelled Aerial Units",
+		superGroup = "Aerial Units",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Brewfest Barrel Bomber (MountID: 2640)
 	},
-
 	["creature/cosmicdragonmount/cosmicdragonmount.m2"] = {
-		familyName = "UnknownFamily",
-		superGroup = nil,
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		familyName = "Voidwing",
+		superGroup = "Drakes",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Unbound Star-Eater (MountID: 2569)
 	},
-
 	["creature/dwarfgryphonmount/dwarfgryphonmount.m2"] = {
-		familyName = "Gryphons",
-		superGroup = nil,
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		familyName = "Algari Gryphon",
+		superGroup = "Gryphons",
+		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Adorned Northeron Gryphon (MountID: 2626)
 		--   Cinder-Plumed Highland Gryphon (MountID: 2628)
 		--   Emberwing Sky Guide (MountID: 2629)
 		--   High Shaman's Aerie Gryphon (MountID: 2627)
 	},
-
 	["creature/elekkfelmount/elekkfelmount.m2"] = {
-		familyName = "Elekks",
-		superGroup = nil,
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		familyName = "Fel Elekk",
+		superGroup = "Elekks",
+		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Cinder-seared Elekk (MountID: 2619)
 		--   Legion Forged Elekk (MountID: 2621)
 		--   Thunder-ridged Elekk (MountID: 2618)
 		--   Void-Razed Elekk (MountID: 2620)
 	},
-
 	["creature/headlesshorsemanmount2/headlesshorsemanmount2.m2"] = {
-		familyName = "Flying Horses",
-		superGroup = nil,
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		familyName = "Headless Horseman's",
+		superGroup = "Flying Horses",
+		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   The Headless Horseman's Burning Charger (MountID: 2624)
 		--   The Headless Horseman's Chilling Charger (MountID: 2622)
 		--   The Headless Horseman's Ghoulish Charger (MountID: 2623)
 		--   The Headless Horseman's Hallowed Charger (MountID: 2625)
 	},
-
 	["creature/kareshflyermount/kareshflyermount.m2"] = {
-		familyName = "UnknownFamily",
-		superGroup = nil,
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		familyName = "Kareshi Dread Raven",
+		superGroup = "Dread Ravens",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Lavender K'arroc (MountID: 2552)
 		--   Resplendent K'arroc (MountID: 2505)
 		--   Umbral K'arroc (MountID: 2549)
 	},
-
 	["creature/kareshroamermount/kareshroamermount.m2"] = {
-		familyName = "UnknownFamily",
+		familyName = "Slateback",
 		superGroup = nil,
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
@@ -4748,49 +4757,142 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		--   Curious Slateback (MountID: 2561)
 		--   Phase-Lost Slateback (MountID: 2655)
 	},
-
 	["creature/viciousvoidcreepermount/viciousvoidcreepermount.m2"] = {
-		familyName = "UnknownFamily",
-		superGroup = nil,
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		familyName = "Void Creeper (PVP)",
+		superGroup = "Creepers",
+		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Vicious Void Creeper (MountID: 2570)
 		--   Vicious Void Creeper (MountID: 2571)
 	},
-
 	["creature/voidcreepermount/voidcreepermount.m2"] = {
-		familyName = "UnknownFamily",
-		superGroup = nil,
+		familyName = "Void Creeper",
+		superGroup = "Creepers",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Acidic Void Creeper (MountID: 2557)
 		--   Ruby Void Creeper (MountID: 2556)
 		--   The Bone Freezer (MountID: 2555)
 	},
-
 	["creature/voidflyermount/voidflyermount.m2"] = {
-		familyName = "UnknownFamily",
-		superGroup = nil,
+		familyName = "Kareshi Flyer",
+		superGroup = "Flyers",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Terror of the Night (MountID: 2511)
 		--   Terror of the Wastes (MountID: 2510)
 	},
-
 	["creature/voidflyermountmythic/voidflyermountmythic.m2"] = {
-		familyName = "UnknownFamily",
-		superGroup = nil,
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		familyName = "Void Infused Kareshi Flyer",
+		superGroup = "Flyers",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Azure Void Flyer (MountID: 2633)
 		--   Scarlet Void Flyer (MountID: 2631)
 	},
-
-	["models/creature/unk_exp10_6104542/6104542.m2"] = {
+	["creature/voiddragonmount2ethereal_king/voiddragonmount2ethereal_king.m2"] = {
+		familyName = "Voidwing",
+		superGroup = "Drakes",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+		-- Mounts using this model:
+		--   Royal Voidwing (MountID: 2606)
+	},
+	["creature/eagle2/eagle2.m2"] = {
+		familyName = "Eagle",
+		superGroup = "Birds (flying idle)",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Snowy Highmountain Eagle (MountID: 2574)
+	},
+	["creature/gianteagle/gianteagle.m2"] = {
+		familyName = "Giant Eagle",
+		superGroup = "Birds (flying idle)",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Treetop Highmountain Eagle (MountID: 2666)
+	},
+	["creature/felbat2/felbatmount.m2"] = {
+		familyName = "Fel Bat (Legion Remix)",
+		superGroup = "Plaguebats",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Ashplague Fel Bat (MountID: 2544)
+		--   Bloodhunter Fel Bat (MountID: 2542)
+		--   Wretched Fel Bat (MountID: 2546)
+	},
+	["creature/felbat2/felbatmountdh.m2"] = {
+		familyName = "Demonic Fel Bat (Legion Remix)",
+		superGroup = "Plaguebats",
+		traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Bloodguard Fel Bat (MountID: 2540)
+		--   Forgotten Fel Bat (MountID: 2545)
+		--   Risen Fel Bat (MountID: 2543)
+	},
+	["creature/felbatgladiatormount_void/felbatgladiatormount_void.m2"] = {
+		familyName = "Fel Bat (PVP)",
+		superGroup = "Plaguebats",
+		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Astral Gladiator's Fel Bat (MountID: 2326)
+	},
+	["creature/progenitorbotmount_void/progenitorbotmount_void.m2"] = {
+		familyName = "Void Zereth Overseer",
+		superGroup = "Zereth Overseers",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Void-Forged Overseer (MountID: 2612)
+	},
+	["creature/saber2/saber2.m2"] = {
+		familyName = "Arcane Saber",
+		superGroup = "Sabers",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Arcberry Manasaber (MountID: 2670)
+		--   Leyfrost Manasaber (MountID: 2668)
+		--   Nightwell Manasaber (MountID: 2669)
+	},
+	["creature/dragonhawk2lightmount/dragonhawk2lightmount.m2"] = {
+		familyName = "Infused Dragonhawk",
+		superGroup = "Dragonhawks",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+		-- Mounts using this model:
+		--   Lightwing Dragonhawk (MountID: 2568)
+		--   Voidlight Surger (MountID: 2598)
+	},
+	["creature/dragonhawk2voidmount/dragonhawk2voidmount.m2"] = {
+		familyName = "Twice Infused Dragonhawk",
+		superGroup = "Dragonhawks",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+		-- Mounts using this model:
+		--   Voidwing Dragonhawk (MountID: 2567)
+	},
+	["creature/turkeymount/turkeymount.m2"] = {
+		familyName = "Turkeys",
+		superGroup = "Hawkstriders",
+		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = false, isUniqueEffect = true },
+		-- Mounts using this model:
+		--   Highlands Gobbler (MountID: 2696)
+		--   Murky Turkey (MountID: 2698)
+		--   Prized Turkey (MountID: 2699)
+		--   Quirky Turkey (MountID: 2697)
+	},
+	["creature/tuskarrmoosemount/tuskarrmoosemount.m2"] = {
+		familyName = "Crest-horn",
+		superGroup = "Elderhorns",
+		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Cragstepper Crest-Horn (MountID: 2651)
+		--   Floestrider Crest-Horn (MountID: 2650)
+		--   Kalu'ak Crest-Horn (MountID: 2645)
+		--   Sharktested Crest-Horn (MountID: 2649)
+	},
+	-- why?
+	["creature/druidflightform/druidflightform.m2"] = {
 		familyName = "UnknownFamily",
 		superGroup = nil,
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
-		--   Royal Voidwing (MountID: 2606)
+		--   Feldruid's Scornwing Form (MountID: 2722)
 	},
 }

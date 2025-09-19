@@ -1,3 +1,9 @@
+# 1.0.18 - 2025-09-19
+- Fixed mount list refresh spam that was happening on low level characters even when not learning a new mount
+- Added (hopefully) all mounts up until 11.2.5 to families and supergroups.
+- Changed Stormcrows from supergroup to family.
+- Added Albatross, Stormcrows, Rogue classhall mount, Parrots and upcoming Eagles to Birds (flying idle) supergroup.
+
 # 1.0.17 - 2025-07-17
 - Fixed mount pool refresh not always happening on weight changes.
 

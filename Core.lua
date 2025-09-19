@@ -993,7 +993,7 @@ function addon:RefreshMountDataAndUI(changeType, mountID)
 	self:NotifyModulesDataReady()
 	local endTime = debugprofilestop()
 	local elapsed = endTime - startTime
-	print(string.format("RMB_EVENTS: Mount collection refresh completed in %.2fms", elapsed))
+	-- print(string.format("RMB_EVENTS: Mount collection refresh completed in %.2fms", elapsed)) -- disabled this due to it being spammed on low level characters
 	-- Show user feedback for new mounts
 	if changeType == "new_mount" and mountID then
 		local mountName = C_MountJournal.GetMountInfoByID(mountID)
