@@ -1,3 +1,6 @@
+# 1.0.19 - 2025-09-19
+- TOC push
+
 # 1.0.18 - 2025-09-19
 - Fixed mount list refresh spam that was happening on low level characters even when not learning a new mount
 - Added (hopefully) all mounts up until 11.2.5 to families and supergroups.
