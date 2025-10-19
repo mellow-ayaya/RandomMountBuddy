@@ -1071,14 +1071,14 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/eagle2wind/eagle2wind.m2"] = {
 		familyName = "Divine Kiss of Ohn'ahra",
-		superGroup = "Eagles",
+		superGroup = "Ohunas",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Divine Kiss of Ohn'ahra (MountID: 1545)
 	},
 	["creature/eagle2windmount/eagle2windmount.m2"] = {
-		familyName = "Eagle",
-		superGroup = "Eagles",
+		familyName = "Ohuna",
+		superGroup = "Ohunas",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Bestowed Ohuna Spotter (MountID: 1669)
@@ -2822,7 +2822,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/oxmount/oxmount.m2"] = {
 		familyName = "Lucky Yun",
-		superGroup = nil,
+		superGroup = "Oxes",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Lucky Yun (MountID: 1291)
@@ -4805,7 +4805,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		--   Snowy Highmountain Eagle (MountID: 2574)
 	},
 	["creature/gianteagle/gianteagle.m2"] = {
-		familyName = "Giant Eagle",
+		familyName = "Eagle",
 		superGroup = "Birds (flying idle)",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
 		-- Mounts using this model:
@@ -4894,5 +4894,208 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Feldruid's Scornwing Form (MountID: 2722)
+	},
+	["creature/amanibearmount/amanibearmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Amani Blessed Bear (MountID: 2776)
+	},
+
+	["creature/arcanegolem2mount/arcanegolem2mount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Delver's Arcane Golem (MountID: 2839)
+		--   Elven Arcane Guardian (MountID: 2841)
+		--   Silvermoon's Arcane Defender (MountID: 2840)
+	},
+
+	["creature/bloodelementalmount/bloodelementalmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Lana'thel's Crimson Cascade (MountID: 2566)
+	},
+
+	["creature/bullmount/bullmount.m2"] = {
+		familyName = "Astral Aurochs",
+		superGroup = "Oxes",
+		traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Astral Aurochs (MountID: 2632)
+	},
+
+	["creature/cosmicflyermount/cosmicflyermount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Voidbound Stormray (MountID: 2828)
+	},
+
+	["creature/dragonhawk2mount/dragonhawk2mount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Fiery Dragonhawk (MountID: 2753)
+		--   Swift Spectral Dragonhawk (MountID: 2595)
+	},
+
+	["creature/flyingcarpetmount4/flyingcarpetmount4.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Fluffy Comfy Flying Carpet (MountID: 2850)
+		--   Gruffy Comfy Flying Carpet (MountID: 2851)
+		--   Huffy Comfy Flying Carpet (MountID: 2852)
+		--   Stuffy Comfy Flying Carpet (MountID: 2853)
+	},
+
+	["creature/gardensnailmount/gardensnailmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Accented Pseudoshell (MountID: 2836)
+		--   Arboreal Pseudoshell (MountID: 2833)
+		--   Cabbage Pseudoshell (MountID: 2834)
+		--   Lavender Pseudoshell (MountID: 2835)
+	},
+
+	["creature/gardenvinemount/gardenvinemount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Blooded Snapvine (MountID: 2847)
+		--   Ferocious Snapvine (MountID: 2846)
+		--   Savage Snapvine (MountID: 2848)
+		--   Vicious Snapvine (MountID: 2845)
+	},
+
+	["creature/geargrindermount/geargrindermount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Geargrinder Mk. 11 (MountID: 2802)
+	},
+
+	["creature/gianteagle2mount/gianteagle2mount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Amani Sunfeather (MountID: 2693)
+		--   Amani Windcaller (MountID: 2694)
+	},
+
+	["creature/harronircatmount/harronircatmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Fierce Grimlynx (MountID: 2614)
+	},
+
+	["creature/hawkstridermount/hawkstridermount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Crimson Silvermoon Hawkstrider (MountID: 2761)
+		--   Spectral Hawkstrider (MountID: 2805)
+		--   [DNT] 12.0 Black Hawkstrider (MountID: 2763)
+		--   [DNT] 12.0 White Hawkstrider (MountID: 2817)
+	},
+
+	["creature/kaijubatvoidmount/kaijubatvoidmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Tenebrous Harrower (MountID: 2831)
+	},
+
+	["creature/kaijugladiatormount/kaijugladiatormount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Galactic Gladiator's Goredrake (MountID: 2801)
+	},
+
+	["creature/manawyrm2mount/manawyrm2mount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Preyseeker's Hubris (MountID: 2769)
+		--   Preyseeker's Wrath (MountID: 2770)
+	},
+
+	["creature/midnightgolemmount/midnightgolemmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Arcanovoid Construct (MountID: 2842)
+	},
+
+	["creature/mythichexeaglemount/mythichexeaglemount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Calamitous Carrion (MountID: 2733)
+		--   Convalescent Carrion (MountID: 2734)
+	},
+
+	["creature/phoenix2darkwellmount/phoenix2darkwellmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Ashes of Belo'ren (MountID: 2607)
+	},
+
+	["creature/sporebat3mount/sporebat3mount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Cerulean Sporeglider (MountID: 2710)
+		--   Ruddy Sporeglider (MountID: 2713)
+	},
+
+	["creature/stalkermount/stalkermount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Ravenous Shredclaw (MountID: 2789)
+	},
+
+	["creature/vicioussnaplizardmount/vicioussnaplizardmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Vicious Snaplizard (MountID: 2793)
+		--   Vicious Snaplizard (MountID: 2794)
+	},
+
+	["creature/voidjellyfish/voidjellyfish.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   [DNT] Jellyfish (MountID: 2704)
 	},
 }

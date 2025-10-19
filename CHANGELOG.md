@@ -1,3 +1,12 @@
+# 1.0.20 - 2025-10-19
+- Moved Highmountain Eagles to Eagle family, under Birds (flying idle) supergroup.
+- Renamed old Eagle family and supergroup (which used to contain Ohuna mounts) to Ohuna and Ohunas respectively.
+- Changed Lucky Yun from no supergroup to Oxes supergroup.
+- Added Astral Aurochs to Oxes supergroup.
+- Added some data for upcoming mounts.
+- Resolved UI misalignment that happened when expanding a mount group/family.
+- TOC push
+
 # 1.0.19 - 2025-09-19
 - TOC push
 

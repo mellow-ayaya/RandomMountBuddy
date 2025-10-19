@@ -103,7 +103,7 @@ local function GetLayoutWidths(nestingLevel)
 		nameWidth = 1.12,
 		nameSpacerAfter = 0.08,
 		controlsWidth = 0.5,
-		traitsWidth = 1.00,
+		traitsWidth = 1,
 		expandWidth = 0.3,
 	}
 	return layout
@@ -270,7 +270,7 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 			order = 6,
 			type = "description",
 			name = " ",
-			width = 0.11,
+			width = 0.01,
 		},
 
 		-- Order 6 (alternate): Spacer when no toggles
@@ -671,7 +671,7 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			order = order + 0.65,
 			type = "description",
 			name = " ",
-			width = 0.11,
+			width = 0.01,
 		},
 
 		-- Spacer when no toggles
@@ -1237,12 +1237,12 @@ function MountUIComponents:CreateColumnHeaders(order)
 					order = 5,
 					type = "description",
 					name = " ",
-					width = 0.35,
+					width = 0.2,
 				},
 				expandHeader = {
 					order = 6,
 					type = "description",
-					name = "  |cffffd700Expand|r",
+					name = "    |cffffd700Expand|r",
 					width = 0.3,
 				},
 			},

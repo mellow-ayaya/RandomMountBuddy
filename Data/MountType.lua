@@ -533,5 +533,14 @@ MountTypeTraits_Input_Helper = {
 		isSkyriding = false,
 		isUnused = true,
 	},
+	[451] = {
+		-- TypeName: "0"
+		-- Relevant Caps: Capability_0=531, Capability_1=227, Capability_2=226
+		isGround = false,
+		isAquatic = false,
+		isSteadyFly = false,
+		isSkyriding = false,
+		isUnused = true,
+	},
 }
 -- END OF HELPER --

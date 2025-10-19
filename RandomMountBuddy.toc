@@ -1,7 +1,7 @@
-## Interface: 110200
+## Interface: 110205
 ## Title: Random Mount Buddy
 ## Author: mellow_ayaya
-## Version: # 1.0.17
+## Version: # 1.0.20
 ## IconTexture: Interface\AddOns\RandomMountBuddy\Media\icon.tga
 ## Notes: Enhances random mount summoning with grouping.
 ## SavedVariables: RandomMountBuddy_SavedVars
