@@ -5098,4 +5098,35 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		-- Mounts using this model:
 		--   [DNT] Jellyfish (MountID: 2704)
 	},
+	["creature/grovecrawlermount/grovecrawlermount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Untained Grove Crawler (MountID: 2747)
+	},
+
+	["creature/kaijubatmount/kaijubatmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Contained Stormarion Defender (MountID: 2767)
+	},
+
+	["creature/resinrhinomount/resinrhinomount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Vivid Chloroceros (MountID: 2913)
+	},
+
+	["creature/rutaanibirdmount/rutaanibirdmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Brilliant Petalwing (MountID: 2707)
+	},
 }

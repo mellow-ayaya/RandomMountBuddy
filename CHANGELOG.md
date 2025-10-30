@@ -1,3 +1,6 @@
+# 1.0.21 - 2025-10-30
+- Updated Bonesteed of Triumph, Bloodshed, Plague and Oblivion to non flying. Yay...
+
 # 1.0.20 - 2025-10-19
 - Moved Highmountain Eagles to Eagle family, under Birds (flying idle) supergroup.
 - Renamed old Eagle family and supergroup (which used to contain Ohuna mounts) to Ohuna and Ohunas respectively.
