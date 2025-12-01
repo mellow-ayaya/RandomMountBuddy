@@ -1,3 +1,6 @@
+# 1.0.22 - 2025-12-01
+- Changed Voidwing Dragonhawk from standalone mount to the Infused Dragonhawk family
+
 # 1.0.21 - 2025-10-30
 - Updated Bonesteed of Triumph, Bloodshed, Plague and Oblivion to non flying. Yay...
 

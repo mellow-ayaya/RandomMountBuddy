@@ -4861,9 +4861,9 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		--   Voidlight Surger (MountID: 2598)
 	},
 	["creature/dragonhawk2voidmount/dragonhawk2voidmount.m2"] = {
-		familyName = "Twice Infused Dragonhawk",
+		familyName = "Infused Dragonhawk",
 		superGroup = "Dragonhawks",
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Voidwing Dragonhawk (MountID: 2567)
 	},
