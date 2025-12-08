@@ -1080,6 +1080,45 @@ else
 end
 
 --[[-----------------------------------------------------------------------------
+    3d. Zone-Specific Mounts (Child of Advanced Settings)
+-------------------------------------------------------------------------------]]
+-- Initialize reference for dynamic content if it doesn't exist
+if not addon.zoneSpecificArgsRef then
+	addon.zoneSpecificArgsRef = {
+		loading_placeholder = {
+			order = 1,
+			type = "description",
+			name = "Loading zone-specific mount data...",
+		},
+	}
+end
+
+local zoneSpecific_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_ZoneSpecificMounts"
+local zoneSpecific_DisplayName = "Zone-Specific Mounts"
+local zoneSpecificOptionsTable = {
+	name = zoneSpecific_DisplayName,
+	handler = addon,
+	type = "group",
+	order = 4,
+	args = addon.zoneSpecificArgsRef, -- Direct reference to dynamic content
+}
+LibAceConfig:RegisterOptionsTable(zoneSpecific_InternalName, zoneSpecificOptionsTable)
+local zoneSpecificPanel, zoneSpecificCatID = LibAceConfigDialog:AddToBlizOptions(
+	zoneSpecific_InternalName,
+	zoneSpecific_DisplayName,
+	advancedSettingsParentKey -- Child of Advanced Settings
+)
+if zoneSpecificPanel then
+	addon.optionsPanel_ZoneSpecificMounts = {
+		frame = zoneSpecificPanel,
+		id = zoneSpecificCatID or zoneSpecificPanel.name,
+	}
+	addon:DebugOptions("Registered '" .. zoneSpecific_DisplayName .. "' as child of Advanced Settings.")
+else
+	addon:DebugOptions("FAILED Zone-Specific Mounts AddToBliz.")
+end
+
+--[[-----------------------------------------------------------------------------
     4. Import/Export Page (updated order)
 -------------------------------------------------------------------------------]]
 local importExport_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_ImportExport"
@@ -1119,6 +1158,7 @@ local importExportOptionsTable = {
 					definitions = 0,
 					deletions = 0,
 					separatedMounts = 0, -- ENHANCED: Track separated mounts
+					zoneSpecificMounts = 0, -- ENHANCED: Track zone-specific mounts
 				}
 				if addon.db and addon.db.profile then
 					if addon.db.profile.superGroupOverrides then
@@ -1140,6 +1180,10 @@ local importExportOptionsTable = {
 					-- ENHANCED: Count separated mounts
 					if addon.db.profile.separatedMounts then
 						stats.separatedMounts = addon:CountTableEntries(addon.db.profile.separatedMounts)
+						-- ENHANCED: Count zone-specific mounts
+						if addon.db.profile.zoneSpecificMounts then
+							stats.zoneSpecificMounts = addon:CountTableEntries(addon.db.profile.zoneSpecificMounts)
+						end
 					end
 				end
 

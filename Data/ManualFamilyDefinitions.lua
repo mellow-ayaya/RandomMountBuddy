@@ -4,7 +4,7 @@ if not RandomMountBuddy_PreloadData then RandomMountBuddy_PreloadData = {} end
 RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	["character/companiondrake/companiondrake.m2"] = {
 		familyName = "Highland Drake",
-		superGroup = "Highland Drake",
+		superGroup = "Drakes",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Dragon Isles Drake Model Test (MountID: 1605)
@@ -61,8 +61,8 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		--   Delver's Gob-Trotter (MountID: 2296)
 	},
 	["character/rostrumfaeriedragon/rostrumfaeriedragon.m2"] = {
-		familyName = "Flourishing Whimsydrake",
-		superGroup = "Fey Dragons",
+		familyName = "Fey Dragon",
+		superGroup = "Drakes",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Flourishing Whimsydrake (MountID: 1830)
@@ -972,7 +972,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/drake2mountgladiator/drake2mountgladiator.m2"] = {
 		familyName = "Gladiator's Drake (PVP)",
-		superGroup = "Highland Drake",
+		superGroup = "Drakes",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Crimson Gladiator's Drake (MountID: 1660)
@@ -1167,7 +1167,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/encrypted05/encrypted05.m2"] = {
 		familyName = "Meat Wagon",
-		superGroup = nil,
+		superGroup = "Grinders",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Meat Wagon (MountID: 1193)
@@ -1246,8 +1246,8 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		--   Surf Jelly (MountID: 1169)
 	},
 	["creature/faeriedragonmount/faeriedragonmount.m2"] = {
-		familyName = "Enchanted Fey Dragon",
-		superGroup = "Fey Dragons",
+		familyName = "Fey Dragon",
+		superGroup = "Drakes",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Enchanted Fey Dragon (MountID: 551)
@@ -1293,15 +1293,15 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/felhound3_fire_mount/felhound3_fire_mount.m2"] = {
 		familyName = "Antoran Charhound",
-		superGroup = "Antoran Felhounds",
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		superGroup = "Plaguebats",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Antoran Charhound (MountID: 971)
 	},
 	["creature/felhound3_shadow_mount/felhound3_shadow_mount.m2"] = {
 		familyName = "Antoran Gloomhound",
-		superGroup = "Antoran Felhounds",
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		superGroup = "Plaguebats",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Antoran Gloomhound (MountID: 972)
 	},
@@ -1323,15 +1323,15 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/felstalkermount/felstalkermount.m2"] = {
 		familyName = "Felstalker",
-		superGroup = nil,
+		superGroup = "Felstalkers",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Illidari Felstalker (MountID: 763)
 	},
 	["creature/firebeemount/firebeemount.m2"] = {
 		familyName = "Cinderbee",
-		superGroup = nil,
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		superGroup = "Bees",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Raging Cinderbee (MountID: 2167)
 		--   Smoldering Cinderbee (MountID: 2148)
@@ -1353,7 +1353,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/firehawk/firehawk_mount.m2"] = {
 		familyName = "Fire Hawk",
-		superGroup = "Hawks",
+		superGroup = "Elemental hawks",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Corrupted Fire Hawk (MountID: 417)
@@ -1362,14 +1362,14 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/firehawk2_mount/firehawk2_mount.m2"] = {
 		familyName = "Blazing Royal Fire Hawk",
-		superGroup = "Hawks",
+		superGroup = "Elemental hawks",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Blazing Royal Fire Hawk (MountID: 2478)
 	},
 	["creature/fireravengodmount/fireravengodmount.m2"] = {
 		familyName = "Elemental Raven",
-		superGroup = "Ravens",
+		superGroup = "Grounded ravens",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Flametalon of Alysrazor (MountID: 425)
@@ -1437,8 +1437,8 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/forsakenhorsemount/forsakenhorsemount.m2"] = {
 		familyName = "Banshee's Charger",
-		superGroup = nil,
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		superGroup = "Horses",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Banshee's Chilling Charger (MountID: 2572)
 		--   Banshee's Sickening Charger (MountID: 2581)
@@ -2046,8 +2046,8 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/infinitedragonmount/infinitedragonmount.m2"] = {
 		familyName = "Infinite Timereaver",
-		superGroup = "Infinite Timereavers",
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		superGroup = "Drakes",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Infinite Timereaver (MountID: 781)
 	},
@@ -2944,8 +2944,8 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/peacockmount/peacockmount.m2"] = {
 		familyName = "Peafowl",
-		superGroup = nil,
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		superGroup = "Hawks",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Brilliant Sunburst Peafowl (MountID: 2036)
 		--   Majestic Azure Peafowl (MountID: 2035)
@@ -2967,8 +2967,8 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/piratedragonmount/piratedragonmount.m2"] = {
 		familyName = "Chrono Corsair",
-		superGroup = "Infinite Timereavers",
-		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
+		superGroup = "Drakes",
+		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Chrono Corsair (MountID: 2518)
 	},
@@ -3261,7 +3261,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/ravengod/ravengod.m2"] = {
 		familyName = "Raven Lord",
-		superGroup = "Ravens",
+		superGroup = "Ground ravens",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Raven Lord (MountID: 185)
@@ -3275,8 +3275,8 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/ravenmount/ravenmount.m2"] = {
 		familyName = "Great Raven",
-		superGroup = nil,
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		superGroup = "Hawks",
+		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Archmage's Great Raven (MountID: 2529)
 		--   Prophet's Great Raven (MountID: 2525)
@@ -4731,7 +4731,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/headlesshorsemanmount2/headlesshorsemanmount2.m2"] = {
 		familyName = "Headless Horseman's",
-		superGroup = "Flying Horses",
+		superGroup = "Flying horses",
 		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   The Headless Horseman's Burning Charger (MountID: 2624)
@@ -4741,7 +4741,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 	["creature/kareshflyermount/kareshflyermount.m2"] = {
 		familyName = "Kareshi Dread Raven",
-		superGroup = "Dread Ravens",
+		superGroup = "Dread ravens",
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Lavender K'arroc (MountID: 2552)
@@ -4914,9 +4914,9 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 
 	["creature/bloodelementalmount/bloodelementalmount.m2"] = {
-		familyName = "UnknownFamily",
-		superGroup = nil,
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		familyName = "Cascade",
+		superGroup = "Elementals",
+		traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Lana'thel's Crimson Cascade (MountID: 2566)
 	},
@@ -4980,9 +4980,9 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 	},
 
 	["creature/geargrindermount/geargrindermount.m2"] = {
-		familyName = "UnknownFamily",
-		superGroup = nil,
-		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		familyName = "Geargrinder",
+		superGroup = "Grinders",
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
 		-- Mounts using this model:
 		--   Geargrinder Mk. 11 (MountID: 2802)
 	},
@@ -5128,5 +5128,62 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		-- Mounts using this model:
 		--   Brilliant Petalwing (MountID: 2707)
+	},
+	["creature/amanipangolinmount/amanipangolinmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Blessed Amani Burrower (MountID: 2772)
+		--   Giganto Manis (MountID: 2773)
+		--   Witherbark Pango (MountID: 2775)
+	},
+
+	["creature/dreamowl_purple_mount/dreamowl_purple_mount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Anu'shalla, Shadow's Guidance (MountID: 2917)
+	},
+
+	["creature/gianteagle2hexmount/gianteagle2hexmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Hexed Vilefeather Eagle (MountID: 2786)
+	},
+
+	["creature/mechasabermount/mechasabermount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Mechanical Prototype Panther MK-0 (MountID: 2717)
+	},
+
+	["creature/netherwingmount/netherwingmount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Starspark Netherdrake (MountID: 2719)
+	},
+
+	["creature/steelsabermount/steelsabermount.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Steel Prototype Panther MK-0 (MountID: 2718)
+	},
+
+	["creature/warhorse2/pvpwarhorse2.m2"] = {
+		familyName = "UnknownFamily",
+		superGroup = nil,
+		traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		-- Mounts using this model:
+		--   Relinquished Scarlet Charger (MountID: 2785)
 	},
 }

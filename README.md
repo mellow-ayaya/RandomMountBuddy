@@ -1,34 +1,39 @@
 ### Random Mount Buddy
 
 Improve your summon-random-favorite-mount experience with RandomMountBuddy! Minimal setup required: just set up the keybind and you're good to!
+
+![](https://media.forgecdn.net/attachments/1418/176/screenshot-2025-12-08-092849-jpg.jpg)
 ### &nbsp;
 ### About
 
-Tired of your "random" mount button giving you recolors of the same mounts over and over again? With hundreds of mounts in the game, why do you keep getting Cloud Serpents when you have Ashes of Al'ar sitting unused in your collection?
-
-Random Mount Buddy organizes your mounts, then picks randomly from mount types instead of individual mounts. This means your 15 different Cloud Serpent recolors count as one "Cloud Seprent" entry, giving your unique mounts like Invincible or Ashes of Al'ar a fair chance to be selected.
-
-Here's what you can expect: mount categorization based on model, settings that allow you to easily configure which types of mounts should be considered unique, automatic summon chance managing based on your favorite mounts, and more!
+This addon solves a niche issue with random summoning: if you've favorited multiple versions of the same mount (like several Cloud Serpent colors), you'll see that type too often. Random Mount Buddy picks a random mount type first, then a random color—ensuring better distribution across your favorites.
 ### &nbsp;
 ### How It Works
 
-Mount Grouping: Similar-looking mounts are grouped together (all those dragon recolors become "Dragons")
-Balanced Selection: The mount summon process picks a mount type, then a variant within that type
-Result: Actually see variety in your mount collection instead of the same  models over and over
+With default random summoning, favoriting multiple variants of the same mount creates heavily skewed odds. Here's a real example from version 1.0.22 with 711 flying mounts:
+
+- Without Random Mount Buddy: Cloud Serpent ~4.36%, Ashes of Al'ar ~0.14%
+- With Random Mount Buddy: Cloud Serpent ~1%, Ashes of Al'ar ~0.11% (Ashes now ~3.4x fairer relative to Cloud Serpent)
+
+And that's just one way Random Mount Buddy balances heavily recolored mounts with unique ones!
+
+*Technicalities: all Cloud Serpent and Ashes variants favorited; flying mount count includes faction exclusives so the ratio may vary slightly, but should remain similar.*
+
 ### &nbsp;
 ### Features
 
 Mount Summoning related features:
 
-- Contextual Summoning: Automatically filters by flying/ground/swimming based on your location
-- Improved Randomness: Recently used mount families become temporarily unavailable for better variety
-- Full Customization: Don't like how something is grouped? Move families around, create custom groups, or separate individual mounts
+- Contextual Summoning: Automatically filters by flying/ground/swimming based on your location.
+- Improved Randomness: Recently used mount families become temporarily unavailable for better variety.
+- Full Customization: Don't like how something is grouped? Move families around, create custom groups, or separate individual mounts.
 - Mount Traits: Each grouped Mount Family has traits that you can adjust, such as: Small Armor, Large Armor, Updated Texture and Unique.
 - Summoning Uniqueness Strictness: Easily toggle which traits you consider different enough in the general settings.
-- Weight System: Prioritize your favorites while still getting variety
-- Favorite Sync: Automatically sync with your WoW Mount Journal favorites
+- Weight System: Prioritize your favorites while still getting variety.
+- Favorite Sync: Automatically sync with your WoW Mount Journal favorites.
 - D.R.I.V.E. support: Automatically summon G-99 Breakneck when in the correct zones.
-- Macros: You can create macros that use the addon's summoning logic, however, summoning a mount via this method does not support class spells or G-99 Breakneck. The command for macros is /run RMB:SRM(true) or /rmb s
+- Macros: You can create macros that use the addon's summoning logic, however, it's not compatible with the class spells G-99 Breakneck (you can still add them manually to the macro). The command for macros is /run RMB:SRM(true) or /rmb s
+- Rules: Create rules to summon specific mounts in certain zones or instance types.
 
 Utility features:
 
@@ -40,10 +45,6 @@ Utility features:
 2.  Extract the `RandomMountBuddy` folder into your `World of Warcraft\_retail_\Interface\AddOns\` directory
 3.  Restart World of Warcraft or Reload your UI (`/reload`)
 4.  Set up a keybind for the addon in Options -> Keybinds -> Addons -> Random Mount Buddy Summon
-### &nbsp;
-### Getting Started
-
-All you need to do after installing the addon is to set a keybind for it ingame, then use that keybind when summoning mounts.
 ### &nbsp;
 ### Known issues:
 

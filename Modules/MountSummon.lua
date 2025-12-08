@@ -1152,6 +1152,26 @@ function MountSummon:SummonRandomMount(useContext)
 		end
 	end
 
+	-- ZONE-SPECIFIC MOUNTS: Check if current location has a matching rule
+	if addon.ZoneSpecificMounts then
+		local specificMountID, specificPoolName = addon.ZoneSpecificMounts:GetMountForCurrentLocation()
+		if specificMountID then
+			-- Summon the specific mount for this location
+			addon:DebugSummon("Zone-specific mount found, summoning mount ID:", specificMountID)
+			return self:SummonMount(specificMountID)
+		elseif specificPoolName then
+			-- Use the specific pool for this location
+			addon:DebugSummon("Zone-specific pool found, using pool:", specificPoolName)
+			local mountID, mountName = self:SelectMountFromPoolWithFilter(specificPoolName, nil)
+			if mountID then
+				return self:SummonMount(mountID)
+			else
+				addon:DebugSummon("No mounts available in zone-specific pool:", specificPoolName)
+				-- Fall through to normal logic
+			end
+		end
+	end
+
 	-- Determine which pool to use based on context
 	local poolName = "unified" -- Default to unified pool
 	local mountTypeFilter = nil -- No specific type filter by default
@@ -1860,6 +1880,88 @@ function MountSummon:SelectMountFromPoolFamily(pool, familyName)
 		currentSum = currentSum + mount.weight
 		if roll <= currentSum then
 			addon:DebugSummon("Selected mount:", mount.name)
+			return mount.id, mount.name
+		end
+	end
+
+	-- Fallback
+	return eligibleMounts[1].id, eligibleMounts[1].name
+end
+
+-- Select a mount from a specific family (for zone-specific family rules)
+-- This selects from all mounts in the family, regardless of pool
+function MountSummon:SelectMountFromFamily(familyName)
+	-- Get all mounts in this family from processed data
+	if not addon.processedData or not addon.processedData.families or not addon.processedData.families[familyName] then
+		addon:DebugSummon("Family not found:", familyName)
+		return nil, nil
+	end
+
+	local familyMounts = addon.processedData.families[familyName].mounts or {}
+	if #familyMounts == 0 then
+		addon:DebugSummon("Family has no mounts:", familyName)
+		return nil, nil
+	end
+
+	-- Build list of eligible mounts (only usable ones with weight > 0)
+	local eligibleMounts = {}
+	local totalWeight = 0
+	local priority6Mounts = {}
+	for _, mountID in ipairs(familyMounts) do
+		local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
+		if isUsable then
+			-- Get mount weight
+			local mountKey = "mount_" .. mountID
+			local mountWeight = addon:GetGroupWeight(mountKey)
+			-- Skip mounts with explicit 0 weight
+			if mountWeight ~= 0 then
+				-- If mount has no specific weight, use family weight
+				if mountWeight == 0 then
+					mountWeight = addon:GetGroupWeight(familyName)
+				end
+
+				-- Only include if mount has weight > 0
+				if mountWeight > 0 then
+					if mountWeight == 6 then
+						-- Priority 6 mounts get special handling
+						table.insert(priority6Mounts, {
+							id = mountID,
+							name = name,
+						})
+					else
+						local probWeight = self:MapWeightToProbability(mountWeight)
+						table.insert(eligibleMounts, {
+							id = mountID,
+							name = name,
+							weight = probWeight,
+						})
+						totalWeight = totalWeight + probWeight
+					end
+				end
+			end
+		end
+	end
+
+	-- Handle priority 6 mounts first
+	if #priority6Mounts > 0 then
+		local selectedMount = priority6Mounts[math.random(#priority6Mounts)]
+		addon:DebugSummon("Selected priority 6 mount from family:", selectedMount.name)
+		return selectedMount.id, selectedMount.name
+	end
+
+	-- If no eligible mounts, return nil
+	if #eligibleMounts == 0 or totalWeight == 0 then
+		addon:DebugSummon("No eligible mounts found in family")
+		return nil, nil
+	end
+
+	-- Weighted random selection
+	local roll = math.random(1, totalWeight)
+	local currentSum = 0
+	for _, mount in ipairs(eligibleMounts) do
+		currentSum = currentSum + mount.weight
+		if roll <= currentSum then
+			addon:DebugSummon("Selected mount from family:", mount.name)
 			return mount.id, mount.name
 		end
 	end

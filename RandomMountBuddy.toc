@@ -1,9 +1,9 @@
-## Interface: 110205
+## Interface: 110207, 120000
 ## Title: Random Mount Buddy
 ## Author: mellow_ayaya
-## Version: # 1.0.22
+## Version: # 1.0.23
 ## IconTexture: Interface\AddOns\RandomMountBuddy\Media\icon.tga
-## Notes: Enhances random mount summoning with grouping.
+## Notes: Balance heavily recolored mounts' summon chances with unique ones for better randomness.
 ## SavedVariables: RandomMountBuddy_SavedVars
 
 ## X-License: GNU General Public License version 3 (GPLv3)
@@ -41,6 +41,7 @@ Modules\SuperGroupManager.lua
 Modules\FamilyAssignment.lua
 Modules\ConfigurationManager.lua
 Modules\MountSeparationManager.lua
+Modules\ZoneSpecificMounts.lua
 
 # Mount Summon Files
 Modules\MountSummon.lua

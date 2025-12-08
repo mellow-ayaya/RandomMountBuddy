@@ -129,12 +129,24 @@ function MountTooltips:GetMountDetails(mountID)
 		local typeID = addon.mountIDtoTypeID[mountID]
 		if addon.mountTypeTraits and addon.mountTypeTraits[typeID] then
 			local traits = addon.mountTypeTraits[typeID]
-			if traits.isGround then
+			local typeList = {}
+			-- Check for flying (primary special type)
+			if traits.isSteadyFly or traits.isSkyriding then
+				table.insert(typeList, "Flying")
+			end
+
+			-- Check for aquatic
+			if traits.isAquatic then
+				table.insert(typeList, "Aquatic")
+			end
+
+			-- Determine final type string
+			if #typeList == 0 and traits.isGround then
+				-- Ground only
 				details.mountType = "Ground"
-			elseif traits.isSteadyFly or traits.isSkyriding then
-				details.mountType = "Flying"
-			elseif traits.isAquatic then
-				details.mountType = "Aquatic"
+			elseif #typeList > 0 then
+				-- One or more special types
+				details.mountType = table.concat(typeList, " / ")
 			end
 		end
 	end

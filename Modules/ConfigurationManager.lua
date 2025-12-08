@@ -21,12 +21,13 @@ end
 -- Export current supergroup configuration
 function ConfigurationManager:ExportConfiguration()
 	local config = {
-		version = "1.1", -- Bumped version to indicate separated mounts support
+		version = "1.4", -- Bumped version to indicate separated mounts support
 		timestamp = time(),
 		superGroupOverrides = {},
 		superGroupDefinitions = {},
 		deletedSuperGroups = {},
-		separatedMounts = {}, -- ENHANCED: Include separated mounts
+		separatedMounts = {},  -- ENHANCED: Include separated mounts
+		zoneSpecificMounts = {}, -- ENHANCED: Include zone-specific mounts
 	}
 	-- Copy current configuration
 	if addon.db and addon.db.profile then
@@ -60,6 +61,16 @@ function ConfigurationManager:ExportConfiguration()
 				end
 			end
 		end
+
+		-- ENHANCED: Export zone-specific mounts data
+		if addon.db.profile.zoneSpecificMounts then
+			for zoneID, ruleData in pairs(addon.db.profile.zoneSpecificMounts) do
+				config.zoneSpecificMounts[zoneID] = {}
+				for kk, vv in pairs(ruleData) do
+					config.zoneSpecificMounts[zoneID][kk] = vv
+				end
+			end
+		end
 	end
 
 	-- Convert to string
@@ -88,6 +99,7 @@ function ConfigurationManager:ImportConfiguration(configString, importMode)
 	-- Check version for compatibility
 	local configVersion = config.version or "1.0"
 	local hasSeparatedMounts = config.separatedMounts ~= nil
+	local hasZoneSpecificMounts = config.zoneSpecificMounts ~= nil
 	addon:DebugOptions("Importing configuration version " .. configVersion ..
 		(hasSeparatedMounts and " (with separated mounts)" or " (no separated mounts)"))
 	-- Initialize database structures if needed
@@ -108,6 +120,11 @@ function ConfigurationManager:ImportConfiguration(configString, importMode)
 		addon.db.profile.separatedMounts = {}
 	end
 
+	-- ENHANCED: Initialize zone-specific mounts if needed
+	if not addon.db.profile.zoneSpecificMounts then
+		addon.db.profile.zoneSpecificMounts = {}
+	end
+
 	local importStats = {
 		overrides = 0,
 		definitions = 0,
@@ -121,6 +138,8 @@ function ConfigurationManager:ImportConfiguration(configString, importMode)
 		wipe(addon.db.profile.deletedSuperGroups)
 		-- ENHANCED: Clear separated mounts in replace mode
 		wipe(addon.db.profile.separatedMounts)
+		-- ENHANCED: Clear zone-specific mounts in replace mode
+		wipe(addon.db.profile.zoneSpecificMounts)
 		addon:DebugOptions("Cleared existing configuration for replace mode")
 	end
 
@@ -163,6 +182,23 @@ function ConfigurationManager:ImportConfiguration(configString, importMode)
 				addon:DebugOptions("Skipped invalid separated mount data for mount " .. mountID)
 			end
 		end
+
+		-- ENHANCED: Import zone-specific mounts if present
+		if hasZoneSpecificMounts then
+			for zoneID, ruleData in pairs(config.zoneSpecificMounts) do
+				-- Validate zone-specific mount data before importing
+				if ruleData.type and ruleData.zoneName then
+					addon.db.profile.zoneSpecificMounts[zoneID] = {}
+					for k, v in pairs(ruleData) do
+						addon.db.profile.zoneSpecificMounts[zoneID][k] = v
+					end
+
+					importStats.zoneSpecificMounts = importStats.zoneSpecificMounts + 1
+				else
+					addon:DebugOptions("Skipped invalid zone-specific mount data for zone " .. zoneID)
+				end
+			end
+		end
 	end
 
 	-- Trigger complete data rebuild since separated mounts affect the data structure
@@ -183,6 +219,9 @@ function ConfigurationManager:ImportConfiguration(configString, importMode)
 	)
 	if importStats.separatedMounts > 0 then
 		message = message .. string.format(", and %d separated mounts", importStats.separatedMounts)
+		if importStats.zoneSpecificMounts > 0 then
+			message = message .. string.format(", and %d zone-specific mount rules", importStats.zoneSpecificMounts)
+		end
 	end
 
 	addon:DebugSupergr("" .. message)
@@ -529,7 +568,7 @@ function ConfigurationManager:ValidateWeightSynchronization(report, autoFix)
 	local weightSettings = addon.db.profile.groupWeights
 	local issuesFound = 0
 	local issuesFixed = 0
-	-- Check 1: Single-mount families where family weight ≠ mount weight
+	-- Check 1: Single-mount families where family weight â‰  mount weight
 	addon:DebugValidation("Checking single-mount family weight sync...")
 	for familyName, _ in pairs(addon.processedData.familyToMountIDsMap or {}) do
 		local isSingleMount, mountID = addon:IsSingleMountFamily(familyName)
@@ -562,7 +601,7 @@ function ConfigurationManager:ValidateWeightSynchronization(report, autoFix)
 		end
 	end
 
-	-- Check 2: Separated families where separated family weight ≠ mount weight
+	-- Check 2: Separated families where separated family weight â‰  mount weight
 	addon:DebugValidation("Checking separated family weight sync...")
 	if addon.db.profile.separatedMounts then
 		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
@@ -1063,6 +1102,11 @@ function ConfigurationManager:RefreshAllUIs()
 	-- Refresh Mount Separation UI if it exists
 	if addon.MountSeparationManager and addon.MountSeparationManager.PopulateSeparationManagementUI then
 		addon.MountSeparationManager:PopulateSeparationManagementUI()
+	end
+
+	-- Refresh Zone-Specific Mounts UI if it exists
+	if addon.ZoneSpecificMounts and addon.ZoneSpecificMounts.PopulateZoneSpecificUI then
+		addon.ZoneSpecificMounts:PopulateZoneSpecificUI()
 	end
 
 	-- Refresh mount pools to ensure changes take effect in summoning

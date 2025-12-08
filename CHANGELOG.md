@@ -1,5 +1,21 @@
+# 1.0.23 - 2025-12-08
+- Added rules to the Advanced menu, which allow you to specify a mount or multiple mounts to use in a specific map/zone/instance, or in a specific instance type.
+- Fixed mount preview listing all mount as Ground type.
+- Fixed Dread Ravens typo.
+- Fixed Flying Horses typo.
+- Split Hawks group into Elemental Hawks and Hawks due to having different models.
+- Assigned Great ravens to Hawks group.
+- Merged Peafowls intro Hawks group.
+- Renamed Ravens to Ground Ravens for clarity
+- Assigned Geargrinder and Meatwagon to Grinders group.
+- Assigned Lana'thel's Crimson Cascade to Elementals.
+- Moved Antoran Charhound & Gloomhound to Plaguebats group.
+- Added Cinderbees to Bee group.
+- Updated Readme.
+- TOC push, 12.0 ready
+
 # 1.0.22 - 2025-12-01
-- Changed Voidwing Dragonhawk from standalone mount to the Infused Dragonhawk family
+- Changed Voidwing Dragonhawk from standalone mount to the Infused Dragonhawk family.
 
 # 1.0.21 - 2025-10-30
 - Updated Bonesteed of Triumph, Bloodshed, Plague and Oblivion to non flying. Yay...
@@ -17,7 +33,7 @@
 - TOC push
 
 # 1.0.18 - 2025-09-19
-- Fixed mount list refresh spam that was happening on low level characters even when not learning a new mount
+- Fixed mount list refresh spam that was happening on low level characters even when not learning a new mount.
 - Added (hopefully) all mounts up until 11.2.5 to families and supergroups.
 - Changed Stormcrows from supergroup to family.
 - Added Albatross, Stormcrows, Rogue classhall mount, Parrots and upcoming Eagles to Birds (flying idle) supergroup.

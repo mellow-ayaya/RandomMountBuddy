@@ -838,6 +838,12 @@ function addon:InitializeAllMountModules()
 		self:DebugCore("ConfigurationManager initialized")
 	end
 
+	-- 4. ZoneSpecificMounts (needs ConfigurationManager and mount data)
+	if self.InitializeZoneSpecificMounts then
+		self:InitializeZoneSpecificMounts()
+		self:DebugCore("ZoneSpecificMounts initialized")
+	end
+
 	-- UI components come last as they depend on everything else
 	if self.InitializeMountUI then
 		self:InitializeMountUI()
