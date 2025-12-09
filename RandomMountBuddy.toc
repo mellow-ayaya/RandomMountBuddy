@@ -1,7 +1,7 @@
 ## Interface: 110207, 120000
 ## Title: Random Mount Buddy
 ## Author: mellow_ayaya
-## Version: # 1.0.23
+## Version: # 1.0.24
 ## IconTexture: Interface\AddOns\RandomMountBuddy\Media\icon.tga
 ## Notes: Balance heavily recolored mounts' summon chances with unique ones for better randomness.
 ## SavedVariables: RandomMountBuddy_SavedVars
@@ -20,8 +20,7 @@ Libs\AceConsole-3.0\AceConsole-3.0.xml
 Libs\AceEvent-3.0\AceEvent-3.0.xml
 
 # Data Files
-Data\GeneratedMountModelGroups_WithPaths.lua
-Data\ManualFamilyDefinitions.lua
+Data\MountData.lua
 Data\MountType.lua
 Data\MountID_to_MountTypeID.lua
 

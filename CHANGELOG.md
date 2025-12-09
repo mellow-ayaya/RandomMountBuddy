@@ -1,3 +1,10 @@
+# 1.0.24 - 2025-12-09
+- Background changes to data structure to hopefully make adding new mounts easier.
+- Moved Antoran Charhound & Gloomhound to the new Antoran flying hound family.
+- Moved Falcosaur family under Raptor group
+- Moved Farseer's Felscorned and Archmage's Felscorned mounts into the same family as the original
+- Fixed issue with preview sometimes showing the wrong mount
+
 # 1.0.23 - 2025-12-08
 - Added rules to the Advanced menu, which allow you to specify a mount or multiple mounts to use in a specific map/zone/instance, or in a specific instance type.
 - Fixed mount preview listing all mount as Ground type.

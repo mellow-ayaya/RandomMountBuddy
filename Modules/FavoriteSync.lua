@@ -258,22 +258,21 @@ function FavoriteSync:GetAllFavoriteMounts()
 		mountCount = mountCount + 1
 		-- Get fresh favorite status from WoW API
 		local name, _, _, _, isUsable, _, isFavorite = C_MountJournal.GetMountInfoByID(mountID)
-		if isUsable then -- Only process usable mounts
-			if isFavorite then
-				table.insert(favoriteMounts, {
-					id = mountID,
-					name = name or mountInfo.name,
-					familyName = mountInfo.familyName,
-					superGroup = mountInfo.superGroup,
-				})
-			else
-				table.insert(nonFavoriteMounts, {
-					id = mountID,
-					name = name or mountInfo.name,
-					familyName = mountInfo.familyName,
-					superGroup = mountInfo.superGroup,
-				})
-			end
+		-- Process ALL collected mounts, regardless of usability
+		if isFavorite then
+			table.insert(favoriteMounts, {
+				id = mountID,
+				name = name or mountInfo.name,
+				familyName = mountInfo.familyName,
+				superGroup = mountInfo.superGroup,
+			})
+		else
+			table.insert(nonFavoriteMounts, {
+				id = mountID,
+				name = name or mountInfo.name,
+				familyName = mountInfo.familyName,
+				superGroup = mountInfo.superGroup,
+			})
 		end
 	end
 
@@ -381,7 +380,7 @@ function FavoriteSync:SyncFavoriteMountsOptimized(forceSync)
 	end
 
 	-- Step 2: Update ALL non-favorite mounts at once (if needed)
-	if nonFavoriteWeight ~= 3 then
+	if nonFavoriteWeight ~= 0 then
 		for _, mount in ipairs(nonFavoriteMounts) do
 			local mountKey = "mount_" .. mount.id
 			local currentWeight = addon:GetGroupWeight(mountKey)

@@ -488,32 +488,74 @@ function MountDataManager:GetMountsForGroup(groupKey, groupType, includeUncollec
 		end
 	elseif groupType == "superGroup" then
 		-- Get mounts from supergroup
-		local collectedIDs = addon.processedData.superGroupToMountIDsMap and
-				addon.processedData.superGroupToMountIDsMap[groupKey] or {}
-		for _, mountID in ipairs(collectedIDs) do
-			if addon.processedData.allCollectedMountFamilyInfo and
-					addon.processedData.allCollectedMountFamilyInfo[mountID] then
-				local info = addon.processedData.allCollectedMountFamilyInfo[mountID]
-				table.insert(collectedMounts, {
-					id = mountID,
-					name = info.name or ("Mount ID " .. mountID),
-					isUncollected = false,
-				})
-			end
-		end
+		-- If strictness is active (dynamic grouping), only get mounts from families currently in this supergroup
+		local familiesInSuperGroup
+		if addon.processedData.dynamicSuperGroupMap then
+			-- Use dynamic grouping (respects strictness settings)
+			familiesInSuperGroup = addon.processedData.dynamicSuperGroupMap[groupKey] or {}
+			addon:DebugData("Using dynamic grouping for supergroup " .. groupKey ..
+				": " .. #familiesInSuperGroup .. " families")
+			-- Collect mounts from each family currently in this supergroup
+			for _, familyName in ipairs(familiesInSuperGroup) do
+				local familyCollectedIDs = addon.processedData.familyToMountIDsMap and
+						addon.processedData.familyToMountIDsMap[familyName] or {}
+				for _, mountID in ipairs(familyCollectedIDs) do
+					if addon.processedData.allCollectedMountFamilyInfo and
+							addon.processedData.allCollectedMountFamilyInfo[mountID] then
+						local info = addon.processedData.allCollectedMountFamilyInfo[mountID]
+						table.insert(collectedMounts, {
+							id = mountID,
+							name = info.name or ("Mount ID " .. mountID),
+							isUncollected = false,
+						})
+					end
+				end
 
-		if includeUncollected then
-			local uncollectedIDs = addon.processedData.superGroupToUncollectedMountIDsMap and
-					addon.processedData.superGroupToUncollectedMountIDsMap[groupKey] or {}
-			for _, mountID in ipairs(uncollectedIDs) do
-				if addon.processedData.allUncollectedMountFamilyInfo and
-						addon.processedData.allUncollectedMountFamilyInfo[mountID] then
-					local info = addon.processedData.allUncollectedMountFamilyInfo[mountID]
-					table.insert(uncollectedMounts, {
+				if includeUncollected then
+					local familyUncollectedIDs = addon.processedData.familyToUncollectedMountIDsMap and
+							addon.processedData.familyToUncollectedMountIDsMap[familyName] or {}
+					for _, mountID in ipairs(familyUncollectedIDs) do
+						if addon.processedData.allUncollectedMountFamilyInfo and
+								addon.processedData.allUncollectedMountFamilyInfo[mountID] then
+							local info = addon.processedData.allUncollectedMountFamilyInfo[mountID]
+							table.insert(uncollectedMounts, {
+								id = mountID,
+								name = info.name or ("Mount ID " .. mountID),
+								isUncollected = true,
+							})
+						end
+					end
+				end
+			end
+		else
+			-- Use original grouping (no strictness)
+			local collectedIDs = addon.processedData.superGroupToMountIDsMap and
+					addon.processedData.superGroupToMountIDsMap[groupKey] or {}
+			for _, mountID in ipairs(collectedIDs) do
+				if addon.processedData.allCollectedMountFamilyInfo and
+						addon.processedData.allCollectedMountFamilyInfo[mountID] then
+					local info = addon.processedData.allCollectedMountFamilyInfo[mountID]
+					table.insert(collectedMounts, {
 						id = mountID,
 						name = info.name or ("Mount ID " .. mountID),
-						isUncollected = true,
+						isUncollected = false,
 					})
+				end
+			end
+
+			if includeUncollected then
+				local uncollectedIDs = addon.processedData.superGroupToUncollectedMountIDsMap and
+						addon.processedData.superGroupToUncollectedMountIDsMap[groupKey] or {}
+				for _, mountID in ipairs(uncollectedIDs) do
+					if addon.processedData.allUncollectedMountFamilyInfo and
+							addon.processedData.allUncollectedMountFamilyInfo[mountID] then
+						local info = addon.processedData.allUncollectedMountFamilyInfo[mountID]
+						table.insert(uncollectedMounts, {
+							id = mountID,
+							name = info.name or ("Mount ID " .. mountID),
+							isUncollected = true,
+						})
+					end
 				end
 			end
 		end

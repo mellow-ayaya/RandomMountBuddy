@@ -235,31 +235,29 @@ function addon:GetFamilyInfoForMountID(mountID)
 	if not id then return nil end
 
 	-- First check manual data (priority)
-	local modelPath = self.MountToModelPath and self.MountToModelPath[id]
+	local familyName = self.MountToFamily and self.MountToFamily[id]
 	local familyDef = nil
-	if modelPath then
-		familyDef = self.FamilyDefinitions and self.FamilyDefinitions[modelPath]
+	if familyName then
+		familyDef = self.FamilyDefinitions and self.FamilyDefinitions[familyName]
 		if familyDef then
 			return {
-				familyName = familyDef.familyName,
+				familyName = familyName,
 				superGroup = familyDef.superGroup,
 				traits = familyDef.traits or {},
-				modelPath = modelPath,
 				isAutoDetected = false,
 			}
 		end
 	end
 
 	-- Check auto-detected data as fallback
-	if self.autoDetectedMounts and self.autoDetectedMounts.mountToModelPath[id] then
-		modelPath = self.autoDetectedMounts.mountToModelPath[id]
-		familyDef = self.autoDetectedMounts.familyDefinitions[modelPath]
+	if self.autoDetectedMounts and self.autoDetectedMounts.mountToFamily[id] then
+		familyName = self.autoDetectedMounts.mountToFamily[id]
+		familyDef = self.autoDetectedMounts.familyDefinitions[familyName]
 		if familyDef then
 			return {
-				familyName = familyDef.familyName,
+				familyName = familyName,
 				superGroup = familyDef.superGroup,
 				traits = familyDef.traits or {},
-				modelPath = modelPath,
 				isAutoDetected = true,
 				originalName = familyDef.originalName,
 				mountTypeID = familyDef.mountTypeID,
@@ -347,7 +345,6 @@ function addon:InitializeProcessedData()
 					familyName = familyInfo.familyName,
 					superGroup = familyInfo.superGroup,
 					traits = familyInfo.traits,
-					modelPath = familyInfo.modelPath,
 					isAutoDetected = familyInfo.isAutoDetected,
 				}
 				local fn, sg = familyInfo.familyName, familyInfo.superGroup
@@ -651,21 +648,21 @@ function addon:OnInitialize()
 	self:InitializeUIState()
 	-- Load preload data
 	if RandomMountBuddy_PreloadData then
-		self.MountToModelPath = RandomMountBuddy_PreloadData.MountToModelPath or {}
+		self.MountToFamily = RandomMountBuddy_PreloadData.MountToFamily or {}
 		self.FamilyDefinitions = RandomMountBuddy_PreloadData.FamilyDefinitions or {}
 		RandomMountBuddy_PreloadData = nil
 		self:DebugCore("PreloadData processed.")
 	else
-		self.MountToModelPath = {}
+		self.MountToFamily = {}
 		self.FamilyDefinitions = {}
 		self:DebugCore("PreloadData nil.")
 	end
 
 	-- Log data counts
-	local mtpC = 0
-	for _ in pairs(self.MountToModelPath) do mtpC = mtpC + 1 end
+	local mtfC = 0
+	for _ in pairs(self.MountToFamily) do mtfC = mtfC + 1 end
 
-	self:DebugCore("MountToModelPath entries: " .. mtpC)
+	self:DebugCore("MountToFamily entries: " .. mtfC)
 	local fdC = 0
 	for _ in pairs(self.FamilyDefinitions) do fdC = fdC + 1 end
 
@@ -1614,13 +1611,13 @@ end
 -- ============================================================================
 function addon:GetGroupWeight(gk)
 	if not (self.db and self.db.profile and self.db.profile.groupWeights) then
-		return 3 -- Default to "Normal" instead of "Never"
+		return 0 -- Default to "Never"
 	end
 
 	local w = self.db.profile.groupWeights[gk]
-	if w == nil then return 3 end -- Default to "Normal" for unset groups
+	if w == nil then return 0 end -- Default to "Never" for unset groups
 
-	return tonumber(w) or 3
+	return tonumber(w) or 0
 end
 
 function addon:SetGroupWeight(gk, w)
@@ -2932,7 +2929,7 @@ end
 -- Initialize auto-detection system
 function addon:InitializeAutoDetection()
 	self.autoDetectedMounts = {
-		mountToModelPath = {},
+		mountToFamily = {},
 		familyDefinitions = {},
 		detectionStats = {
 			totalDetected = 0,
@@ -2963,7 +2960,7 @@ function addon:DetectAndProcessNewMounts()
 	end
 
 	-- Clear previous auto-detected data
-	self.autoDetectedMounts.mountToModelPath = {}
+	self.autoDetectedMounts.mountToFamily = {}
 	self.autoDetectedMounts.familyDefinitions = {}
 	local allMountIDs = C_MountJournal.GetMountIDs()
 	if not allMountIDs then
@@ -2977,7 +2974,7 @@ function addon:DetectAndProcessNewMounts()
 	for _, mountID in ipairs(allMountIDs) do
 		processedCount = processedCount + 1
 		-- Check if mount is NOT in our manual data
-		if not (self.MountToModelPath and self.MountToModelPath[mountID]) then
+		if not (self.MountToFamily and self.MountToFamily[mountID]) then
 			-- Get mount info
 			local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected =
 					C_MountJournal.GetMountInfoByID(mountID)
@@ -2986,16 +2983,13 @@ function addon:DetectAndProcessNewMounts()
 				-- Get extended mount info for better defaults
 				local creatureDisplayInfoID, description, source, isSelfMount, mountTypeID, uiModelSceneID = C_MountJournal
 						.GetMountInfoExtraByID(mountID)
-				-- Generate temporary model path (unique identifier)
-				local tempModelPath = "new_mount/mount_" .. mountID .. ".m2"
 				-- Use clean mount name as family name
 				local familyName = name
 				-- Generate minimal traits (no special traits)
 				local traits = self:GenerateMinimalTraitsForNewMount(mountID)
 				-- Store temporary data - each mount becomes its own standalone family
-				self.autoDetectedMounts.mountToModelPath[mountID] = tempModelPath
-				self.autoDetectedMounts.familyDefinitions[tempModelPath] = {
-					familyName = familyName,
+				self.autoDetectedMounts.mountToFamily[mountID] = familyName
+				self.autoDetectedMounts.familyDefinitions[familyName] = {
 					superGroup = nil, -- No supergroup - standalone family
 					traits = traits,
 					isAutoDetected = true,
@@ -3039,6 +3033,7 @@ function addon:DetectAndProcessNewMounts()
 end
 
 -- Export auto-detected mounts for manual data file creation
+-- Export auto-detected mounts for manual data file creation
 function addon:ExportAutoDetectedMounts()
 	if not self.autoDetectedMounts or not self.autoDetectedMounts.familyDefinitions then
 		addon:AlwaysPrint("No new mounts to export")
@@ -3046,52 +3041,52 @@ function addon:ExportAutoDetectedMounts()
 	end
 
 	local exportData = {
-		mountToModelPath = {},
+		mountToFamily = {},
 		familyDefinitions = {},
+		mountIDtoMountTypeID = {}, -- NEW: Mount type mapping
 	}
-	for modelPath, familyDef in pairs(self.autoDetectedMounts.familyDefinitions) do
+	-- Iterate through auto-detected mounts
+	for familyName, familyDef in pairs(self.autoDetectedMounts.familyDefinitions) do
 		if familyDef.isAutoDetected then
-			-- Extract mount ID from model path
-			local mountID = modelPath:match("mount_(%d+)")
-			if mountID then
-				local mountIDNum = tonumber(mountID)
-				-- Check if conversion succeeded and we have the required data
-				if mountIDNum and familyDef.originalName then
-					-- Add to MountToModelPath structure (matches data samples format)
-					exportData.mountToModelPath[mountIDNum] = modelPath
-					-- Add to FamilyDefinitions structure (matches data samples format)
-					exportData.familyDefinitions[modelPath] = {
-						familyName = familyDef.originalName, -- Use original name without "NEW:" prefix
-						superGroup = nil,              -- All new mounts are standalone
-						traits = familyDef.traits,
-					}
-				end
-			end
+			-- Add to FamilyDefinitions
+			exportData.familyDefinitions[familyName] = {
+				superGroup = nil,
+				traits = familyDef.traits,
+			}
+		end
+	end
+
+	-- Get mount assignments and type IDs
+	for mountID, familyName in pairs(self.autoDetectedMounts.mountToFamily) do
+		exportData.mountToFamily[mountID] = familyName
+		-- Get mountTypeID for this mount
+		local familyDef = self.autoDetectedMounts.familyDefinitions[familyName]
+		if familyDef and familyDef.mountTypeID then
+			exportData.mountIDtoMountTypeID[mountID] = familyDef.mountTypeID
 		end
 	end
 
 	local count = 0
-	for _ in pairs(exportData.mountToModelPath) do count = count + 1 end
+	for _ in pairs(exportData.mountToFamily) do count = count + 1 end
 
 	if count > 0 then
 		addon:AlwaysPrint("Found " .. count .. " new mounts. Export data available in debug console.")
-		addon:DebugCore("=== NEW MOUNTS EXPORT (Ready for data files) ===")
+		addon:DebugCore("=== NEW MOUNTS EXPORT (New Two-Table Format) ===")
 		addon:DebugCore("")
-		addon:DebugCore("-- Add to MountToModelPath table:")
-		for mountID, modelPath in pairs(exportData.mountToModelPath) do
-			local familyDef = exportData.familyDefinitions[modelPath]
-			local mountName = familyDef and familyDef.familyName or "Unknown"
-			addon:DebugCore("		[" .. mountID .. "] = \"" .. modelPath .. "\",                         -- " .. mountName)
+		-- MountToFamily section
+		addon:DebugCore("-- Add to MountToFamily table:")
+		for mountID, familyName in pairs(exportData.mountToFamily) do
+			local mountName, _, _, _, _, _, _, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(mountID)
+			addon:DebugCore("    [" .. mountID .. "] = \"" .. familyName .. "\",    -- " .. (mountName or "Unknown"))
 		end
 
 		addon:DebugCore("")
+		-- FamilyDefinitions section
 		addon:DebugCore("-- Add to FamilyDefinitions table:")
-		for modelPath, familyDef in pairs(exportData.familyDefinitions) do
-			addon:DebugCore("  [\"" .. modelPath .. "\"] = {")
-			addon:DebugCore("    familyName = \"" .. familyDef.familyName .. "\",")
-			addon:DebugCore("    superGroup = " ..
+		for familyName, familyDef in pairs(exportData.familyDefinitions) do
+			addon:DebugCore("    [\"" .. familyName .. "\"] = {")
+			addon:DebugCore("        superGroup = " ..
 				(familyDef.superGroup and ("\"" .. familyDef.superGroup .. "\"") or "nil") .. ",")
-			-- Format traits on single line in specific order
 			local traitOrder = { "hasMinorArmor", "hasMajorArmor", "hasModelVariant", "isUniqueEffect" }
 			local traitPairs = {}
 			for _, traitName in ipairs(traitOrder) do
@@ -3100,8 +3095,16 @@ function addon:ExportAutoDetectedMounts()
 				end
 			end
 
-			addon:DebugCore("    traits = { " .. table.concat(traitPairs, ", ") .. " },")
-			addon:DebugCore("  },")
+			addon:DebugCore("        traits = { " .. table.concat(traitPairs, ", ") .. " },")
+			addon:DebugCore("    },")
+		end
+
+		addon:DebugCore("")
+		-- MountIDtoMountTypeID section (NEW)
+		addon:DebugCore("-- Add to MountIDtoMountTypeID table:")
+		for mountID, mountTypeID in pairs(exportData.mountIDtoMountTypeID) do
+			local mountName = C_MountJournal.GetMountInfoByID(mountID)
+			addon:DebugCore("    [" .. mountID .. "] = " .. mountTypeID .. ",    -- " .. (mountName or "Unknown"))
 		end
 
 		addon:DebugCore("=== END EXPORT ===")
