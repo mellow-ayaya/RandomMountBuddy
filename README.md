@@ -6,7 +6,7 @@ Improve your summon-random-favorite-mount experience with RandomMountBuddy! Mini
 ### &nbsp;
 ### About
 
-This addon solves a niche issue with random summoning: if you've favorited multiple versions of the same mount (like several Cloud Serpent colors), you'll see that type too often. Random Mount Buddy picks a random mount type first, then a random color—ensuring better distribution across your favorites.
+This addon solves a niche issue with random summoning: if you've favorited multiple versions of the same mount (like several Cloud Serpent colors), you'll see that type too often. Random Mount Buddy picks a random mount type first, then a random color, ensuring better distribution across your favorites.
 ### &nbsp;
 ### How It Works
 
