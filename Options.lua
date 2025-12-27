@@ -58,13 +58,58 @@ local rootOptionsTable = {
 	name = PARENT_ADDON_DISPLAY_NAME,
 	type = "group",
 	args = {
+		showMinimapButton = {
+			order = 20,
+			type = "toggle",
+			name = "Show Minimap Button",
+			desc =
+			"Toggle minimap icon.",
+			get = function() return addon:GetSetting("showMinimapButton") end,
+			set = function(i, v)
+				addon:SetSetting("showMinimapButton", v)
+				-- Update minimap button visibility
+				if addon.MinimapButton and addon.MinimapButton.UpdateMinimapButtonVisibility then
+					addon.MinimapButton:UpdateMinimapButtonVisibility()
+				end
+			end,
+			width = 1.4,
+
+		},
+
+		enableDebugMode = {
+			order = 21,
+			type = "toggle",
+			name = "Debug Messages",
+			desc = "Show detailed debug information in chat. Useful for troubleshooting.",
+			get = function()
+				-- Direct database access to avoid any SetSetting loops
+				if addon.db and addon.db.profile then
+					return addon.db.profile.enableDebugMode or false
+				end
+
+				return false
+			end,
+			set = function(i, v)
+				-- Direct database write to avoid triggering other systems
+				if addon.db and addon.db.profile then
+					addon.db.profile.enableDebugMode = v
+				end
+
+				-- Simple direct print - don't use AlwaysPrint to avoid any loops
+				if v then
+					print("RMB: Debug mode enabled - you'll see detailed debug messages")
+				else
+					print("RMB: Debug mode disabled")
+				end
+			end,
+			width = 1,
+		},
 
 		generalHeader = {
 			order = 30,
 			type = "header",
 			name = "Summon Configuration",
 		},
-
 		contextualSummoning = {
 			order = 31,
 			type = "toggle",
@@ -112,34 +157,7 @@ local rootOptionsTable = {
 			width = 1.2,
 		},
 
-		enableDebugMode = {
-			order = 33,
-			type = "toggle",
-			name = "Debug Messages",
-			desc = "Show detailed debug information in chat. Useful for troubleshooting.",
-			get = function()
-				-- Direct database access to avoid any SetSetting loops
-				if addon.db and addon.db.profile then
-					return addon.db.profile.enableDebugMode or false
-				end
 
-				return false
-			end,
-			set = function(i, v)
-				-- Direct database write to avoid triggering other systems
-				if addon.db and addon.db.profile then
-					addon.db.profile.enableDebugMode = v
-				end
-
-				-- Simple direct print - don't use AlwaysPrint to avoid any loops
-				if v then
-					print("RMB: Debug mode enabled - you'll see detailed debug messages")
-				else
-					print("RMB: Debug mode disabled")
-				end
-			end,
-			width = 1,
-		},
 
 		traitStrictnessHeader = {
 			order = 80,
@@ -246,13 +264,13 @@ local rootOptionsTable = {
 				favoriteSyncHeader = {
 					order = 100,
 					type = "header",
-					name = "Favorite Mount sync",
+					name = "Weight Sync Settings",
 				},
 
 				enableFavoriteSync = {
 					order = 101,
 					type = "toggle",
-					name = "Enable Favorite Sync",
+					name = "Enable Weight Sync",
 					desc = "Automatically sync your WoW Mount Journal favorites with RMB mount weights",
 					get = function()
 						return addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync") or false
@@ -290,7 +308,7 @@ local rootOptionsTable = {
 					type = "toggle",
 					name = "Sync on Login",
 					desc =
-					"Automatically sync favorites when you log in (WARNING: May cause brief lag with large mount collections)",
+					"Automatically sync favorites when you log in.",
 					get = function()
 						return addon.FavoriteSync and addon.FavoriteSync:GetSetting("syncOnLogin") or false
 					end,
@@ -309,7 +327,8 @@ local rootOptionsTable = {
 					order = 104,
 					type = "toggle",
 					name = "Sync Family Weights",
-					desc = "Also update the weights of families that contain favorite mounts",
+					desc =
+					"Apply favorite Mount weights to entire mount families when they contain favorite mounts.\nFamilies contain all recolors of a mount.\n|cff00ff00Recommended to keep Enabled|r",
 					get = function()
 						return addon.FavoriteSync and addon.FavoriteSync:GetSetting("syncFamilyWeights") or false
 					end,
@@ -340,8 +359,9 @@ local rootOptionsTable = {
 				syncSuperGroupWeights = {
 					order = 105,
 					type = "toggle",
-					name = "Sync SuperGroup Weights",
-					desc = "Also update the weights of supergroups that contain favorite mounts",
+					name = "Sync Group Weights",
+					desc =
+					"Apply favorite Mount weights to entire supergroups when they contain favorite mounts.\nGroups contain all recolors and variants of a mount.\n|cff00ff00Recommended to keep Enabled|r",
 					get = function()
 						return addon.FavoriteSync and addon.FavoriteSync:GetSetting("syncSuperGroupWeights") or false
 					end,
@@ -373,8 +393,9 @@ local rootOptionsTable = {
 				favoriteWeightMode = {
 					order = 105,
 					type = "select",
-					name = "Weight Mode",
-					desc = "How to handle existing weights when syncing",
+					name = "Sync Mode",
+					desc =
+					"Replace weights: Syncing will update all weights.|cff00ff00Use this if you don't care about modifying weights manually|r.\nOnly increase weights: Syncing will only change weights that are below the selected values.|cff00ff00Use this if you want to set specific mounts/families/groups to a higher weight|r.",
 					values = {
 						["set"] = "Replace current weights",
 						["minimum"] = "Only increase weights",
@@ -405,7 +426,7 @@ local rootOptionsTable = {
 					order = 106,
 					type = "select",
 					name = "Non-Favorite Mount Weight",
-					desc = "What weight to assign to non-favorite mounts (set to Normal to leave unchanged)",
+					desc = "Weight applied to mounts not marked as favorites. \nRecommended:0-2",
 					values = {
 						[0] = "Never (0)",
 						[1] = "Occasional (1)",
@@ -441,7 +462,7 @@ local rootOptionsTable = {
 					order = 107,
 					type = "select",
 					name = "Favorite Mount Weight",
-					desc = "What weight to assign to your favorite mounts",
+					desc = "Weight applied to mounts marked as favorites.\nRecommended:3-5",
 					values = {
 						[0] = "Never (0)",
 						[1] = "Occasional (1)",
@@ -519,7 +540,7 @@ local rootOptionsTable = {
 				},
 			},
 		},
-		mountListSettings = {
+		mountBrowserRedirect = {
 			order = 999,
 			name = "",
 			type = "group",
@@ -528,7 +549,35 @@ local rootOptionsTable = {
 				displaySettingsHeader = {
 					order = 9,
 					type = "header",
-					name = "Mount List Settings",
+					name = "Mount Browser",
+				},
+				browser_button_fmg = {
+					order = 20,
+					type = "execute",
+					name =
+					"Open Mount Browser - New Main menu + mount previewer!",
+					desc = "Visual grid reference of all mount families and supergroups",
+					func = function()
+						if addon.MountBrowser then
+							addon.MountBrowser:Show()
+						else
+							addon:AlwaysPrint("Mount Browser not available")
+						end
+					end,
+					width = "full",
+				},
+			},
+		},
+		mountListSettings = {
+			order = 9999,
+			name = "",
+			type = "group",
+			inline = true,
+			args = {
+				displaySettingsHeader = {
+					order = 9,
+					type = "header",
+					name = "Mount List Settings (LEGACY)",
 				},
 
 				showUncollectedMounts = {
@@ -640,7 +689,7 @@ local actualParentCategoryKey = rootCategoryID or (rootPanel and rootPanel.name)
     1. Mount List Page
 -------------------------------------------------------------------------------]]
 local familyManagement_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_FamilyManagement"
-local familyManagement_DisplayName = "Mount List"
+local familyManagement_DisplayName = "Mount List (LEGACY)"
 local initialFamilyManagementArgs = {
 	_placeholder_header_fmg = {
 		order = 0,
@@ -673,7 +722,20 @@ local initialFamilyManagementArgs = {
 		end,
 		width = "full",
 	},
-
+	_placeholder_browser_button_fmg = {
+		order = 2.5,
+		type = "execute",
+		name = "Open Mount Browser",
+		desc = "Visual grid reference of all mount families and supergroups",
+		func = function()
+			if addon.MountBrowser then
+				addon.MountBrowser:Show()
+			else
+				addon:AlwaysPrint("Mount Browser not available")
+			end
+		end,
+		width = "full",
+	},
 	_placeholder_status_fmg = {
 		order = 3,
 		type = "description",
@@ -943,34 +1005,21 @@ local advancedSettingsOptionsTable = {
 			order = 1,
 			type = "description",
 			name = "|cffffd700Advanced Settings Guide|r\n\n" ..
-					"The Advanced Settings provide powerful tools for customizing how mounts are organized and selected. Use these when you disagree with the default grouping or want to fine-tune your mount collection experience.\n\n" ..
-					"|cff00ff00Understanding Mount Organization|r\n\n" ..
-
+					"The Advanced Settings allow fully overriding the base mount groupings for maximum customization. I recommend you read the below to get a better idea of how the addon works before making any changes.\n\n" ..
 					"|cffffff001. Mounts -> Families|r\n" ..
-					"• |cffccccccHow it works:|r Mounts with identical 3D models (but different colors) share the same model path in WoW's files\n" ..
-					"• |cffccccccExample:|r Both Jade Cloud Serpent and Azure Cloud Serpent use 'creature/pandarenserpent/pandarenserpentmount.m2'\n" ..
-					"• |cffccccccResult:|r These become the \"Cloud Serpent\" family\n" ..
-					"• |cffccccccSpecial case:|r Mounts with unique model paths appear as standalone families\n\n" ..
+					"Mounts that use the literal same model but different colors are grouped in families.\n    Example 1: The Black Wolf and the Gray Wolf in the Wolf Family.\n    Example 2: The Black War Wolf and Swift Gray Wolf are in the Armored Wolf family instead since they have extra armor on them.\n\n" ..
 					"|cffffff002. Families -> Supergroups|r\n" ..
-					"• |cffccccccWhy needed:|r Different families often use very similar models\n" ..
-					"• |cffccccccExample:|r \"Cloud Serpent\" and \"Thundering Cloud Serpent\" families both look like serpents\n" ..
-					"• |cffccccccResult:|r Both families grouped into \"Cloud Serpents\" supergroup\n" ..
-					"• |cffccccccBenefit:|r Prevents mount pool pollution from overly similar models\n\n" ..
+					"Families with similar models are grouped in the same Supergroups.\n    Example 1: The Wolf family and the Armored Wolf family are both in the Wolves supergroup.\n" ..
+					"Families with truly unique models like Jade, remain standalone (don't get added to supergroups).\n\n" ..
 					"|cffffff003. Traits System|r\n" ..
-					"• |cffccccccPurpose:|r Identifies what makes each family/mount special within its supergroup\n" ..
-					"• |cffccccccHow assigned:|r Based on differences from the \"basic\" version in each supergroup\n" ..
-					"• |cffccccccTrait types:|r Minor Armor, Major Armor, Model Variants, Unique Effects\n" ..
-					"• |cffccccccUsage:|r Allows separation of special variants while keeping similar ones grouped\n\n" ..
-					"|cff00ff00Why This Matters|r\n\n" ..
-					"|cffff9900The Problem:|r Without grouping, 17 Cloud Serpent recolors would vastly outnumber 1 Ashes of Al'ar in your random selection pool.\n\n" ..
-					"|cff00ff00The Solution:|r\n" ..
-					"The addon changes summoning from individual mounts to model-based selection:\n" ..
-					"• |cffccccccWithout addon:|r Each mount has equal chance (17 Cloud Serpents : 1 Ashes = 17:1 odds)\n" ..
-					"• |cffccccccWith addon:|r Each model type has equal chance (Cloud Serpent model : Ashes model = 1:1 odds)\n" ..
-					"• |cffccccccResult:|r Balanced representation across different mount models, then random selection within the chosen model\n\n" ..
-					"|cff00ff00Available Tools|r\n\n" ..
-					"|cffffff00Supergroup Management:|r Create custom supergroups, rename existing ones, delete unwanted groups\n\n" ..
-					"|cffffff00Family Assignment:|r Move families between supergroups, make families standalone\n\n" ..
+					"Each family that belongs to a supergroup has one or more traits: Minor Armor, Major Armor, Updated Model, Unique.\n" ..
+					"In the general settings, you can separate families from groups based on the selected trait. This essentially is supposed to be a toggle that says 'I'd like to see mounts with X trait more often'.\n\n" ..
+					"|cffffff004. Summoning|r\n" ..
+					"The mount summoning process picks a supergroup or ungrouped family, then a mount within it, to equalize chances between mounts with a lot of recolor and unique ones.\n" ..
+					"    Example 1: With the default settings, Wolves are one of the eligible groups and ungrouped families for summoning, meaning that to see an Armored Wolf, the Wolf group needs to win the roll, then the Armored Wolf family needs to win the roll.\n    Example 2: With the minor trait sepration enabled, the summon pool will contain Wolves + Armored Wolves separately, doubling the chance to see a wolf and increasing the chances of seeing an Armored Wolf by a lot.\n\n" ..
+					"|cff00ff00Available Tools|r\n" ..
+					"|cffffff00Supergroup Management:|r Create custom supergroups, rename existing ones, delete unwanted groups\n" ..
+					"|cffffff00Family Assignment:|r Move families between supergroups, make families standalone\n" ..
 					"|cffffff00Mount Separation:|r Extract individual mounts from families, create custom single-mount families, override traits for separated mounts",
 			fontSize = "medium",
 		},
@@ -1093,8 +1142,8 @@ if not addon.zoneSpecificArgsRef then
 	}
 end
 
-local zoneSpecific_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_ZoneSpecificMounts"
-local zoneSpecific_DisplayName = "Zone-Specific Mounts"
+local zoneSpecific_InternalName = PARENT_ADDON_INTERNAL_NAME .. "_MountRules"
+local zoneSpecific_DisplayName = "Rules"
 local zoneSpecificOptionsTable = {
 	name = zoneSpecific_DisplayName,
 	handler = addon,
@@ -1106,14 +1155,14 @@ LibAceConfig:RegisterOptionsTable(zoneSpecific_InternalName, zoneSpecificOptions
 local zoneSpecificPanel, zoneSpecificCatID = LibAceConfigDialog:AddToBlizOptions(
 	zoneSpecific_InternalName,
 	zoneSpecific_DisplayName,
-	advancedSettingsParentKey -- Child of Advanced Settings
+	actualParentCategoryKey -- Top-level tab
 )
 if zoneSpecificPanel then
-	addon.optionsPanel_ZoneSpecificMounts = {
+	addon.optionsPanel_MountRules = {
 		frame = zoneSpecificPanel,
 		id = zoneSpecificCatID or zoneSpecificPanel.name,
 	}
-	addon:DebugOptions("Registered '" .. zoneSpecific_DisplayName .. "' as child of Advanced Settings.")
+	addon:DebugOptions("Registered '" .. zoneSpecific_DisplayName .. "' as top-level tab.")
 else
 	addon:DebugOptions("FAILED Zone-Specific Mounts AddToBliz.")
 end
@@ -1188,7 +1237,7 @@ local importExportOptionsTable = {
 				end
 
 				return string.format(
-					"Configuration Preview:\n• Family Assignments: %d\n• Custom/Renamed Supergroups: %d\n• Deleted Supergroups: %d\n• Separated Mounts: %d",
+					"Configuration Preview:\n- Family Assignments: %d\n- Custom/Renamed Supergroups: %d\n- Deleted Supergroups: %d\n- Separated Mounts: %d",
 					stats.overrides, stats.definitions, stats.deletions, stats.separatedMounts)
 			end,
 			width = "full",
@@ -1480,7 +1529,7 @@ StaticPopupDialogs["RMB_DELETE_SUPERGROUP_CONFIRM"] = {
 }
 StaticPopupDialogs["RMB_RESET_ALL_CONFIRM"] = {
 	text =
-	"Reset ALL addon customizations?\n\nThis will:\n• Clear all family assignments\n• Remove all custom supergroups\n• Restore all deleted supergroups\n• Remove all renames\n• Reset ALL separated mounts\n• Clear ALL weight settings\n• Reset ALL trait overrides\n\nThis is a complete reset and cannot be undone!",
+	"Reset ALL addon customizations?\n\nThis will:\n- Clear all family assignments\n- Remove all custom supergroups\n- Restore all deleted supergroups\n- Remove all renames\n- Reset ALL separated mounts\n- Clear ALL weight settings\n- Reset ALL trait overrides\n\nThis is a complete reset and cannot be undone!",
 	button1 = "Reset Everything",
 	button2 = "Cancel",
 	OnAccept = function()
@@ -1554,7 +1603,7 @@ StaticPopupDialogs["RMB_RESET_CUSTOM_CONFIRM"] = {
 }
 StaticPopupDialogs["RMB_RESET_SEPARATION_CONFIRM"] = {
 	text =
-	"Reset mount separation?\n\nThis will:\n• Reunite all separated mounts with their original families\n• Clear weights and settings for separated families\n• Keep individual mount weights\n\nThis cannot be undone!",
+	"Reset mount separation?\n\nThis will:\n- Reunite all separated mounts with their original families\n- Clear weights and settings for separated families\n- Keep individual mount weights\n\nThis cannot be undone!",
 	button1 = "Reset Separation",
 	button2 = "Cancel",
 	OnAccept = function()

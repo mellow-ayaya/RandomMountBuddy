@@ -1152,9 +1152,9 @@ function MountSummon:SummonRandomMount(useContext)
 		end
 	end
 
-	-- ZONE-SPECIFIC MOUNTS: Check if current location has a matching rule
-	if addon.ZoneSpecificMounts then
-		local specificMountID, specificPoolName = addon.ZoneSpecificMounts:GetMountForCurrentLocation()
+	-- MOUNT RULES: Check if current state matches any rules
+	if addon.MountRules then
+		local specificMountID, specificPoolName = addon.MountRules:GetMountForCurrentLocation()
 		if specificMountID then
 			-- Summon the specific mount for this location
 			addon:DebugSummon("Zone-specific mount found, summoning mount ID:", specificMountID)

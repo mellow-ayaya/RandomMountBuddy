@@ -25,6 +25,15 @@ local dbDefaults = {
 		-- Don't change these
 		useSuperGrouping = true,
 		overrideBlizzardButton = true,
+		-- UI Display Options
+		showMinimapButton = true,
+		showAddonCompartment = true,
+		-- Mount Browser Settings
+		browserShowCollectionStatus = true,
+		browserShowGroupIndicators = true,
+		browserShowUniquenessIndicators = true,
+		browserShowCapabilityIndicators = true,
+		browserGroupFamiliesTogether = false, -- Keep families in supergroups regardless of traits (inverted from browserUseStrictGrouping)
 		-- Summoning
 		contextualSummoning = true,
 		useDeterministicSummoning = true,
@@ -71,11 +80,13 @@ local dbDefaults = {
 		favoriteSync_favoriteWeightMode = "set",
 		favoriteSync_lastSyncTime = 0,
 		-- Supergroup customization
-		superGroupOverrides = {}, -- { ["FamilyName"] = "SuperGroupName" or false or nil }
-		superGroupDefinitions = {}, -- { ["SGName"] = { displayName="...", isCustom=true/false, isRenamed=true/false } }
-		deletedSuperGroups = {},  -- { ["SGName"] = true }
+		superGroupOverrides = {},     -- { ["FamilyName"] = "SuperGroupName" or false or nil }
+		superGroupDefinitions = {},   -- { ["SGName"] = { displayName="...", isCustom=true/false, isRenamed=true/false } }
+		deletedSuperGroups = {},      -- { ["SGName"] = true }
 		-- Mount customization
-		separatedMounts = {},     -- { [mountID] = { familyName="Separated_Mount_123", customTraits={}, originalFamily="Dragons" } }
+		separatedMounts = {},         -- { [mountID] = { familyName="Separated_Mount_123", customTraits={}, originalFamily="Dragons" } }
+		-- Notifications
+		showKeybindNotification = true, -- NEW: Show notification on login if no keybind is set
 	},
 }
 -- Library initialization
@@ -193,7 +204,7 @@ end
 
 -- Keep AlwaysPrint simple and safe
 function addon:AlwaysPrint(message)
-	print("RMB: " .. (message or ""))
+	print("|cFFFFD100RMB:|r " .. (message or ""))
 end
 
 -- Initialize addon state
@@ -745,6 +756,14 @@ function addon:OnEnable()
 		addon:DebugCore("InitializeSecureHandlers function not found!")
 	end
 
+	-- Initialize minimap button and addon compartment
+	if self.MinimapButton and self.MinimapButton.Initialize then
+		self.MinimapButton:Initialize()
+		self:DebugCore("OnEnable - MinimapButton initialization called")
+	else
+		self:DebugCore("MinimapButton module not found!")
+	end
+
 	self:DebugCore("OnEnable END.")
 end
 
@@ -754,11 +773,13 @@ function addon:SlashCommandHandler(input)
 	if input == "" or input == "help" then
 		self:AlwaysPrint("Random Mount Buddy commands:")
 		self:AlwaysPrint("/rmb s - Summon a random mount")
-		self:AlwaysPrint("/rmb help - Show this help")
+		self:AlwaysPrint("/rmb browser or /rmb b - open Mount Browser")
 		self:AlwaysPrint("/rmb config - Open configuration")
 		self:AlwaysPrint("/rmb diag - Diagnostic info")
 		self:AlwaysPrint("/rmb detect - Re-scan for new mounts")
 		self:AlwaysPrint("/rmb export - Export new mount data")
+		self:AlwaysPrint("/rmb kbnotification - Toggle login notification for missing RMB keybind")
+		self:AlwaysPrint("/rmb help - Show this help")
 	elseif input == "config" then
 		if Settings and Settings.OpenToCategory then
 			Settings.OpenToCategory("Random Mount Buddy")
@@ -774,6 +795,29 @@ function addon:SlashCommandHandler(input)
 		addon:AlwaysPrint("New mount detection completed.")
 	elseif input == "export" then
 		self:ExportAutoDetectedMounts()
+	elseif input == "b" or input == "browser" then
+		if self.MountBrowser then
+			self.MountBrowser:Toggle()
+		else
+			self:AlwaysPrint("Mount Browser not available")
+		end
+
+		return
+	elseif input == "c" then
+		if self.FamilyCameraCalibrator then
+			self.FamilyCameraCalibrator:Toggle()
+		else
+			self:AlwaysPrint("Camera Calibrator not available")
+		end
+	elseif input == "d" then
+	elseif input == "kbnotification" then
+		-- Toggle the keybind notification setting
+		self.db.profile.showKeybindNotification = not self.db.profile.showKeybindNotification
+		if self.db.profile.showKeybindNotification then
+			self:AlwaysPrint("Keybind notifications |cFF00FF00enabled|r. You'll see a message on login if no keybind is set.")
+		else
+			self:AlwaysPrint("Keybind notifications |cFFFF0000disabled|r. No more reminders about missing keybinds!")
+		end
 	else
 		-- Default action - summon mount
 		self:SummonRandomMount(true)
@@ -802,6 +846,15 @@ function addon:InitializeAllMountModules()
 
 	if self.InitializeMountPreview then
 		self:InitializeMountPreview()
+	end
+
+	if self.InitializeMountBrowser then
+		self:InitializeMountBrowser()
+	end
+
+	if self.FamilyCameraCalibrator then
+		self.FamilyCameraCalibrator:Initialize()
+		self:DebugUI("Camera calibrator initialized")
 	end
 
 	if self.InitializeMountSummon then
@@ -835,10 +888,10 @@ function addon:InitializeAllMountModules()
 		self:DebugCore("ConfigurationManager initialized")
 	end
 
-	-- 4. ZoneSpecificMounts (needs ConfigurationManager and mount data)
-	if self.InitializeZoneSpecificMounts then
-		self:InitializeZoneSpecificMounts()
-		self:DebugCore("ZoneSpecificMounts initialized")
+	-- 4. MountRules (needs ConfigurationManager and mount data)
+	if self.InitializeMountRules then
+		self:InitializeMountRules()
+		self:DebugCore("MountRules initialized")
 	end
 
 	-- UI components come last as they depend on everything else
@@ -849,6 +902,24 @@ function addon:InitializeAllMountModules()
 	self:DebugCore("All mount modules initialized")
 end
 
+-- ============================================================================
+-- KEYBIND CHECK
+-- ============================================================================
+function addon:CheckKeybindOnLogin()
+	-- Only check if notifications are enabled
+	if not self.db.profile.showKeybindNotification then
+		return
+	end
+
+	-- Check if a keybind is set for the addon
+	local key1, key2 = GetBindingKey("CLICK RMBSmartButton:LeftButton")
+	if not key1 and not key2 then
+		-- No keybind set - show a helpful message
+		self:AlwaysPrint(
+			"Hey Bud! You're seeing this because you don't yet have a keybind set for Random Mount Buddy! Go to Esc -> Options -> search for Summon in the top right and assign a key, or type /rmb kbnotification to disable this notification.")
+	end
+end
+
 function addon:OnPlayerLoginAttemptProcessData(eventArg)
 	addon:DebugCore("Handler OnPlayerLoginAttemptProcessData received Event '" .. tostring(eventArg) .. "'.")
 	self.lastProcessingEventName = eventArg
@@ -856,6 +927,8 @@ function addon:OnPlayerLoginAttemptProcessData(eventArg)
 	self.lastProcessingEventName = nil
 	self:UnregisterEvent("PLAYER_LOGIN")
 	addon:DebugCore("Unregistered PLAYER_LOGIN.")
+	-- Check if user has set a keybind
+	self:CheckKeybindOnLogin()
 end
 
 -- ============================================================================
@@ -1631,6 +1704,25 @@ function addon:SetGroupWeight(gk, w)
 
 	self.db.profile.groupWeights[gk] = nw
 	addon:DebugCore("SetGW K:'" .. tostring(gk) .. "',W:" .. tostring(nw))
+	-- Refresh mount browser if open and using weight sorting
+	if self.MountBrowser and self.MountBrowser.Sort then
+		local sortMode = self.MountBrowser.Sort:GetCurrentSortMode()
+		if (sortMode == "weight_asc" or sortMode == "weight_desc") then
+			if self.MountBrowser.mainFrame and self.MountBrowser.mainFrame:IsShown() then
+				-- Delay refresh slightly to batch multiple weight changes
+				if not self.browserWeightRefreshPending then
+					self.browserWeightRefreshPending = true
+					C_Timer.After(0.1, function()
+						self.browserWeightRefreshPending = false
+						if self.MountBrowser.mainFrame and self.MountBrowser.mainFrame:IsShown() then
+							self.MountBrowser:RefreshCurrentView()
+						end
+					end)
+				end
+			end
+		end
+	end
+
 	-- Handle weight syncing for single-mount families
 	self:SyncWeightForSingleMountFamily(gk, nw)
 	-- Notify modules of weight changes (important for caches)
@@ -3175,4 +3267,37 @@ function addon:GetFavoriteMountsForOptions()
 			name = "MI list placeholder.",
 		},
 	}
+end
+
+-- ============================================================================
+-- ADDON COMPARTMENT INTEGRATION
+-- ============================================================================
+-- Addon Compartment global functions (called from TOC metadata)
+function RMB_OnAddonCompartmentClick(addonName, buttonName)
+	local addon = RandomMountBuddy
+	if not addon then return end
+
+	-- buttonName is "LeftButton", "RightButton", "MiddleButton", etc.
+	addon:DebugCore("Compartment clicked with button:", buttonName)
+	if buttonName == "LeftButton" then
+		if addon.MountBrowser and addon.MountBrowser.Toggle then
+			addon.MountBrowser:Toggle()
+		end
+	elseif buttonName == "RightButton" then
+		if addon.MinimapButton and addon.MinimapButton.OpenOptions then
+			addon.MinimapButton:OpenOptions()
+		end
+	end
+end
+
+function RMB_OnAddonCompartmentEnter(addonName, menuButtonFrame)
+	MenuUtil.ShowTooltip(menuButtonFrame, function(tooltip)
+		GameTooltip_AddNormalLine(tooltip, "|cff00ff00Random Mount Buddy|r", 1, 1, 1, false)
+		GameTooltip_AddNormalLine(tooltip, "|cffffd700Left Click:|r |cff00ff00Open Mount Browser|r", 1, 1, 1, false)
+		GameTooltip_AddNormalLine(tooltip, "|cffffd700Right Click:|r |cff00ff00Open Options|r", 1, 1, 1, false)
+	end)
+end
+
+function RMB_OnAddonCompartmentLeave(addonName, menuButtonFrame)
+	MenuUtil.HideTooltip(menuButtonFrame)
 end

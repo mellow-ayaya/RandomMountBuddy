@@ -1,9 +1,12 @@
 ## Interface: 110207, 120000
 ## Title: Random Mount Buddy
 ## Author: mellow_ayaya
-## Version: # 1.0.24
+## Version: # 1.1.0
 ## IconTexture: Interface\AddOns\RandomMountBuddy\Media\icon.tga
 ## Notes: Balance heavily recolored mounts' summon chances with unique ones for better randomness.
+## AddonCompartmentFunc: RMB_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: RMB_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: RMB_OnAddonCompartmentLeave
 ## SavedVariables: RandomMountBuddy_SavedVars
 
 ## X-License: GNU General Public License version 3 (GPLv3)
@@ -32,21 +35,34 @@ Modules\MountDataManager.lua
 Modules\MountUIComponents.lua
 Modules\MountTooltips.lua
 Modules\MountPreview.lua
+Modules\MountBrowser.lua
+Modules\MountBrowserFilters.lua
+Modules\MountBrowserSort.lua
+Modules\MountBrowserCapabilities.lua
+Modules\MountBrowserCard.lua
+Modules\MountBrowserNavigation.lua
+Modules\MountBrowserSettings.lua
+Modules\MountBrowserRules.lua
+Modules\FamilyCameraCalibrator.lua
 Modules\MountListUI.lua
 Modules\SearchSystem.lua
+Modules\MountBrowserSearch.lua
 Modules\FilterSystem.lua
 Modules\FavoriteSync.lua
 Modules\SuperGroupManager.lua
 Modules\FamilyAssignment.lua
 Modules\ConfigurationManager.lua
 Modules\MountSeparationManager.lua
-Modules\ZoneSpecificMounts.lua
+Modules\MountRules.lua
 
 # Mount Summon Files
 Modules\MountSummon.lua
 
 # Secure Handlers
 Modules\SecureHandlers.lua
+
+# Minimap Button
+MinimapButton.lua
 
 # Options Interface
 Options.lua

@@ -99,7 +99,7 @@ function ConfigurationManager:ImportConfiguration(configString, importMode)
 	-- Check version for compatibility
 	local configVersion = config.version or "1.0"
 	local hasSeparatedMounts = config.separatedMounts ~= nil
-	local hasZoneSpecificMounts = config.zoneSpecificMounts ~= nil
+	local hasMountRules = config.zoneSpecificMounts ~= nil
 	addon:DebugOptions("Importing configuration version " .. configVersion ..
 		(hasSeparatedMounts and " (with separated mounts)" or " (no separated mounts)"))
 	-- Initialize database structures if needed
@@ -184,7 +184,7 @@ function ConfigurationManager:ImportConfiguration(configString, importMode)
 		end
 
 		-- ENHANCED: Import zone-specific mounts if present
-		if hasZoneSpecificMounts then
+		if hasMountRules then
 			for zoneID, ruleData in pairs(config.zoneSpecificMounts) do
 				-- Validate zone-specific mount data before importing
 				if ruleData.type and ruleData.zoneName then
@@ -568,7 +568,7 @@ function ConfigurationManager:ValidateWeightSynchronization(report, autoFix)
 	local weightSettings = addon.db.profile.groupWeights
 	local issuesFound = 0
 	local issuesFixed = 0
-	-- Check 1: Single-mount families where family weight â‰  mount weight
+	-- Check 1: Single-mount families where family weight mount weight
 	addon:DebugValidation("Checking single-mount family weight sync...")
 	for familyName, _ in pairs(addon.processedData.familyToMountIDsMap or {}) do
 		local isSingleMount, mountID = addon:IsSingleMountFamily(familyName)
@@ -601,7 +601,7 @@ function ConfigurationManager:ValidateWeightSynchronization(report, autoFix)
 		end
 	end
 
-	-- Check 2: Separated families where separated family weight â‰  mount weight
+	-- Check 2: Separated families where separated family weight mount weight
 	addon:DebugValidation("Checking separated family weight sync...")
 	if addon.db.profile.separatedMounts then
 		for mountID, separationData in pairs(addon.db.profile.separatedMounts) do
@@ -1105,8 +1105,8 @@ function ConfigurationManager:RefreshAllUIs()
 	end
 
 	-- Refresh Zone-Specific Mounts UI if it exists
-	if addon.ZoneSpecificMounts and addon.ZoneSpecificMounts.PopulateZoneSpecificUI then
-		addon.ZoneSpecificMounts:PopulateZoneSpecificUI()
+	if addon.MountRules and addon.MountRules.PopulateZoneSpecificUI then
+		addon.MountRules:PopulateZoneSpecificUI()
 	end
 
 	-- Refresh mount pools to ensure changes take effect in summoning

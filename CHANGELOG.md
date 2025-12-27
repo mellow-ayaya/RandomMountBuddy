@@ -1,6 +1,18 @@
+# 1.1.00 - 2025-12-27
+- Added a new UI element to serve as main menu and mount previewer: Mount Browser. It contains all the functionality of the existing options (except Advanced Settings) but looks much nicer.
+- Revamped rules, changed name from ZoneSpecificMounts.lua to MountRules.lua to match the new scope.
+- Rules moved out of the Advanced Settings, they can be found in the Mount Browser as well.
+- New rules conditionals for whether you're in a group, and whether you're in a group with a friend, BNet friend or guildie.
+- Added 2 default rules, enabled by default: flying pool for M+ portal room and for class halls (to avoid having to remount after porting outside).
+- Added toggle-able minimap button and addon compartment icon.
+- Improved verbiage and descriptions in the main menu as well as the Advanced Settings guide.
+- Added recommendation to keep certain settings enabled for the intended experience.
+- Added a dev tool to help with the browser's camera settings for different mounts.
+- Massive families and groups updates due to the huge help of viewing several mounts at once via the Browser + dev tool.
+
 # 1.0.24 - 2025-12-09
 - Background changes to data structure to hopefully make adding new mounts easier.
-- Moved Antoran Charhound & Gloomhound to the new Antoran flying hound family.
+- Moved Antoran Charhound & Gloomhound to the new Antoran Flying Hound family.
 - Moved Falcosaur family under Raptor group
 - Moved Farseer's Felscorned and Archmage's Felscorned mounts into the same family as the original
 - Fixed issue with preview sometimes showing the wrong mount
