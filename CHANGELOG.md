@@ -1,3 +1,6 @@
+# 1.1.01 - 2025-12-27
+- Actually disabled rules in the old menu now (for realsies this time).
+
 # 1.1.00 - 2025-12-27
 - Added a new UI element to serve as main menu and mount previewer: Mount Browser. It contains all the functionality of the existing options (except Advanced Settings) but looks much nicer.
 - Revamped rules, changed name from ZoneSpecificMounts.lua to MountRules.lua to match the new scope.

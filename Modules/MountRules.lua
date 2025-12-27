@@ -922,10 +922,10 @@ function MountRules:PopulateZoneSpecificUI()
 		name =
 				"Configure conditional mount summoning rules. Rules are evaluated in priority order (top to bottom), and the first matching rule is used.\n\n" ..
 				"|cff00ffffSupported Rule Types:|r\n" ..
-				"â€¢ Location (map, instance, parent zone)\n" ..
-				"â€¢ Instance Type (dungeon, raid difficulty)\n" ..
-				"â€¢ Group State (in group, party, raid)\n" ..
-				"â€¢ Social (friends, specific characters)\n",
+				"Location (map, instance, parent zone)\n" ..
+				"Instance Type (dungeon, raid difficulty)\n" ..
+				"Group State (in group, party, raid)\n" ..
+				"Social (friends, specific characters)\n",
 		fontSize = "medium",
 	}
 	-- CURRENT LOCATION INFO
