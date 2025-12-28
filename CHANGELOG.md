@@ -4,6 +4,7 @@
 - The checkboxes for toggling whether uncollected mounts and groups appear in the Mount Browser work as intended now.
 - Added a new feature: Utility mounts anchored to the bottom of the esc menu, enabled by default.
 - Squeakers successfully made it out of the nil group (oopsie)
+- 1.1.10 also included a new notification that warns you if you haven't set a keybind for RMB yet, which can be disabled with /rmb kbnotification.
 
 # 1.1.10 - 2025-12-27
 - Traits overhauled into a much simpler version: specific mounts are labelled as unique. If you want to see the unique mounts more often, enable the new setting "Favor Unique Mounts".
