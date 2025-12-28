@@ -179,7 +179,6 @@ function UtilityMounts:CreateMountButton(mountID, mountData, size, index)
 		GameTooltip:SetOwner(self, "ANCHOR_TOP")
 		GameTooltip:SetText(mountName, 1, 1, 1)
 		GameTooltip:AddLine(traitDescription, nil, nil, nil, true)
-		GameTooltip:AddLine(" ") -- Blank line
 		GameTooltip:AddLine("Click to summon", 0, 1, 0)
 		GameTooltip:Show()
 	end)

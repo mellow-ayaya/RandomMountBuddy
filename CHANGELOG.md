@@ -1,3 +1,6 @@
+# 1.1.21 - 2025-12-28
+- Removed extra line from Utility mounts tooltip
+
 # 1.1.20 - 2025-12-28
 - Improved description on for 'Show Uniques in Groups' toggle (previously called Unique Mounts in Groups)
 - 'Show Uniques in Groups' is now correctly toggled on by default
