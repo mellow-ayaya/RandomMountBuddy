@@ -185,7 +185,7 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 	sizeSlider:SetValue(addon:GetSetting("utilityMounts_iconSize") or 48)
 	-- Set slider label texts
 	_G[sizeSlider:GetName() .. "Low"]:SetText("16")
-	_G[sizeSlider:GetName() .. "High"]:SetText("64")
+	_G[sizeSlider:GetName() .. "High"]:SetText("128")
 	_G[sizeSlider:GetName() .. "Text"]:SetText(sizeSlider:GetValue())
 	sizeSlider:SetScript("OnValueChanged", function(self, value)
 		value = math.floor(value + 0.5) -- Round to nearest integer
