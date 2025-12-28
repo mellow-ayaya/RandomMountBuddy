@@ -786,10 +786,15 @@ function MountBrowser:CreateCard(parent)
 	card.traitButtons = {}
 	-- Trait data with custom icon names (will use _up/_down from media folder)
 	local traitData = {
-		{ key = "hasMinorArmor", iconPath = "Interface\\ICONS\\Inv_10_jewelcrafting_gem1leveling_uncut_bronze", tooltip = "Minor armor/ornaments" },
-		{ key = "hasMajorArmor", iconPath = "Interface\\ICONS\\Inv_10_jewelcrafting_gem1leveling_cut_bronze", tooltip = "Heavy/bulky armor" },
-		{ key = "hasModelVariant", iconPath = "Interface\\ICONS\\Inv_10_jewelcrafting_gem2standard_cut_bronze", tooltip = "Updated texture/model" },
-		{ key = "isUniqueEffect", iconPath = "Interface\\ICONS\\Inv_10_jewelcrafting_gem3primal_cut_bronze", tooltip = "Unique variant" },
+		{
+			key = "isUniqueEffect",
+			iconPath = "Interface\\ICONS\\Inv_70_raid_ring6a",
+			tooltipTitle = "Unique variant",
+			tooltipDesc = {
+				"|cffffd700Click to toggle|r",
+				"|cff00ff00Unique mounts get independent (better) summon chances when 'Favor Unique Mounts' is enabled.|r",
+			},
+		},
 	}
 	for _, data in ipairs(traitData) do
 		local trait = data.key
@@ -814,7 +819,8 @@ function MountBrowser:CreateCard(parent)
 		-- Store data
 		button.traitKey = trait
 		button.iconPath = data.iconPath
-		button.tooltip = data.tooltip
+		button.tooltipTitle = data.tooltipTitle
+		button.tooltipDesc = data.tooltipDesc
 		button.isActive = false
 		-- Click handler to toggle trait
 		button:SetScript("OnClick", function(self, mouseButton)
@@ -839,9 +845,10 @@ function MountBrowser:CreateCard(parent)
 			defaultColor = MountBrowser.VISUAL_STATES.TRAIT_BG_DEFAULT,
 			hoverColor = MountBrowser.VISUAL_STATES.TRAIT_BG_HOVER,
 			tooltipFunc = function(self)
-				return self.tooltip
+				return self.tooltipTitle, self.tooltipDesc
 			end,
 			tooltipAnchor = "ANCHOR_TOP",
+			wrap = false, -- Disable wrapping to prevent extra newline at top
 		})
 		card.traitButtons[trait] = button
 		-- START WITH MOUSE DISABLED to prevent tooltip spam on first scroll
@@ -1634,9 +1641,6 @@ function MountBrowser:UpdateCard(card, data)
 				local visibleCount = 0
 				local iconSpacing = 25
 				local traitOrder = {
-					"hasMinorArmor",
-					"hasMajorArmor",
-					"hasModelVariant",
 					"isUniqueEffect",
 				}
 				for _, traitKey in ipairs(traitOrder) do
@@ -1793,9 +1797,6 @@ function MountBrowser:UpdateCard(card, data)
 			local iconSpacing = 25
 			-- Define trait order (must match CreateCard order)
 			local traitOrder = {
-				"hasMinorArmor",
-				"hasMajorArmor",
-				"hasModelVariant",
 				"isUniqueEffect",
 			}
 			-- Show all trait buttons in order

@@ -59,7 +59,7 @@ local dbDefaults = {
 		treatMinorArmorAsDistinct = false,
 		treatMajorArmorAsDistinct = false,
 		treatModelVariantsAsDistinct = false,
-		treatUniqueEffectsOrSkin = true,
+		treatUniqueEffectsAsDistinct = true,
 		-- Mount list options
 		showUncollectedMounts = true,
 		showAllUncollectedGroups = false,
@@ -3010,6 +3010,23 @@ function addon:CleanupLegacyUIState()
 	if self.db.profile.expansionStates ~= nil then
 		addon:DebugCore("Removing legacy expansionStates from saved variables")
 		self.db.profile.expansionStates = nil
+	end
+
+	-- Disable legacy trait separation settings for all users
+	-- These traits no longer have UI controls and should be disabled
+	if self.db.profile.treatMinorArmorAsDistinct == true then
+		addon:DebugCore("Disabling legacy trait: treatMinorArmorAsDistinct")
+		self.db.profile.treatMinorArmorAsDistinct = false
+	end
+
+	if self.db.profile.treatMajorArmorAsDistinct == true then
+		addon:DebugCore("Disabling legacy trait: treatMajorArmorAsDistinct")
+		self.db.profile.treatMajorArmorAsDistinct = false
+	end
+
+	if self.db.profile.treatModelVariantsAsDistinct == true then
+		addon:DebugCore("Disabling legacy trait: treatModelVariantsAsDistinct")
+		self.db.profile.treatModelVariantsAsDistinct = false
 	end
 
 	addon:DebugCore("Legacy UI state cleanup completed")

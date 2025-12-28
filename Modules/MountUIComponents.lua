@@ -281,116 +281,18 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 			hidden = shouldShowTraits,
 			width = layout.traitsWidth,
 		},
-
+		spacerLegacyTraits1 = {
+			order = 7.29,
+			type = "description",
+			name = " ",
+			hidden = not shouldShowTraits,
+			width = 0.5,
+		},
 		-- Order 7-7.3: Interactive trait toggles
-		toggleMinorArmor = {
-			order = 7,
-			type = "toggle",
-			name = "|TInterface\\ICONS\\Garrison_GreenArmor:18:18:0:-2|t",
-			desc = function()
-				local baseDesc = "Light/Small armor or ornaments"
-				local originalTraits = addon:GetOriginalTraits(groupKey)
-				local effectiveTraits = addon:GetEffectiveTraits(groupKey)
-				local isOverridden = (originalTraits.hasMinorArmor ~= effectiveTraits.hasMinorArmor)
-				if isOverridden then
-					return baseDesc .. "\n\n|cffffd700Modified from original|r"
-				end
-
-				return baseDesc
-			end,
-			get = function()
-				local effectiveTraits = addon:GetEffectiveTraits(groupKey)
-				return effectiveTraits.hasMinorArmor or false
-			end,
-			set = function(info, value)
-				addon:SetFamilyTrait(groupKey, "hasMinorArmor", value)
-				-- Invalidate data manager cache
-				if addon.MountDataManager then
-					addon.MountDataManager:InvalidateTraitCache(groupKey)
-				end
-
-				-- Refresh UI to show changes
-				if addon.PopulateFamilyManagementUI then
-					addon:PopulateFamilyManagementUI()
-				end
-			end,
-			width = 0.25,
-			hidden = not shouldShowTraits,
-			disabled = false, -- Now enabled!
-		},
-
-		toggleMajorArmor = {
-			order = 7.1,
-			type = "toggle",
-			name = "|TInterface\\ICONS\\Garrison_BlueArmor:18:18:0:-2|t",
-			desc = function()
-				local baseDesc = "Heavy/Bulky armor or many ornaments"
-				local originalTraits = addon:GetOriginalTraits(groupKey)
-				local effectiveTraits = addon:GetEffectiveTraits(groupKey)
-				local isOverridden = (originalTraits.hasMajorArmor ~= effectiveTraits.hasMajorArmor)
-				if isOverridden then
-					return baseDesc .. "\n\n|cffffd700Modified from original|r"
-				end
-
-				return baseDesc
-			end,
-			get = function()
-				local effectiveTraits = addon:GetEffectiveTraits(groupKey)
-				return effectiveTraits.hasMajorArmor or false
-			end,
-			set = function(info, value)
-				addon:SetFamilyTrait(groupKey, "hasMajorArmor", value)
-				if addon.MountDataManager then
-					addon.MountDataManager:InvalidateTraitCache(groupKey)
-				end
-
-				if addon.PopulateFamilyManagementUI then
-					addon:PopulateFamilyManagementUI()
-				end
-			end,
-			width = 0.25,
-			hidden = not shouldShowTraits,
-			disabled = false,
-		},
-
-		toggleModelVariant = {
-			order = 7.2,
-			type = "toggle",
-			name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:18:18:0:-2|t",
-			desc = function()
-				local baseDesc = "Updated texture/slightly different model"
-				local originalTraits = addon:GetOriginalTraits(groupKey)
-				local effectiveTraits = addon:GetEffectiveTraits(groupKey)
-				local isOverridden = (originalTraits.hasModelVariant ~= effectiveTraits.hasModelVariant)
-				if isOverridden then
-					return baseDesc .. "\n\n|cffffd700Modified from original|r"
-				end
-
-				return baseDesc
-			end,
-			get = function()
-				local effectiveTraits = addon:GetEffectiveTraits(groupKey)
-				return effectiveTraits.hasModelVariant or false
-			end,
-			set = function(info, value)
-				addon:SetFamilyTrait(groupKey, "hasModelVariant", value)
-				if addon.MountDataManager then
-					addon.MountDataManager:InvalidateTraitCache(groupKey)
-				end
-
-				if addon.PopulateFamilyManagementUI then
-					addon:PopulateFamilyManagementUI()
-				end
-			end,
-			width = 0.25,
-			hidden = not shouldShowTraits,
-			disabled = false,
-		},
-
 		toggleUniqueEffect = {
 			order = 7.3,
 			type = "toggle",
-			name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:18:18:0:-2|t",
+			name = "|TInterface\\ICONS\\Inv_70_raid_ring6a:18:18:0:-2|t",
 			desc = function()
 				local baseDesc = "Unique variant, stands out from the rest"
 				local originalTraits = addon:GetOriginalTraits(groupKey)
@@ -419,6 +321,13 @@ function MountUIComponents:BuildGroupEntry(groupData, isExpanded, expandedDetail
 			width = 0.25,
 			hidden = not shouldShowTraits,
 			disabled = false,
+		},
+		spacerLegacyTraits2 = {
+			order = 7.31,
+			type = "description",
+			name = " ",
+			hidden = not shouldShowTraits,
+			width = 0.1,
 		},
 		spacerReset = {
 			order = 7.4,
@@ -683,137 +592,19 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			hidden = shouldShowTraits,
 		},
 
+		spacerLegacyTraits1 = {
+			order = order + 0.729,
+			type = "description",
+			name = " ",
+			hidden = not shouldShowTraits,
+			width = 0.5,
+		},
+
 		-- Trait toggles - SAME ORDER AS TOP LEVEL (unchanged for now)
-		toggleMinorArmor = {
-			order = order + 0.7,
-			type = "toggle",
-			name = "|TInterface\\ICONS\\Garrison_GreenArmor:18:18:0:-2|t",
-			desc = function()
-				local baseDesc = "Light/Small armor or ornaments"
-				if addon.GetOriginalTraits and addon.GetEffectiveTraits then
-					local originalTraits = addon:GetOriginalTraits(familyName)
-					local effectiveTraits = addon:GetEffectiveTraits(familyName)
-					local isOverridden = (originalTraits.hasMinorArmor ~= effectiveTraits.hasMinorArmor)
-					if isOverridden then
-						return baseDesc .. "\n\n|cffffd700Modified from original|r"
-					end
-				end
-
-				return baseDesc
-			end,
-			get = function()
-				if addon.GetEffectiveTraits then
-					local effectiveTraits = addon:GetEffectiveTraits(familyName)
-					return effectiveTraits.hasMinorArmor or false
-				end
-
-				return traits.hasMinorArmor or false
-			end,
-			set = function(info, value)
-				if addon.SetFamilyTrait then
-					addon:SetFamilyTrait(familyName, "hasMinorArmor", value)
-					if addon.MountDataManager and addon.MountDataManager.InvalidateTraitCache then
-						addon.MountDataManager:InvalidateTraitCache(familyName)
-					end
-
-					if addon.PopulateFamilyManagementUI then
-						addon:PopulateFamilyManagementUI()
-					end
-				end
-			end,
-			width = 0.25,
-			hidden = not shouldShowTraits,
-			disabled = false,
-		},
-
-		toggleMajorArmor = {
-			order = order + 0.71,
-			type = "toggle",
-			name = "|TInterface\\ICONS\\Garrison_BlueArmor:18:18:0:-2|t",
-			desc = function()
-				local baseDesc = "Heavy/Bulky armor or ornaments"
-				if addon.GetOriginalTraits and addon.GetEffectiveTraits then
-					local originalTraits = addon:GetOriginalTraits(familyName)
-					local effectiveTraits = addon:GetEffectiveTraits(familyName)
-					local isOverridden = (originalTraits.hasMajorArmor ~= effectiveTraits.hasMajorArmor)
-					if isOverridden then
-						return baseDesc .. "\n\n|cffffd700Modified from original|r"
-					end
-				end
-
-				return baseDesc
-			end,
-			get = function()
-				if addon.GetEffectiveTraits then
-					local effectiveTraits = addon:GetEffectiveTraits(familyName)
-					return effectiveTraits.hasMajorArmor or false
-				end
-
-				return traits.hasMajorArmor or false
-			end,
-			set = function(info, value)
-				if addon.SetFamilyTrait then
-					addon:SetFamilyTrait(familyName, "hasMajorArmor", value)
-					if addon.MountDataManager and addon.MountDataManager.InvalidateTraitCache then
-						addon.MountDataManager:InvalidateTraitCache(familyName)
-					end
-
-					if addon.PopulateFamilyManagementUI then
-						addon:PopulateFamilyManagementUI()
-					end
-				end
-			end,
-			width = 0.25,
-			hidden = not shouldShowTraits,
-			disabled = false,
-		},
-
-		toggleModelVariant = {
-			order = order + 0.72,
-			type = "toggle",
-			name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:18:18:0:-2|t",
-			desc = function()
-				local baseDesc = "Updated texture/slightly different model"
-				if addon.GetOriginalTraits and addon.GetEffectiveTraits then
-					local originalTraits = addon:GetOriginalTraits(familyName)
-					local effectiveTraits = addon:GetEffectiveTraits(familyName)
-					local isOverridden = (originalTraits.hasModelVariant ~= effectiveTraits.hasModelVariant)
-					if isOverridden then
-						return baseDesc .. "\n\n|cffffd700Modified from original|r"
-					end
-				end
-
-				return baseDesc
-			end,
-			get = function()
-				if addon.GetEffectiveTraits then
-					local effectiveTraits = addon:GetEffectiveTraits(familyName)
-					return effectiveTraits.hasModelVariant or false
-				end
-
-				return traits.hasModelVariant or false
-			end,
-			set = function(info, value)
-				if addon.SetFamilyTrait then
-					addon:SetFamilyTrait(familyName, "hasModelVariant", value)
-					if addon.MountDataManager and addon.MountDataManager.InvalidateTraitCache then
-						addon.MountDataManager:InvalidateTraitCache(familyName)
-					end
-
-					if addon.PopulateFamilyManagementUI then
-						addon:PopulateFamilyManagementUI()
-					end
-				end
-			end,
-			width = 0.25,
-			hidden = not shouldShowTraits,
-			disabled = false,
-		},
-
 		toggleUniqueEffect = {
 			order = order + 0.73,
 			type = "toggle",
-			name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:18:18:0:-2|t",
+			name = "|TInterface\\ICONS\\Inv_70_raid_ring6a:18:18:0:-2|t",
 			desc = function()
 				local baseDesc = "Unique variant, stands out from the rest"
 				if addon.GetOriginalTraits and addon.GetEffectiveTraits then
@@ -850,6 +641,14 @@ function MountUIComponents:BuildFamilyEntry(familyName, familyDisplayName, isExp
 			width = 0.25,
 			hidden = not shouldShowTraits,
 			disabled = false,
+		},
+
+		spacerLegacyTraits2 = {
+			order = order + 0.731,
+			type = "description",
+			name = " ",
+			hidden = not shouldShowTraits,
+			width = 0.25,
 		},
 
 		spacerReset = {

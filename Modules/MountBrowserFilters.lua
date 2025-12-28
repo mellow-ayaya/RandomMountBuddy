@@ -38,9 +38,6 @@ MountBrowserFilters.filterDefinitions = {
 	traits = {
 		displayName = "Traits",
 		options = {
-			{ key = "hasMinorArmor", label = "Minor Armor" },
-			{ key = "hasMajorArmor", label = "Major Armor" },
-			{ key = "hasModelVariant", label = "Model Update" },
 			{ key = "isUniqueEffect", label = "Unique" },
 			{ key = "noTraits", label = "No Traits" },
 		},
@@ -716,26 +713,13 @@ function MountBrowserFilters:ShouldShowMount(mountInfo)
 		local matchesTrait = false
 		local traits = mountInfo.traits or {}
 		-- Check specific traits
-		if traits.hasMinorArmor and self.filterState.traits.hasMinorArmor then
-			matchesTrait = true
-		end
-
-		if traits.hasMajorArmor and self.filterState.traits.hasMajorArmor then
-			matchesTrait = true
-		end
-
-		if traits.hasModelVariant and self.filterState.traits.hasModelVariant then
-			matchesTrait = true
-		end
-
 		if traits.isUniqueEffect and self.filterState.traits.isUniqueEffect then
 			matchesTrait = true
 		end
 
 		-- Check "no traits" - mount has no traits and "noTraits" filter is enabled
 		if not matchesTrait and self.filterState.traits.noTraits then
-			local hasAnyTrait = traits.hasMinorArmor or traits.hasMajorArmor or
-					traits.hasModelVariant or traits.isUniqueEffect
+			local hasAnyTrait = traits.isUniqueEffect
 			if not hasAnyTrait then
 				matchesTrait = true
 			end

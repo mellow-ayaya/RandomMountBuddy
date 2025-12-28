@@ -6,7 +6,7 @@ Improve your summon-random-favorite-mount experience with RandomMountBuddy! Mini
 ### &nbsp;
 ### About
 
-This addon solves a niche issue with random summoning: if you've favorited multiple versions of the same mount (like several Cloud Serpent colors), you'll see that type too often. Random Mount Buddy picks a random mount type first, then a random color, ensuring better distribution across your favorites.
+This addon solves a niche issue with random summoning: if you've favorited multiple recolors or versions of the same mount (like several Cloud Serpent colors), you'll see them much more often compared to mounts with less recolors/variants. Random Mount Buddy picks a random mount type first, then a random color/variant, ensuring better distribution across your favorites.
 ### &nbsp;
 ### How It Works
 
@@ -22,21 +22,22 @@ And that's just one way Random Mount Buddy balances heavily recolored mounts wit
 ### &nbsp;
 ### Features
 
-Mount Summoning related features:
+Base features:
+- Mounts with recolors are grouped in Families, similar Families are grouped in Groups.
+- Instead of summoning an individual mount, the addon summons a random group or ungrouped family/mount.
+- If you like seeing unique mounts like Alunira (unique gryphon variant), enable 'Favor Unique Mounts' to give them independent (better) summon chances instead of grouping them.
+- Mount browser: see your entire mount collection grouped in Families and Groups and adjust various settings with ease such as weight and uniqueness.
 
+Summoning features:
 - Contextual Summoning: Automatically filters by flying/ground/swimming based on your location.
 - Improved Randomness: Recently used mount families become temporarily unavailable for better variety.
-- Full Customization: Don't like how something is grouped? Move families around, create custom groups, or separate individual mounts.
-- Mount Traits: Each grouped Mount Family has traits that you can adjust, such as: Small Armor, Large Armor, Updated Texture and Unique.
-- Summoning Uniqueness Strictness: Easily toggle which traits you consider different enough in the general settings.
 - Weight System: Prioritize your favorites while still getting variety.
 - Favorite Sync: Automatically sync with your WoW Mount Journal favorites.
 - D.R.I.V.E. support: Automatically summon G-99 Breakneck when in the correct zones.
-- Macros: You can create macros that use the addon's summoning logic, however, it's not compatible with the class spells G-99 Breakneck (you can still add them manually to the macro). The command for macros is /run RMB:SRM(true) or /rmb s
+- Macros: Create macros using /run RMB:SRM(true) or /rmb s. Note: Macros won't automatically use class spells like Travel Form - you'll need to add those manually if desired.
 - Rules: Create rules to summon specific mounts in certain zones or instance types.
 
 Utility features:
-
 - Press the addon keybind to use class spells such as Flight/Travel/Cat form depending on the situation, or Levitate while falling! Classes supported: Druid, Shaman, Mage, Monk, Priest.
 ### &nbsp;
 ### Installation

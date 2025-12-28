@@ -1,4 +1,11 @@
-# 1.1.01 - 2025-12-27
+# 1.1.10 - 2025-12-27
+- Traits overhauled into a much simpler version: specific mounts are labelled as unique. If you want to see the unique mounts more often, enable the new setting "Favor Unique Mounts".
+- Updated icon for Unique trait.
+- Updated most text/descriptions and UI relating to traits.
+- Large scale update on which mounts are considered unique. Users can still adjust this from their end.
+- Fixed a bug that was making the Unique trait icon not show in the Mount Browser sometimes.
+- Removed the settings for Mount List from the Main tab since they are present in the filter tab anyway.
+- Cleaned up old test file.
 - Actually disabled rules in the old menu now (for realsies this time).
 
 # 1.1.00 - 2025-12-27

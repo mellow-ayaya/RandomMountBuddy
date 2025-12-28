@@ -1,9 +1,9 @@
 ## Interface: 110207, 120000
 ## Title: Random Mount Buddy
 ## Author: mellow_ayaya
-## Version: # 1.1.0
+## Version: # 1.1.10
 ## IconTexture: Interface\AddOns\RandomMountBuddy\Media\icon.tga
-## Notes: Balance heavily recolored mounts' summon chances with unique ones for better randomness.
+## Notes: Groups similar mounts together for balanced summoning.
 ## AddonCompartmentFunc: RMB_OnAddonCompartmentClick
 ## AddonCompartmentFuncOnEnter: RMB_OnAddonCompartmentEnter
 ## AddonCompartmentFuncOnLeave: RMB_OnAddonCompartmentLeave

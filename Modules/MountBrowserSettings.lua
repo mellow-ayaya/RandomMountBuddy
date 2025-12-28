@@ -188,20 +188,6 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 		"families and supergroups that contain only uncollected mounts.",
 		true
 	)
-	frame.groupFamiliesCB = CreateCheckbox(
-		"groupFamilies",
-		"Display mounts as intended",
-		"browserGroupFamiliesTogether",
-		"Displays mounts in their assigned groups regardless of uniqueness settings.\n|cff00ff00Recommended to keep Enabled|r",
-		false, -- Don't refresh immediately (will refresh on tab switch)
-		200,
-		function(isChecked)
-			-- Set flag to refresh when returning to browse tab
-			if mountBrowser then
-				mountBrowser.needsGridRefresh = true
-			end
-		end
-	)
 	NewRow()
 	yOffset = yOffset - sectionSpacing
 	-- ========== SUMMON SETTINGS ==========
@@ -220,47 +206,26 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 		"Recently used mount groups become temporarily unavailable for better variety.",
 		true
 	)
-	NewRow()
-	yOffset = yOffset - sectionSpacing
-	-- ========== UNIQUENESS FILTER ==========
-	CreateHeader("Uniqueness Filter")
-	local desc = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	desc:SetPoint("TOPLEFT", 40, yOffset)
-	desc:SetPoint("TOPRIGHT", -40, yOffset)
-	desc:SetJustifyH("LEFT")
-	desc:SetText(
-		"When variants are separated, they get their own slot in the mount pool, increasing overall chance of getting that mount type")
-	desc:SetWordWrap(true)
-	desc:SetHeight(60)
-	yOffset = yOffset - 70
-	xOffset = rowStartX
-	CreateCheckbox(
-		"minorArmor",
-		"Light Armor",
-		"treatMinorArmorAsDistinct",
-		"Consider minor armor differences significant enough to treat as separate families",
-		true
-	)
-	CreateCheckbox(
-		"majorArmor",
-		"Heavy Armor",
-		"treatMajorArmorAsDistinct",
-		"Consider major armor differences significant enough to treat as separate families",
-		true
-	)
-	CreateCheckbox(
-		"modelVariant",
-		"Updated Texture",
-		"treatModelVariantsAsDistinct",
-		"Consider model variants significant enough to treat as separate families",
-		true
-	)
 	CreateCheckbox(
 		"uniqueEffect",
-		"Unique",
+		"Favor Unique Mounts",
 		"treatUniqueEffectsAsDistinct",
-		"Consider unique effects/skins significant enough to treat as separate families",
+		"Mounts labelled as Unique get their own independent chance to be summoned instead of sharing chances with similar mounts.\n|cff1eff00You can toggle which mounts are unique via the gem icon in Mount Browser (expand groups to see it).|r",
 		true
+	)
+	frame.groupFamiliesCB = CreateCheckbox(
+		"groupFamilies",
+		"Unique Mounts in Groups",
+		"browserGroupFamiliesTogether",
+		"Displays mounts in their assigned groups regardless whether you enabled the Improved Unique Mount Chances setting.\n|cff00ff00Recommended to keep Enabled|r",
+		false, -- Don't refresh immediately (will refresh on tab switch)
+		200,
+		function(isChecked)
+			-- Set flag to refresh when returning to browse tab
+			if mountBrowser then
+				mountBrowser.needsGridRefresh = true
+			end
+		end
 	)
 	NewRow()
 	yOffset = yOffset - sectionSpacing

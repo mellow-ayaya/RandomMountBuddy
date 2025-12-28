@@ -30,9 +30,6 @@ FilterSystem.MOUNT_TYPES = {
 	"Aquatic",
 }
 FilterSystem.MOUNT_TRAITS = {
-	"hasMinorArmor",
-	"hasMajorArmor",
-	"hasModelVariant",
 	"isUniqueEffect",
 	"noTraits", -- Added for families with no traits
 }
@@ -310,7 +307,7 @@ function FilterSystem:MountPassesTraitFilters(mountInfo)
 	-- Check if mount matches any enabled trait filter (OR logic within category)
 	local matchesAnyEnabledTrait = false
 	-- Check specific traits
-	for _, traitName in ipairs({ "hasMinorArmor", "hasMajorArmor", "hasModelVariant", "isUniqueEffect" }) do
+	for _, traitName in ipairs({ "isUniqueEffect" }) do
 		if traits[traitName] and self:GetFilterSetting("mountTraits", traitName) then
 			matchesAnyEnabledTrait = true
 			break
@@ -319,7 +316,7 @@ function FilterSystem:MountPassesTraitFilters(mountInfo)
 
 	-- Check "no traits" - mount has no traits and "noTraits" filter is enabled
 	if not matchesAnyEnabledTrait then
-		local hasAnyTrait = traits.hasMinorArmor or traits.hasMajorArmor or traits.hasModelVariant or traits.isUniqueEffect
+		local hasAnyTrait = traits.isUniqueEffect
 		if not hasAnyTrait and self:GetFilterSetting("mountTraits", "noTraits") then
 			matchesAnyEnabledTrait = true
 		end
@@ -551,9 +548,6 @@ function FilterSystem:GetFilterStatus()
 	-- Collect active trait filters
 	local activeTraits = {}
 	local traitLabels = {
-		hasMinorArmor = "Minor Armor",
-		hasMajorArmor = "Major Armor",
-		hasModelVariant = "Model Variant",
 		isUniqueEffect = "Unique Effect",
 		noTraits = "No Traits",
 	}

@@ -157,91 +157,13 @@ local rootOptionsTable = {
 			width = 1.2,
 		},
 
-
-
-		traitStrictnessHeader = {
-			order = 80,
-			type = "header",
-			name = "Uniqueness Filter",
-		},
-
-		traitStrictnessDesc = {
-			order = 80.5,
-			type = "description",
-			name =
-					"|cffffd700How this works:|r Similar Families and Mounts are grouped together. When variants are separated via the below checkboxes, they get their own slot in the mount pool, increasing the overall chance of getting that mount type.\n\n" ..
-					"|cff00ff00Example:|r Swift Spectral Wolf normally groups with other wolves. When separated, the mount pool contains " ..
-					"'Wolf Family' + 'Swift Spectral Wolf' as separate entries, giving you more chances to get a wolf model.\n",
-			width = "full",
-			fontSize = "medium",
-		},
-
-		treatMinorArmorAsDistinct = {
-			order = 81,
-			type = "toggle",
-			name = "|TInterface\\ICONS\\Garrison_GreenArmor:18:18:0:-2|t Light Armor",
-			width = 0.9,
-			desc = "Consider minor armor differences significant enough to treat as separate families",
-			get = function() return addon:GetSetting("treatMinorArmorAsDistinct") end,
-			set = function(i, v)
-				addon:SetSetting("treatMinorArmorAsDistinct", v)
-				-- ENHANCED: Explicitly refresh mount pools after trait changes
-				C_Timer.After(0.1, function()
-					if addon.RefreshMountPools then
-						addon:RefreshMountPools()
-						addon:DebugOptions("Refreshed mount pools after trait distinctness change")
-					end
-				end)
-			end,
-			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
-		},
-
-		treatMajorArmorAsDistinct = {
-			order = 82,
-			type = "toggle",
-			name = "|TInterface\\ICONS\\Garrison_BlueArmor:18:18:0:-2|t Heavy armor",
-			width = 0.9,
-			desc = "Consider major armor differences significant enough to treat as separate families",
-			get = function() return addon:GetSetting("treatMajorArmorAsDistinct") end,
-			set = function(i, v)
-				addon:SetSetting("treatMajorArmorAsDistinct", v)
-				-- ENHANCED: Explicitly refresh mount pools after trait changes
-				C_Timer.After(0.1, function()
-					if addon.RefreshMountPools then
-						addon:RefreshMountPools()
-						addon:DebugOptions("Refreshed mount pools after trait distinctness change")
-					end
-				end)
-			end,
-			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
-		},
-
-		treatModelVariantsAsDistinct = {
-			order = 83,
-			type = "toggle",
-			name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Green:18:18:0:-2|t Updated texture",
-			width = 0.9,
-			desc = "Consider model variants significant enough to treat as separate families",
-			get = function() return addon:GetSetting("treatModelVariantsAsDistinct") end,
-			set = function(i, v)
-				addon:SetSetting("treatModelVariantsAsDistinct", v)
-				-- ENHANCED: Explicitly refresh mount pools after trait changes
-				C_Timer.After(0.1, function()
-					if addon.RefreshMountPools then
-						addon:RefreshMountPools()
-						addon:DebugOptions("Refreshed mount pools after trait distinctness change")
-					end
-				end)
-			end,
-			disabled = function() return not addon:GetSetting("useSuperGrouping") end,
-		},
-
 		treatUniqueEffectsAsDistinct = {
-			order = 84,
+			order = 33,
 			type = "toggle",
-			name = "|TInterface\\ICONS\\INV_10_GearUpgrade_Flightstone_Blue:18:18:0:-2|t Unique",
-			width = 0.8,
-			desc = "Consider unique effects/skins significant enough to treat as separate families",
+			name = "Favor Unique Mounts",
+			width = "1.2",
+			desc =
+			"Displays mounts in their assigned groups regardless whether you enabled the Improved Unique Mount Chances setting.\n|cff00ff00Recommended to keep Enabled|r",
 			get = function() return addon:GetSetting("treatUniqueEffectsAsDistinct") end,
 			set = function(i, v)
 				addon:SetSetting("treatUniqueEffectsAsDistinct", v)
@@ -563,107 +485,6 @@ local rootOptionsTable = {
 						else
 							addon:AlwaysPrint("Mount Browser not available")
 						end
-					end,
-					width = "full",
-				},
-			},
-		},
-		mountListSettings = {
-			order = 9999,
-			name = "",
-			type = "group",
-			inline = true,
-			args = {
-				displaySettingsHeader = {
-					order = 9,
-					type = "header",
-					name = "Mount List Settings (LEGACY)",
-				},
-
-				showUncollectedMounts = {
-					order = 10,
-					type = "toggle",
-					name = "Show Uncollected Mounts",
-					desc =
-					"If checked, uncollected mounts will be shown in the interface. When disabled, also hides single-mount families that contain only an uncollected mount.\n\n|cff888888This setting is also available in the filter panel|r",
-					get = function() return addon:GetSetting("showUncollectedMounts") end,
-					set = function(i, value)
-						addon:SetSetting("showUncollectedMounts", value)
-						-- ENHANCED: Refresh mount pools since this affects which mounts are available
-						if addon.RefreshMountPools then
-							addon:RefreshMountPools()
-							print("RMB_OPTIONS: Refreshed mount pools after uncollected mounts setting change")
-						end
-
-						-- Trigger immediate UI refresh to show/hide uncollected items
-						if addon.PopulateFamilyManagementUI then
-							addon:PopulateFamilyManagementUI()
-						end
-					end,
-					width = 1.6,
-				},
-
-				showAllUncollectedGroups = {
-					order = 11,
-					type = "toggle",
-					name = "Show Families with Only Uncollected Mounts",
-					desc =
-					"If checked, families and supergroups that contain only uncollected mounts will be shown in the interface. Only available when 'Show Uncollected Mounts' is enabled.\n\n|cff888888This setting is also available in the filter panel|r",
-					get = function() return addon:GetSetting("showAllUncollectedGroups") end,
-					set = function(i, value)
-						addon:SetSetting("showAllUncollectedGroups", value)
-						-- ENHANCED: Refresh mount pools since this affects which groups are available
-						if addon.RefreshMountPools then
-							addon:RefreshMountPools()
-							print("RMB_OPTIONS: Refreshed mount pools after uncollected groups setting change")
-						end
-
-						-- Trigger immediate UI refresh to show/hide uncollected groups
-						if addon.PopulateFamilyManagementUI then
-							addon:PopulateFamilyManagementUI()
-						end
-					end,
-					disabled = function()
-						return not addon:GetSetting("showUncollectedMounts")
-					end,
-					width = 2,
-				},
-
-				itemsPerPage = {
-					order = 12,
-					type = "select",
-					name = "Items per Page",
-					desc =
-					"Number of groups to show per page in Mount List\n\n|cff888888This setting is also available in the filter panel|r",
-					values = {
-						[14] = "14 (Default)",
-						[30] = "30",
-						[60] = "60",
-						[90] = "90",
-						[1000] = "All",
-					},
-					get = function()
-						return addon:FMG_GetItemsPerPage()
-					end,
-					set = function(info, value)
-						addon:FMG_SetItemsPerPage(value)
-					end,
-					width = 3.6,
-				},
-
-				currentTotalInfo = {
-					order = 13,
-					type = "description",
-					name = function()
-						if not addon.RMB_DataReadyForUI then
-							return "Loading mount data..."
-						end
-
-						local allGroups = addon:GetDisplayableGroups() or {}
-						local totalGroups = #allGroups
-						local itemsPerPage = addon:FMG_GetItemsPerPage()
-						local totalPages = math.max(1, math.ceil(totalGroups / itemsPerPage))
-						return string.format("Currently: %d total groups across %d pages", totalGroups, totalPages)
 					end,
 					width = "full",
 				},
@@ -1009,14 +830,16 @@ local advancedSettingsOptionsTable = {
 					"|cffffff001. Mounts -> Families|r\n" ..
 					"Mounts that use the literal same model but different colors are grouped in families.\n    Example 1: The Black Wolf and the Gray Wolf in the Wolf Family.\n    Example 2: The Black War Wolf and Swift Gray Wolf are in the Armored Wolf family instead since they have extra armor on them.\n\n" ..
 					"|cffffff002. Families -> Supergroups|r\n" ..
-					"Families with similar models are grouped in the same Supergroups.\n    Example 1: The Wolf family and the Armored Wolf family are both in the Wolves supergroup.\n" ..
+					"Families with similar models are grouped in the same Supergroups.\n" ..
+					"    Example: The Wolf family and the Armored Wolf family are both in the Wolves supergroup.\n" ..
 					"Families with truly unique models like Jade, remain standalone (don't get added to supergroups).\n\n" ..
-					"|cffffff003. Traits System|r\n" ..
-					"Each family that belongs to a supergroup has one or more traits: Minor Armor, Major Armor, Updated Model, Unique.\n" ..
-					"In the general settings, you can separate families from groups based on the selected trait. This essentially is supposed to be a toggle that says 'I'd like to see mounts with X trait more often'.\n\n" ..
+					"|cffffff003. Uniqueness System|r\n" ..
+					"Families that are assigned to Groups can be labelled as Unique." ..
+					"Enabling the 'Favor Unique Mounts' toggle in Settings will ungroup the Unique Families, meaning that they will compete in the summoning process individually from their group.\n\n" ..
 					"|cffffff004. Summoning|r\n" ..
 					"The mount summoning process picks a supergroup or ungrouped family, then a mount within it, to equalize chances between mounts with a lot of recolor and unique ones.\n" ..
-					"    Example 1: With the default settings, Wolves are one of the eligible groups and ungrouped families for summoning, meaning that to see an Armored Wolf, the Wolf group needs to win the roll, then the Armored Wolf family needs to win the roll.\n    Example 2: With the minor trait sepration enabled, the summon pool will contain Wolves + Armored Wolves separately, doubling the chance to see a wolf and increasing the chances of seeing an Armored Wolf by a lot.\n\n" ..
+					"    Example 1: With the default settings, Wolves are one of the eligible groups and ungrouped families for summoning, meaning that to summon the Spectral Wolf, the Wolf group needs to win the roll, then the Spectral Wolf needs to win the roll.\n" ..
+					"    Example 2: With the 'Favor Unique Mounts' toggle enabled, the summon pool will contain Wolves + Spectral Wolf separately, heavily increasing the chances of summoning the Spectral Wolf, and doubling the chance to summon any Wolf.\n\n" ..
 					"|cff00ff00Available Tools|r\n" ..
 					"|cffffff00Supergroup Management:|r Create custom supergroups, rename existing ones, delete unwanted groups\n" ..
 					"|cffffff00Family Assignment:|r Move families between supergroups, make families standalone\n" ..

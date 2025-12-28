@@ -1048,8 +1048,22 @@ function MountBrowser:CreateMainFrame()
 				if MountBrowser.scrollStopCounter == currentCounter then
 					MountBrowser.isActivelyScrolling = false
 					MountBrowser.buttonsHiddenForScroll = false
-					-- Check visible cards to update and re-enable mouse for viewport cards
-					-- This happens only once when scrolling stops, not during drag
+					-- CRITICAL FIX: Re-evaluate traits for cards that loaded during scrolling
+					-- Clear trait flags but keep currentDataKey to use fast path (no model reload)
+					local updatedCount = 0
+					for _, card in ipairs(MountBrowser.cardPool) do
+						if card:IsVisible() and card.data then
+							-- Clear trait positioning to force re-evaluation
+							card.traitButtonsPositioned = false
+							card.lastTraitKey = nil
+							-- Directly update card (will use fast path since currentDataKey matches)
+							MountBrowser:UpdateCard(card, card.data)
+							updatedCount = updatedCount + 1
+						end
+					end
+
+					addon:DebugUI("SCROLL_SETTLE: Updated traits for " .. updatedCount .. " cards (fast path)")
+					-- Still call CheckVisibleCards for mouse re-enabling and any cards that need full updates
 					MountBrowser:CheckVisibleCards()
 				end
 			end)
@@ -1213,6 +1227,16 @@ function MountBrowser:Show()
 	-- Ensure we're not in scrolling state
 	self.isActivelyScrolling = false
 	self.buttonsHiddenForScroll = false
+	-- CRITICAL FIX: Re-evaluate traits for any cards that were loaded during scrolling
+	-- This can happen if browser was previously opened and immediately closed during scroll
+	for _, card in ipairs(self.cardPool) do
+		if card:IsVisible() and card.data then
+			-- Clear trait positioning to force re-evaluation (keeps currentDataKey for fast path)
+			card.traitButtonsPositioned = false
+			card.lastTraitKey = nil
+		end
+	end
+
 	-- Clear representative mount cache for fresh randomization on each open
 	self.representativeMountCache = {}
 	addon:DebugUI("Cleared representative mount cache")

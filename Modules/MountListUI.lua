@@ -565,11 +565,8 @@ function addon:BuildFilterPanelArgs()
 	}
 	order = order + 1
 	local traitLabels = {
-		hasMinorArmor = "Minor Armor",
-		hasMajorArmor = "Major Armor",
-		hasModelVariant = "Model Variant",
-		isUniqueEffect = "Unique Effect",
-		noTraits = "No Traits",
+		isUniqueEffect = "Unique",
+		noTraits = "Not Unique",
 	}
 	if self.FilterSystem then
 		for _, traitName in ipairs(self.FilterSystem.MOUNT_TRAITS) do

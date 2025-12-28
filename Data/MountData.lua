@@ -1868,7 +1868,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Brewfest Barrel Bomber"] = {
         superGroup = "Aerial Units",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
 
     ["Cartel Aerial Unit"] = {
@@ -1878,7 +1878,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Prototype A.S.M.R."] = {
         superGroup = "Aerial Units",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     -- Antoran Hound
@@ -1973,7 +1973,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Grizzly Hills Packmaster"] = {
         superGroup = "Bears",
-        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
     },
 
     ["Harmonious Salutations Bear"] = {
@@ -2066,7 +2066,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Progenitor Wombat"] = {
         superGroup = "Boars",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     -- Brutosaurs
@@ -2188,7 +2188,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Mawrat"] = {
         superGroup = "Darkhounds",
-        traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     -- Direhorns
@@ -2215,12 +2215,12 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Orgrimmar Interceptor"] = {
         superGroup = "Dirigibles",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
     },
 
     ["Stormwind Skychaser"] = {
         superGroup = "Dirigibles",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
     },
 
     -- Dragonhawks
@@ -2358,7 +2358,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Kareshi Dread Raven"] = {
         superGroup = "Dread ravens",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     ["Roc"] = {
@@ -2456,12 +2456,12 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Glacial Tidestorm"] = {
         superGroup = "Elementals",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     ["Runebound Firelord"] = {
         superGroup = "Elementals",
-        traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     ["Shadow"] = {
@@ -2716,7 +2716,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     -- Flying Sabers
     ["Arcanist's Manasaber"] = {
         superGroup = "Flying Sabers",
-        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
     },
 
     ["Ash'adar"] = {
@@ -2726,22 +2726,22 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Ban-Lu"] = {
         superGroup = "Flying Sabers",
-        traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     ["Jeweled Panther"] = {
         superGroup = "Flying Sabers",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     ["Luminous Starseeker"] = {
         superGroup = "Flying Sabers",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     ["Mystic Runesaber"] = {
         superGroup = "Flying Sabers",
-        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
     },
 
     ["Obsidian Nightwing"] = {
@@ -2945,7 +2945,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Skyblazer"] = {
         superGroup = "Hawks",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     -- Hawkstriders
@@ -3048,7 +3048,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Darkmoon Charger"] = {
         superGroup = "Horses",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     ["Deathcharger"] = {
@@ -3219,7 +3219,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     -- Lions
     ["Eternal Phalynx"] = {
         superGroup = "Lions",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
     },
 
     ["Golden King"] = {
@@ -3234,7 +3234,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Phalynx"] = {
         superGroup = "Lions",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
     },
 
     ["Vicious War Lion (PVP)"] = {
@@ -3421,7 +3421,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Charming Courier"] = {
         superGroup = "Owls",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     -- Oxes
@@ -3504,7 +3504,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Slayer's Felbroken Shrieker"] = {
         superGroup = "Plaguebats",
-        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
     },
 
     -- Proto-Drakes
@@ -3572,7 +3572,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Qiraji War Tank"] = {
         superGroup = "Qirajis",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     -- Quilens
@@ -3685,14 +3685,14 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     },
 
     ["Squeakers, the Trickster"] = {
-        superGroup = "Rats",
+        superGroup = "nil",
         traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = false, isUniqueEffect = false },
     },
 
     -- Rockets
     ["Cartel Rocket"] = {
         superGroup = "Rockets",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     ["Depleted-Kyparium Rocket"] = {
@@ -3707,7 +3707,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Lunar Launcher"] = {
         superGroup = "Rockets",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
     },
 
     ["Rocket"] = {
@@ -3768,7 +3768,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Priestess' Moonsaber"] = {
         superGroup = "Sabers",
-        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
     },
 
     ["Primal Flamesaber"] = {
@@ -3813,7 +3813,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Void-Scarred Pack Mother"] = {
         superGroup = "Sabers",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     ["X-995 Mechanocat"] = {
@@ -3834,7 +3834,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Telix"] = {
         superGroup = "Scarabs",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     -- Scorpions
@@ -3992,17 +3992,17 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Snail"] = {
         superGroup = "Snails",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
 
     ["Snailemental"] = {
         superGroup = "Snails",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     ["Vicious War Snail (PVP)"] = {
         superGroup = "Snails",
-        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = false, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = false, isUniqueEffect = false },
     },
 
     -- Snapdragons
@@ -4137,7 +4137,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Drone"] = {
         superGroup = "Hymenoptera",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
     },
 
     ["Falcosaur"] = {
@@ -4377,7 +4377,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Yeti"] = {
         superGroup = "Gronnlings",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
     -- Storm Dragons
@@ -4431,7 +4431,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     -- Sweepers
     ["Eve's Ghastly Rider"] = {
         superGroup = "Sweepers",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
     },
 
     ["Sweeper"] = {
@@ -4563,7 +4563,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     -- Winged Flying Horses
     ["Celestial Steed"] = {
         superGroup = "Winged Flying Horses",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
     },
 
     ["Cindermane Charger"] = {
@@ -4578,7 +4578,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Inarius' Charger"] = {
         superGroup = "Winged Flying Horses",
-        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
+        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
     },
 
     ["Invincible"] = {
@@ -4588,7 +4588,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Tyrael's Charger"] = {
         superGroup = "Winged Flying Horses",
-        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = false },
+        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
     },
 
     -- Wolves
