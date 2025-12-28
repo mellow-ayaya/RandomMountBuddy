@@ -95,7 +95,7 @@ function MountBrowser:GetFamilyCapabilities(familyName)
 	end
 
 	-- Also check uncollected mounts if showing them (excluding separated mounts)
-	if addon:GetSetting("showUncollectedMounts") then
+	if addon:GetSetting("browserShowUncollectedMounts") then
 		local uncollectedMounts = addon.processedData.familyToUncollectedMountIDsMap and
 				addon.processedData.familyToUncollectedMountIDsMap[familyName] or {}
 		for _, mountID in ipairs(uncollectedMounts) do
@@ -157,7 +157,7 @@ function MountBrowser:GetSupergroupCapabilities(supergroupName)
 	end
 
 	-- Also check uncollected (excluding separated families)
-	if addon:GetSetting("showUncollectedMounts") then
+	if addon:GetSetting("browserShowUncollectedMounts") then
 		local uncollectedMounts = addon.processedData.superGroupToUncollectedMountIDsMap and
 				addon.processedData.superGroupToUncollectedMountIDsMap[supergroupName] or {}
 		for _, mountID in ipairs(uncollectedMounts) do

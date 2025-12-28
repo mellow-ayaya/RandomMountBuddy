@@ -33,7 +33,9 @@ local dbDefaults = {
 		browserShowGroupIndicators = true,
 		browserShowUniquenessIndicators = true,
 		browserShowCapabilityIndicators = true,
-		browserGroupFamiliesTogether = false, -- Keep families in supergroups regardless of traits (inverted from browserUseStrictGrouping)
+		browserGroupFamiliesTogether = true,
+		browserShowUncollectedMounts = true,
+		browserShowAllUncollectedGroups = true,
 		-- Summoning
 		contextualSummoning = true,
 		useDeterministicSummoning = true,
@@ -87,6 +89,11 @@ local dbDefaults = {
 		separatedMounts = {},         -- { [mountID] = { familyName="Separated_Mount_123", customTraits={}, originalFamily="Dragons" } }
 		-- Notifications
 		showKeybindNotification = true, -- NEW: Show notification on login if no keybind is set
+		-- Utility Mounts
+		utilityMounts_enabled = true,
+		utilityMounts_anchor = "BOTTOM", -- BOTTOM, TOP, LEFT, RIGHT
+		utilityMounts_iconSize = 48,    -- 16-128
+		utilityMounts_enabledMounts = {}, -- { [mountID] = true/false }, defaults to true if not present
 	},
 }
 -- Library initialization
@@ -710,6 +717,19 @@ function addon:OnInitialize()
 				self.fmItemsPerPage = self.db.profile.fmItemsPerPage
 				self:DebugCore("Loaded fmItemsPerPage: " .. tostring(self.fmItemsPerPage))
 			end
+
+			-- One-time migration: Copy old settings to new browser-specific settings
+			if self.db.profile.browserShowUncollectedMounts == nil then
+				self.db.profile.browserShowUncollectedMounts = self.db.profile.showUncollectedMounts
+				self:DebugCore("Migrated showUncollectedMounts to browserShowUncollectedMounts: " ..
+					tostring(self.db.profile.browserShowUncollectedMounts))
+			end
+
+			if self.db.profile.browserShowAllUncollectedGroups == nil then
+				self.db.profile.browserShowAllUncollectedGroups = self.db.profile.showAllUncollectedGroups
+				self:DebugCore("Migrated showAllUncollectedGroups to browserShowAllUncollectedGroups: " ..
+					tostring(self.db.profile.browserShowAllUncollectedGroups))
+			end
 		else
 			self:DebugCore("self.db.profile nil!")
 		end
@@ -892,6 +912,12 @@ function addon:InitializeAllMountModules()
 	if self.InitializeMountRules then
 		self:InitializeMountRules()
 		self:DebugCore("MountRules initialized")
+	end
+
+	-- Utility Mounts (needs mount data)
+	if self.UtilityMounts and self.UtilityMounts.Initialize then
+		self.UtilityMounts:Initialize()
+		self:DebugCore("UtilityMounts initialized")
 	end
 
 	-- UI components come last as they depend on everything else
@@ -2993,6 +3019,10 @@ function addon:NotifyModulesDataReady()
 
 	if self.MountSummon and self.MountSummon.OnMountCollectionChanged then
 		self.MountSummon:OnMountCollectionChanged()
+	end
+
+	if self.UtilityMounts and self.UtilityMounts.OnMountCollectionChanged then
+		self.UtilityMounts:OnMountCollectionChanged()
 	end
 end
 

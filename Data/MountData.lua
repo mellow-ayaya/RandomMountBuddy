@@ -3685,7 +3685,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     },
 
     ["Squeakers, the Trickster"] = {
-        superGroup = "nil",
+        superGroup = nil,
         traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = false, isUniqueEffect = false },
     },
 

@@ -1,3 +1,10 @@
+# 1.1.20 - 2025-12-28
+- Improved description on for 'Show Uniques in Groups' toggle (previously called Unique Mounts in Groups)
+- 'Show Uniques in Groups' is now correctly toggled on by default
+- The checkboxes for toggling whether uncollected mounts and groups appear in the Mount Browser work as intended now.
+- Added a new feature: Utility mounts anchored to the bottom of the esc menu, enabled by default.
+- Squeakers successfully made it out of the nil group (oopsie)
+
 # 1.1.10 - 2025-12-27
 - Traits overhauled into a much simpler version: specific mounts are labelled as unique. If you want to see the unique mounts more often, enable the new setting "Favor Unique Mounts".
 - Updated icon for Unique trait.

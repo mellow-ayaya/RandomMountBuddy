@@ -116,6 +116,135 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 	)
 	NewRow()
 	yOffset = yOffset - sectionSpacing
+	-- ========== UTILITY MOUNTS SETTINGS ==========
+	CreateHeader("Utility Mounts")
+	-- First row: Enable checkbox, Position dropdown, Icon Size slider
+	CreateCheckbox(
+		"utilityMountsEnabled",
+		"Show Utility Mounts",
+		"utilityMounts_enabled",
+		"Display clickable utility mount icons on the game menu (ESC).",
+		false,
+		200, -- Width for checkbox
+		function(isChecked)
+			-- Refresh utility mounts display
+			if addon.UtilityMounts and addon.UtilityMounts.RefreshDisplay then
+				addon.UtilityMounts:RefreshDisplay()
+			end
+		end
+	)
+	-- Position dropdown (on same row)
+	local anchorLabel = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	anchorLabel:SetPoint("TOPLEFT", xOffset, yOffset - 8)
+	anchorLabel:SetText("Position:")
+	local anchorDropdown = CreateFrame("Frame", "RMB_UtilityMounts_AnchorDropdown", scrollChild, "UIDropDownMenuTemplate")
+	anchorDropdown:SetPoint("TOPLEFT", xOffset + 40, yOffset + 1)
+	UIDropDownMenu_SetWidth(anchorDropdown, 100)
+	local anchorOptions = {
+		{ value = "BOTTOM", text = "Bottom" },
+		{ value = "TOP", text = "Top" },
+		{ value = "LEFT", text = "Left" },
+		{ value = "RIGHT", text = "Right" },
+	}
+	UIDropDownMenu_Initialize(anchorDropdown, function(self, level)
+		for _, option in ipairs(anchorOptions) do
+			local info = UIDropDownMenu_CreateInfo()
+			info.text = option.text
+			info.value = option.value
+			info.func = function()
+				addon:SetSetting("utilityMounts_anchor", option.value)
+				UIDropDownMenu_SetText(anchorDropdown, option.text)
+				if addon.UtilityMounts and addon.UtilityMounts.RefreshDisplay then
+					addon.UtilityMounts:RefreshDisplay()
+				end
+			end
+			info.checked = (addon:GetSetting("utilityMounts_anchor") == option.value)
+			UIDropDownMenu_AddButton(info, level)
+		end
+	end)
+	-- Set initial text
+	local currentAnchor = addon:GetSetting("utilityMounts_anchor") or "BOTTOM"
+	for _, option in ipairs(anchorOptions) do
+		if option.value == currentAnchor then
+			UIDropDownMenu_SetText(anchorDropdown, option.text)
+			break
+		end
+	end
+
+	xOffset = xOffset + 200
+	-- Icon size slider (on same row)
+	local sizeLabel = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	sizeLabel:SetPoint("TOPLEFT", xOffset, yOffset - 4)
+	sizeLabel:SetText("Icon Size:")
+	local sizeSlider = CreateFrame("Slider", "RMB_UtilityMounts_SizeSlider", scrollChild, "OptionsSliderTemplate")
+	sizeSlider:SetPoint("TOPLEFT", xOffset + 65, yOffset - 4)
+	sizeSlider:SetMinMaxValues(16, 128)
+	sizeSlider:SetValueStep(1)
+	sizeSlider:SetObeyStepOnDrag(true)
+	sizeSlider:SetWidth(120)
+	sizeSlider:SetValue(addon:GetSetting("utilityMounts_iconSize") or 48)
+	-- Set slider label texts
+	_G[sizeSlider:GetName() .. "Low"]:SetText("16")
+	_G[sizeSlider:GetName() .. "High"]:SetText("64")
+	_G[sizeSlider:GetName() .. "Text"]:SetText(sizeSlider:GetValue())
+	sizeSlider:SetScript("OnValueChanged", function(self, value)
+		value = math.floor(value + 0.5) -- Round to nearest integer
+		_G[self:GetName() .. "Text"]:SetText(value)
+		addon:SetSetting("utilityMounts_iconSize", value)
+		if addon.UtilityMounts and addon.UtilityMounts.RefreshDisplay then
+			addon.UtilityMounts:RefreshDisplay()
+		end
+	end)
+	-- Start new row for mount list
+	NewRow()
+	yOffset = yOffset - 10 -- Add a bit of spacing
+	-- Mount enable/disable list
+	local mountListLabel = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	mountListLabel:SetPoint("TOPLEFT", xOffset, yOffset)
+	mountListLabel:SetText("Enabled Mounts:")
+	yOffset = yOffset - 25
+	-- Create checkboxes for each utility mount
+	if addon.UtilityMounts and addon.UtilityMounts.GetMountList then
+		local mountList = addon.UtilityMounts:GetMountList()
+		local playerFaction = UnitFactionGroup("player")
+		for i, mountData in ipairs(mountList) do
+			-- Skip faction-restricted mounts for wrong faction
+			if not mountData.faction or mountData.faction == playerFaction then
+				-- Check if mount is owned
+				local mountID = mountData.mountID
+				local mountName, _, _, _, _, _, _, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(mountID)
+				if mountName and isCollected then
+					-- Check if we need to wrap to next row
+					if xOffset > rowStartX and (xOffset + 250) > maxRowWidth then
+						NewRow()
+					end
+
+					local cb = CreateFrame("CheckButton", nil, scrollChild, "InterfaceOptionsCheckButtonTemplate")
+					cb:SetPoint("TOPLEFT", xOffset, yOffset)
+					cb.Text:SetText(mountName) -- Use localized name
+					cb.Text:SetFontObject("GameFontHighlight")
+					-- Set initial state
+					cb:SetChecked(addon.UtilityMounts:IsMountEnabled(mountID))
+					-- On click handler
+					cb:SetScript("OnClick", function(self)
+						local isChecked = self:GetChecked()
+						addon.UtilityMounts:SetMountEnabled(mountID, isChecked)
+					end)
+					-- Tooltip with trait description
+					local traitDesc = addon.UtilityMounts:GetMountTraitDescription(mountID)
+					mountBrowser:SetupSimpleTooltip(cb, {
+						text = mountName,
+						desc = traitDesc,
+						anchor = "ANCHOR_TOP",
+					})
+					xOffset = xOffset + 200
+				end
+			end
+		end
+	end
+
+	NewRow()
+	yOffset = yOffset - sectionSpacing
 	-- ========== BROWSER DISPLAY SETTINGS ==========
 	CreateHeader("Browser (first tab) Config")
 	frame.collectionStatusCB = CreateCheckbox(
@@ -177,16 +306,30 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 	CreateCheckbox(
 		"showUncollected",
 		"Uncollected Mounts",
-		"showUncollectedMounts",
-		"uncollected mounts in the interface. When disabled, also hides single-mount families with only uncollected mounts.",
-		true
+		"browserShowUncollectedMounts",
+		"Show uncollected mounts in the Mount Browser.\n|cff00ff00Recommended to sync with Uncollected Groups|r.",
+		true,
+		nil, -- Use default width
+		function(isChecked)
+			-- Refresh the mount browser view to show/hide uncollected mounts
+			if mountBrowser and mountBrowser.RefreshCurrentView then
+				mountBrowser:RefreshCurrentView()
+			end
+		end
 	)
 	CreateCheckbox(
 		"showUncollectedGroups",
 		"Uncollected Groups",
-		"showAllUncollectedGroups",
-		"families and supergroups that contain only uncollected mounts.",
-		true
+		"browserShowAllUncollectedGroups",
+		"Show families and groups that contain only uncollected mounts.\n|cff00ff00Recommended to sync with Uncollected Mounts|r",
+		true,
+		nil, -- Use default width
+		function(isChecked)
+			-- Refresh the mount browser view to show/hide uncollected groups
+			if mountBrowser and mountBrowser.RefreshCurrentView then
+				mountBrowser:RefreshCurrentView()
+			end
+		end
 	)
 	NewRow()
 	yOffset = yOffset - sectionSpacing
@@ -215,9 +358,9 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 	)
 	frame.groupFamiliesCB = CreateCheckbox(
 		"groupFamilies",
-		"Unique Mounts in Groups",
+		"Show Uniques in Groups",
 		"browserGroupFamiliesTogether",
-		"Displays mounts in their assigned groups regardless whether you enabled the Improved Unique Mount Chances setting.\n|cff00ff00Recommended to keep Enabled|r",
+		"Displays mounts in their assigned groups regardless whether you enabled the 'Favor Unique Mounts' setting.\n|cff00ff00Recommended to keep Enabled|r",
 		false, -- Don't refresh immediately (will refresh on tab switch)
 		200,
 		function(isChecked)

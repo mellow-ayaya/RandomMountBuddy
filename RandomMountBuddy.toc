@@ -1,7 +1,7 @@
 ## Interface: 110207, 120000
 ## Title: Random Mount Buddy
 ## Author: mellow_ayaya
-## Version: # 1.1.10
+## Version: # 1.1.20
 ## IconTexture: Interface\AddOns\RandomMountBuddy\Media\icon.tga
 ## Notes: Groups similar mounts together for balanced summoning.
 ## AddonCompartmentFunc: RMB_OnAddonCompartmentClick
@@ -57,6 +57,9 @@ Modules\MountRules.lua
 
 # Mount Summon Files
 Modules\MountSummon.lua
+
+# Utility Files
+Modules\UtilityMounts.lua
 
 # Secure Handlers
 Modules\SecureHandlers.lua

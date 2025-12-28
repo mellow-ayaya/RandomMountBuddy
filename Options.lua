@@ -105,6 +105,23 @@ local rootOptionsTable = {
 			width = 1,
 		},
 
+		utilityMountsEnabled = {
+			order = 22,
+			type = "toggle",
+			name = "Show Utility Mounts",
+			desc =
+			"Display clickable utility mount icons on the game menu (ESC).\n|cff00ff00RFurther ustomization options can be found in the Mount Browser.|r",
+			get = function() return addon:GetSetting("utilityMounts_enabled") end,
+			set = function(i, v)
+				addon:SetSetting("utilityMounts_enabled", v)
+				-- Refresh utility mounts display
+				if addon.UtilityMounts and addon.UtilityMounts.RefreshDisplay then
+					addon.UtilityMounts:RefreshDisplay()
+				end
+			end,
+			width = 1.4,
+		},
+
 		generalHeader = {
 			order = 30,
 			type = "header",

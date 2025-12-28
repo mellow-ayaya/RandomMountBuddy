@@ -12,6 +12,72 @@ local CARD_SPACING = 10
 local CARDS_PER_ROW = 5
 local GRID_HEIGHT = 800
 -- ============================================================================
+-- COLLECTION STATUS HELPERS
+-- ============================================================================
+-- Check if a family is a single-mount family (only 1 mount total, collected or uncollected)
+function MountBrowser:FamilyIsSingleMount(familyName)
+	if not addon.processedData then return false end
+
+	local collectedCount = 0
+	local uncollectedCount = 0
+	-- Count collected mounts
+	if addon.processedData.familyToMountIDsMap and addon.processedData.familyToMountIDsMap[familyName] then
+		collectedCount = #addon.processedData.familyToMountIDsMap[familyName]
+	end
+
+	-- Count uncollected mounts
+	if addon.processedData.familyToUncollectedMountIDsMap and addon.processedData.familyToUncollectedMountIDsMap[familyName] then
+		uncollectedCount = #addon.processedData.familyToUncollectedMountIDsMap[familyName]
+	end
+
+	local totalCount = collectedCount + uncollectedCount
+	return totalCount == 1
+end
+
+-- Check if a family has any collected mounts
+function MountBrowser:FamilyHasCollectedMounts(familyName)
+	if not addon.processedData or not addon.processedData.familyToMountIDsMap then
+		return false
+	end
+
+	local mountIDs = addon.processedData.familyToMountIDsMap[familyName]
+	if mountIDs and #mountIDs > 0 then
+		return true -- Has collected mounts
+	end
+
+	return false
+end
+
+-- Check if a family is multi-mount with all uncollected
+function MountBrowser:FamilyIsMultiMountAllUncollected(familyName)
+	-- If it's a single mount family, return false
+	if self:FamilyIsSingleMount(familyName) then
+		return false
+	end
+
+	-- Check if it has NO collected mounts (meaning all are uncollected)
+	return not self:FamilyHasCollectedMounts(familyName)
+end
+
+-- Check if a supergroup has any collected mounts (checks all its families)
+function MountBrowser:SuperGroupHasCollectedMounts(supergroupName)
+	if not addon.processedData or not addon.processedData.superGroupMap then
+		return false
+	end
+
+	local families = addon.processedData.superGroupMap[supergroupName]
+	if not families then return false end
+
+	for _, familyName in ipairs(families) do
+		if self:FamilyHasCollectedMounts(familyName) then
+			return true -- At least one family has collected mounts
+		end
+	end
+
+	return false
+end
+
+-- ============================================================================
 -- VIEW CACHE MANAGEMENT
 -- ============================================================================
 -- ============================================================================
@@ -206,6 +272,39 @@ function MountBrowser:LoadMainGrid()
 		})
 	end
 
+	-- Filter by collection status based on settings
+	local showUncollectedMounts = addon:GetSetting("browserShowUncollectedMounts")
+	local showUncollectedGroups = addon:GetSetting("browserShowAllUncollectedGroups")
+	local filteredItems = {}
+	for _, item in ipairs(items) do
+		local shouldInclude = true
+		if item.type == "supergroup" then
+			-- Supergroups: hide if all mounts are uncollected and setting is disabled
+			if not showUncollectedGroups and not self:SuperGroupHasCollectedMounts(item.key) then
+				shouldInclude = false
+			end
+		elseif item.type == "familyName" then
+			-- Families: check if single-mount or multi-mount
+			if self:FamilyIsSingleMount(item.key) then
+				-- Single-mount family: hide if uncollected and showUncollectedMounts is disabled
+				if not showUncollectedMounts and not self:FamilyHasCollectedMounts(item.key) then
+					shouldInclude = false
+				end
+			else
+				-- Multi-mount family: hide if all uncollected and showUncollectedGroups is disabled
+				if not showUncollectedGroups and self:FamilyIsMultiMountAllUncollected(item.key) then
+					shouldInclude = false
+				end
+			end
+		end
+
+		if shouldInclude then
+			table.insert(filteredItems, item)
+		end
+	end
+
+	items = filteredItems
+	addon:DebugUI("Filtered main grid by collection status - showing " .. #items .. " items")
 	-- Sort items using current sort mode
 	if self.Sort then
 		items = self.Sort:SortItems(items)
@@ -354,6 +453,20 @@ function MountBrowser:LoadFamilyGrid(supergroupName, skipStackPush)
 		end
 	end
 
+	-- Filter multi-mount families with all uncollected if setting is disabled
+	if not addon:GetSetting("browserShowAllUncollectedGroups") then
+		local filteredItems = {}
+		for _, item in ipairs(items) do
+			-- Only filter if it's a multi-mount family with all uncollected
+			if not self:FamilyIsMultiMountAllUncollected(item.key) then
+				table.insert(filteredItems, item)
+			end
+		end
+
+		items = filteredItems
+		addon:DebugUI("Filtered family grid by collection status - showing " .. #items .. " families")
+	end
+
 	-- Sort items using current sort mode
 	if self.Sort then
 		items = self.Sort:SortItems(items)
@@ -463,7 +576,7 @@ function MountBrowser:LoadMountGrid(familyName, fromSupergroup, skipStackPush)
 	end
 
 	-- Add uncollected mounts
-	if addon.processedData and addon.processedData.familyToUncollectedMountIDsMap and
+	if addon:GetSetting("browserShowUncollectedMounts") and addon.processedData and addon.processedData.familyToUncollectedMountIDsMap and
 			addon.processedData.familyToUncollectedMountIDsMap[familyName] then
 		local mountIDs = addon.processedData.familyToUncollectedMountIDsMap[familyName]
 		for _, mountID in ipairs(mountIDs) do

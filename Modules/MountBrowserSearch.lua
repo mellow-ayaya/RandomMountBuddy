@@ -187,7 +187,7 @@ function MountBrowserSearch:ProcessFamily(familyName, supergroupName, searchTerm
 	end
 
 	-- Also check uncollected mounts if enabled
-	if addon:GetSetting("showUncollectedMounts") then
+	if addon:GetSetting("browserShowUncollectedMounts") then
 		local uncollectedIDs = addon.processedData.familyToUncollectedMountIDsMap and
 				addon.processedData.familyToUncollectedMountIDsMap[familyName] or {}
 		for _, mountID in ipairs(uncollectedIDs) do
