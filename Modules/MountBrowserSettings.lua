@@ -117,7 +117,7 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 	NewRow()
 	yOffset = yOffset - sectionSpacing
 	-- ========== UTILITY MOUNTS SETTINGS ==========
-	CreateHeader("Utility Mounts")
+	CreateHeader("Utility Mounts (Esc menu) Config")
 	-- First row: Enable checkbox, Position dropdown, Icon Size slider
 	CreateCheckbox(
 		"utilityMountsEnabled",
@@ -334,7 +334,7 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 	NewRow()
 	yOffset = yOffset - sectionSpacing
 	-- ========== SUMMON SETTINGS ==========
-	CreateHeader("Summoning settings")
+	CreateHeader("Summoning Settings")
 	CreateCheckbox(
 		"contextual",
 		"Contextual Summoning",

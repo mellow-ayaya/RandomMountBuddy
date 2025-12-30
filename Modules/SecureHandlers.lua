@@ -35,10 +35,10 @@ end
 -- Common macro templates to reduce duplication
 local MACRO_TEMPLATES = {
 	prefix =
-	"/run RMB:SRM(true)\n/run UIErrorsFrame:SuppressMessagesThisFrame()\n/stopmacro [mounted]",
+	"/run RMB.activeKeybind = %d\n/run RMB:SRM(true)\n/run UIErrorsFrame:SuppressMessagesThisFrame()\n/stopmacro [mounted]",
 
 	-- Regular zones: Handle forms, then regular mount
-	regularZone = "/cancelform [form:2]\n/run RMB:SRM(true)",
+	regularZone = "/run RMB.activeKeybind = %d\n/cancelform [form:2]\n/run RMB:SRM(true)",
 
 	druidSmart = {
 		keepActive = "/cast [swimming,noform:3][outdoors,noform:3] %s\n/cast [indoors,noform:2] %s",
@@ -61,11 +61,13 @@ local MACRO_TEMPLATES = {
 		withTarget = "/cast [%s] %s",
 	},
 }
-local function getUndermineZoneMacro()
+local function getUndermineZoneMacro(buttonNumber)
+	buttonNumber = buttonNumber or 1
 	local g99Name = getLocalizedG99Name()
 	-- Add form cancellation logic that's smart about travel forms
 	local macro = "/cancelform [form:2]\n" .. -- Cancel bear/cat/moonkin but not travel form
 			"/cast " .. g99Name .. "\n" ..
+			"/run RMB.activeKeybind = " .. buttonNumber .. "\n" ..
 			"/run RMB:SRM(true)"
 	addonTable:DebugCore("G99: Built Undermine macro with form handling and spell:", g99Name)
 	return macro
@@ -130,21 +132,23 @@ end
 -- Prevent infinite recursion
 addonTable.isUpdatingMacros = false
 -- SIMPLIFIED: Get mount macro based on current zone
-local function getMountMacroForCurrentZone()
+local function getMountMacroForCurrentZone(buttonNumber)
+	buttonNumber = buttonNumber or 1
 	local locationID = C_Map.GetBestMapForUnit("player")
 	-- Undermine zones: Try G99 first, then regular mount
 	if locationID == 2346 or locationID == 2406 then
 		addonTable:DebugCore("Mount macro: Using Undermine macro (G99 + fallback)")
-		return getUndermineZoneMacro()
+		return getUndermineZoneMacro(buttonNumber)
 	else
 		addonTable:DebugCore("Mount macro: Using regular zone macro")
-		return MACRO_TEMPLATES.regularZone
+		return string.format(MACRO_TEMPLATES.regularZone, buttonNumber)
 	end
 end
 
 -- Optimized macro builders
-local function buildDruidMacro(travelFormName, catFormName, useSmartFormSwitching, keepTravelFormActive)
-	local parts = { MACRO_TEMPLATES.prefix }
+local function buildDruidMacro(travelFormName, catFormName, useSmartFormSwitching, keepTravelFormActive, buttonNumber)
+	buttonNumber = buttonNumber or 1
+	local parts = { string.format(MACRO_TEMPLATES.prefix, buttonNumber) }
 	if useSmartFormSwitching then
 		local template = keepTravelFormActive and MACRO_TEMPLATES.druidSmart.keepActive or MACRO_TEMPLATES.druidSmart.normal
 		table.insert(parts, string.format(template, travelFormName, catFormName))
@@ -157,15 +161,17 @@ local function buildDruidMacro(travelFormName, catFormName, useSmartFormSwitchin
 	return buildMacro(parts)
 end
 
-local function buildShamanMacro(ghostWolfName, keepGhostWolfActive)
-	local parts = { MACRO_TEMPLATES.prefix }
+local function buildShamanMacro(ghostWolfName, keepGhostWolfActive, buttonNumber)
+	buttonNumber = buttonNumber or 1
+	local parts = { string.format(MACRO_TEMPLATES.prefix, buttonNumber) }
 	local template = keepGhostWolfActive and MACRO_TEMPLATES.shaman.keepActive or MACRO_TEMPLATES.shaman.normal
 	table.insert(parts, string.format(template, ghostWolfName))
 	return buildMacro(parts)
 end
 
-local function buildFallingMacro(spellName, keepActive, targetLogic)
-	local parts = { MACRO_TEMPLATES.prefix }
+local function buildFallingMacro(spellName, keepActive, targetLogic, buttonNumber)
+	buttonNumber = buttonNumber or 1
+	local parts = { string.format(MACRO_TEMPLATES.prefix, buttonNumber) }
 	if targetLogic then
 		table.insert(parts, string.format(MACRO_TEMPLATES.falling.withTarget, targetLogic, spellName))
 	else
@@ -243,41 +249,41 @@ function addonTable:updateButtonMacros(travelFormName, catFormName, ghostWolfNam
 	-- Update druid Travel Form button
 	if self.travelButton then
 		local macro = buildDruidMacro(travelFormName, catFormName,
-			settings.useSmartFormSwitching, settings.keepTravelFormActive)
+			settings.useSmartFormSwitching, settings.keepTravelFormActive, 1)
 		self.travelButton:SetAttribute("type", "macro")
 		self.travelButton:SetAttribute("macrotext", macro)
 	end
 
 	-- Update shaman Ghost Wolf button
 	if self.ghostWolfButton then
-		local macro = buildShamanMacro(ghostWolfName, settings.keepGhostWolfActive)
+		local macro = buildShamanMacro(ghostWolfName, settings.keepGhostWolfActive, 1)
 		self.ghostWolfButton:SetAttribute("type", "macro")
 		self.ghostWolfButton:SetAttribute("macrotext", macro)
 	end
 
 	-- Update monk Zen Flight button
 	if self.zenFlightButton then
-		local macro = buildFallingMacro(zenFlightName, settings.keepZenFlightActive)
+		local macro = buildFallingMacro(zenFlightName, settings.keepZenFlightActive, nil, 1)
 		self.zenFlightButton:SetAttribute("type", "macro")
 		self.zenFlightButton:SetAttribute("macrotext", macro)
 	end
 
 	-- Update mage Slow Fall button
 	if self.slowFallButton then
-		local macro = buildFallingMacro(slowFallName, false, slowFallTarget)
+		local macro = buildFallingMacro(slowFallName, false, slowFallTarget, 1)
 		self.slowFallButton:SetAttribute("type", "macro")
 		self.slowFallButton:SetAttribute("macrotext", macro)
 	end
 
 	-- Update priest Levitate button
 	if self.levitateButton then
-		local macro = buildFallingMacro(levitateName, false, levitateTarget)
+		local macro = buildFallingMacro(levitateName, false, levitateTarget, 1)
 		self.levitateButton:SetAttribute("type", "macro")
 		self.levitateButton:SetAttribute("macrotext", macro)
 	end
 
 	-- SIMPLIFIED: Update mount button and smart button with zone-appropriate macro
-	local mountMacro = getMountMacroForCurrentZone()
+	local mountMacro = getMountMacroForCurrentZone(1)
 	if self.mountButton then
 		self.mountButton:SetAttribute("type", "macro")
 		self.mountButton:SetAttribute("macrotext", mountMacro)
@@ -291,39 +297,43 @@ end
 
 -- SIMPLIFIED: Smart button update
 function addonTable:updateSmartButton(travelFormName, catFormName, ghostWolfName, zenFlightName,
-		slowFallName, levitateName, settings, slowFallTarget, levitateTarget, mountMacro)
-	if not self.smartButton or not self.updateFrame then return end
+		slowFallName, levitateName, settings, slowFallTarget, levitateTarget, mountMacro, buttonNumber)
+	buttonNumber = buttonNumber or 1
+	-- Get the appropriate button and update frame
+	local smartButton = buttonNumber == 1 and self.smartButton or self["smartButton" .. buttonNumber]
+	local updateFrame = buttonNumber == 1 and self.updateFrame or self["updateFrame" .. buttonNumber]
+	if not smartButton or not updateFrame then return end
 
 	-- Handle shapeshift logic for different classes
 	local _, playerClass = UnitClass("player")
-	local isMoving = self.updateFrame.lastMoving
-	local isFalling = self.updateFrame.lastFalling
+	local isMoving = updateFrame.lastMoving
+	local isFalling = updateFrame.lastFalling
 	local isIndoors = IsIndoors()
 	-- Default to mount macro (which handles G99 automatically based on zone)
 	local macro = mountMacro
 	if playerClass == "DRUID" and ((isMoving and settings.useTravelFormWhileMoving) or
 				(isIndoors and settings.useSmartFormSwitching)) then
 		macro = buildDruidMacro(travelFormName, catFormName,
-			settings.useSmartFormSwitching, settings.keepTravelFormActive)
+			settings.useSmartFormSwitching, settings.keepTravelFormActive, buttonNumber)
 		addonTable:DebugCore("Smart button: Using Druid macro")
 	elseif playerClass == "SHAMAN" and ((isMoving or isIndoors) and settings.useGhostWolfWhileMoving) then
-		macro = buildShamanMacro(ghostWolfName, settings.keepGhostWolfActive)
+		macro = buildShamanMacro(ghostWolfName, settings.keepGhostWolfActive, buttonNumber)
 		addonTable:DebugCore("Smart button: Using Shaman macro")
 	elseif playerClass == "MONK" and (isMoving or isFalling) and settings.useZenFlightWhileMoving then
-		macro = buildFallingMacro(zenFlightName, settings.keepZenFlightActive)
+		macro = buildFallingMacro(zenFlightName, settings.keepZenFlightActive, nil, buttonNumber)
 		addonTable:DebugCore("Smart button: Using Monk macro")
 	elseif playerClass == "MAGE" and isFalling and settings.useSlowFallWhileFalling then
-		macro = buildFallingMacro(slowFallName, false, slowFallTarget)
+		macro = buildFallingMacro(slowFallName, false, slowFallTarget, buttonNumber)
 		addonTable:DebugCore("Smart button: Using Mage macro")
 	elseif playerClass == "PRIEST" and isFalling and settings.useLevitateWhileFalling then
-		macro = buildFallingMacro(levitateName, false, levitateTarget)
+		macro = buildFallingMacro(levitateName, false, levitateTarget, buttonNumber)
 		addonTable:DebugCore("Smart button: Using Priest macro")
 	else
 		addonTable:DebugCore("Smart button: Using zone-appropriate mount macro")
 	end
 
-	self.smartButton:SetAttribute("type", "macro")
-	self.smartButton:SetAttribute("macrotext", macro)
+	smartButton:SetAttribute("type", "macro")
+	smartButton:SetAttribute("macrotext", macro)
 end
 
 -- Helper function to build combat macros
@@ -331,19 +341,19 @@ function addonTable:buildCombatMacros(travelFormName, catFormName, ghostWolfName
 		slowFallName, levitateName, settings, slowFallTarget, levitateTarget)
 	-- Build class-specific combat macros
 	self.druidCombatMacro = buildDruidMacro(travelFormName, catFormName,
-		settings.useSmartFormSwitching, settings.keepTravelFormActive)
+		settings.useSmartFormSwitching, settings.keepTravelFormActive, 1)
 	self.shamanCombatMacro = settings.useGhostWolfWhileMoving and
-			buildShamanMacro(ghostWolfName, settings.keepGhostWolfActive) or
-			buildShamanMacro(ghostWolfName, true) -- Fallback for dungeon compatibility
+			buildShamanMacro(ghostWolfName, settings.keepGhostWolfActive, 1) or
+			buildShamanMacro(ghostWolfName, true, 1) -- Fallback for dungeon compatibility
 	self.monkCombatMacro = settings.useZenFlightWhileMoving and
-			buildFallingMacro(zenFlightName, settings.keepZenFlightActive) or
-			MACRO_TEMPLATES.regularZone -- Simple fallback
+			buildFallingMacro(zenFlightName, settings.keepZenFlightActive, nil, 1) or
+			string.format(MACRO_TEMPLATES.regularZone, 1) -- Simple fallback
 	self.mageCombatMacro = settings.useSlowFallWhileFalling and
-			buildFallingMacro(slowFallName, false, slowFallTarget) or
-			MACRO_TEMPLATES.regularZone
+			buildFallingMacro(slowFallName, false, slowFallTarget, 1) or
+			string.format(MACRO_TEMPLATES.regularZone, 1)
 	self.priestCombatMacro = settings.useLevitateWhileFalling and
-			buildFallingMacro(levitateName, false, levitateTarget) or
-			MACRO_TEMPLATES.regularZone
+			buildFallingMacro(levitateName, false, levitateTarget, 1) or
+			string.format(MACRO_TEMPLATES.regularZone, 1)
 	-- Set the current combat macro using localized zone macro
 	local _, playerClass = UnitClass("player")
 	local combatMacros = {
@@ -353,7 +363,7 @@ function addonTable:buildCombatMacros(travelFormName, catFormName, ghostWolfName
 		MAGE = self.mageCombatMacro,
 		PRIEST = self.priestCombatMacro,
 	}
-	self.combatMacro = combatMacros[playerClass] or getMountMacroForCurrentZone()
+	self.combatMacro = combatMacros[playerClass] or getMountMacroForCurrentZone(1)
 	addonTable:DebugCore("Combat macro set for", playerClass or "unknown", "class")
 end
 
@@ -376,7 +386,11 @@ function addonTable:SetupSecureHandlers()
 		-- Create visible button with optimized click handler
 		addonTable:createVisibleButton()
 		-- Create smart button with optimized update handler
-		addonTable:createSmartButton()
+		-- Create all 4 smart buttons for keybinds
+		for i = 1, 4 do
+			addonTable:createSmartButton(i)
+		end
+
 		-- Setup zone change event handling
 		addonTable:setupZoneChangeHandling()
 		-- Initialize macros
@@ -410,7 +424,7 @@ function addonTable:createSecureButtons()
 			-- Clear the spell name cache to ensure fresh lookup
 			G99_LOCALIZED_NAME = nil
 			button:SetAttribute("type", "macro")
-			button:SetAttribute("macrotext", getMountMacroForCurrentZone())
+			button:SetAttribute("macrotext", getMountMacroForCurrentZone(1))
 			addonTable:DebugCore("Mount button: Created with localized zone-appropriate macro")
 		end
 
@@ -464,13 +478,17 @@ function addonTable:createVisibleButton()
 end
 
 -- Smart button creation with optimized update handler
-function addonTable:createSmartButton()
-	local smartButton = CreateFrame("Button", "RMBSmartButton", UIParent, "SecureActionButtonTemplate")
+function addonTable:createSmartButton(buttonNumber)
+	buttonNumber = buttonNumber or 1
+	local buttonName = buttonNumber == 1 and "RMBSmartButton" or ("RMBSmartButton" .. buttonNumber)
+	local smartButton = CreateFrame("Button", buttonName, UIParent, "SecureActionButtonTemplate")
 	smartButton:SetSize(1, 1)
 	smartButton:SetPoint("CENTER")
 	smartButton:RegisterForClicks("AnyUp", "AnyDown")
 	smartButton:SetAttribute("type", "macro")
-	smartButton:SetAttribute("macrotext", getMountMacroForCurrentZone())
+	smartButton:SetAttribute("macrotext", getMountMacroForCurrentZone(buttonNumber))
+	-- Store the button number for rule evaluation
+	smartButton.keybindNumber = buttonNumber
 	-- Optimized update frame with reduced frequency
 	local updateFrame = CreateFrame("Frame")
 	updateFrame.elapsed = 0
@@ -515,7 +533,8 @@ function addonTable:createSmartButton()
 				"@target,help,exists][@mouseover,help,exists][@player" or "@player",
 				getCachedSetting("useLevitateOnOthers") and
 				"@target,help,exists][@mouseover,help,exists][@player" or "@player",
-				getMountMacroForCurrentZone() -- Pass current zone macro
+				getMountMacroForCurrentZone(buttonNumber), -- Pass current zone macro
+				buttonNumber                           -- Pass button number for keybind-specific rules
 			)
 		end
 	end)
@@ -527,8 +546,8 @@ function addonTable:createSmartButton()
 			-- Entering combat - set combat macro immediately
 			if not InCombatLockdown() then -- Safety check
 				smartButton:SetAttribute("type", "macro")
-				smartButton:SetAttribute("macrotext", addonTable.combatMacro or getMountMacroForCurrentZone())
-				addonTable:DebugCore("Combat: Set combat macro")
+				smartButton:SetAttribute("macrotext", addonTable.combatMacro or getMountMacroForCurrentZone(buttonNumber))
+				addonTable:DebugCore("Combat: Set combat macro for button " .. buttonNumber)
 			end
 		elseif event == "PLAYER_REGEN_ENABLED" then
 			-- Leaving combat - update macro IMMEDIATELY, no delay
@@ -539,10 +558,10 @@ function addonTable:createSmartButton()
 				-- Clear spell name cache in case it changed during combat
 				G99_LOCALIZED_NAME = nil
 				-- Immediately update to current zone macro
-				local currentZoneMacro = getMountMacroForCurrentZone()
+				local currentZoneMacro = getMountMacroForCurrentZone(buttonNumber)
 				smartButton:SetAttribute("type", "macro")
 				smartButton:SetAttribute("macrotext", currentZoneMacro)
-				addonTable:DebugCore("Combat: Immediately updated to post-combat macro")
+				addonTable:DebugCore("Combat: Immediately updated to post-combat macro for button " .. buttonNumber)
 				-- Also force a full macro update after a brief moment for other buttons
 				C_Timer.After(0.05, function()
 					if not InCombatLockdown() then
@@ -552,10 +571,20 @@ function addonTable:createSmartButton()
 			end
 		end
 	end)
-	self.smartButton = smartButton
-	self.updateFrame = updateFrame
-	RandomMountBuddy.smartButton = smartButton
-	RandomMountBuddy.updateFrame = updateFrame
+	-- Store references
+	if buttonNumber == 1 then
+		self.smartButton = smartButton
+		self.updateFrame = updateFrame
+		RandomMountBuddy.smartButton = smartButton
+		RandomMountBuddy.updateFrame = updateFrame
+	else
+		self["smartButton" .. buttonNumber] = smartButton
+		self["updateFrame" .. buttonNumber] = updateFrame
+		RandomMountBuddy["smartButton" .. buttonNumber] = smartButton
+		RandomMountBuddy["updateFrame" .. buttonNumber] = updateFrame
+	end
+
+	addonTable:DebugCore("Created smart button " .. buttonNumber .. " (" .. buttonName .. ")")
 end
 
 -- SIMPLIFIED: Zone change event handling

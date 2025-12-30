@@ -1,4 +1,17 @@
-# 1.1.21 - 2025-12-28
+# 1.1.30 - 2025-12-30
+- Added a keybind for the Mount Browser.
+- Added 3 new keybindings for summoning.
+- All RMB summoning keybindings can now have rules set for specific behavior such as summoning only a specific mount with a specific keybind.
+- The 'no kneybind set' notification now triggers only if none of the 4 summon keybinds are set.
+- Added 2 new rule types: character level and specific keybind.
+- Added a new default rule and quick preset: summon Chauffeured mounts when below level 10.
+- Added multiple conditional support to rules, a rule can now have up to 4 conditions to trigger.
+- Added rule menu description to ensure clarity.
+- Minor improvements to Rules UI.
+- Minor adjustments to the Mount Browser Settings tab.
+- Fixed Filter and Back button sometimes showing up when they shouldn't.
+
+ # 1.1.21 - 2025-12-28
 - Removed extra line from Utility mounts tooltip
 
 # 1.1.20 - 2025-12-28

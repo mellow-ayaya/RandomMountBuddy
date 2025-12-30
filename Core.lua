@@ -220,7 +220,11 @@ addon.fmCurrentPage = 1
 addon.fmItemsPerPage = 14
 -- Keybinding headers
 BINDING_HEADER_RANDOMMOUNTBUDDY = "Random Mount Buddy"
+_G["BINDING_NAME_RANDOMMOUNTBUDDY_OPENBROWSER"] = "RMB Open Mount Browser"
 _G["BINDING_NAME_CLICK RMBSmartButton:LeftButton"] = "RandomMountBuddy Summon"
+_G["BINDING_NAME_CLICK RMBSmartButton2:LeftButton"] = "RandomMountBuddy Summon 2"
+_G["BINDING_NAME_CLICK RMBSmartButton3:LeftButton"] = "RandomMountBuddy Summon 3"
+_G["BINDING_NAME_CLICK RMBSmartButton4:LeftButton"] = "RandomMountBuddy Summon 4"
 -- Add shortcuts
 RMB = RandomMountBuddy
 function RMB:SRM(useContext)
@@ -937,9 +941,23 @@ function addon:CheckKeybindOnLogin()
 		return
 	end
 
-	-- Check if a keybind is set for the addon
-	local key1, key2 = GetBindingKey("CLICK RMBSmartButton:LeftButton")
-	if not key1 and not key2 then
+	-- Check if ANY of the summon keybinds are set
+	local hasKeybind = false
+	local keybindsToCheck = {
+		"CLICK RMBSmartButton:LeftButton",
+		"CLICK RMBSmartButton2:LeftButton",
+		"CLICK RMBSmartButton3:LeftButton",
+		"CLICK RMBSmartButton4:LeftButton",
+	}
+	for _, bindingName in ipairs(keybindsToCheck) do
+		local key1, key2 = GetBindingKey(bindingName)
+		if key1 or key2 then
+			hasKeybind = true
+			break
+		end
+	end
+
+	if not hasKeybind then
 		-- No keybind set - show a helpful message
 		self:AlwaysPrint(
 			"Hey Bud! You're seeing this because you don't yet have a keybind set for Random Mount Buddy! Go to Esc -> Options -> search for Summon in the top right and assign a key, or type /rmb kbnotification to disable this notification.")

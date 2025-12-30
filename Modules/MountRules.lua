@@ -1,5 +1,10 @@
 -- MountRules.lua - Manager for conditional mount summoning rules
 -- Supports location-based, group state, and social condition rules
+--
+-- NOTE: This file handles the LOGIC and DATA MANAGEMENT for mount rules.
+-- All UI changes for rules should be made in MountBrowserRules.lua instead.
+-- MountBrowserRules.lua handles the visual interface for creating, editing, and managing rules.
+--
 local addonName, addonTable = ...
 local addon = RandomMountBuddy
 addon:DebugCore("MountRules.lua START.")
@@ -49,15 +54,15 @@ local INSTANCE_TYPES = {
 -- Custom mount pools for rules
 local CUSTOM_POOLS = {
 	passenger = {
-		name = "Passenger Mounts",
+		name = "Passenger Mounts (flying only)",
 		mountIDs = { 1287, 455, 960, 2597, 1698, 959, 2596, 407, 382 },
 	},
 	ridealong = {
-		name = "Ride Along Mounts",
+		name = "Ride Along Mounts (flying only)",
 		mountIDs = { 1591, 1563, 1589, 1590, 1588, 1744, 1792, 1830, 1795, 1818, 2090, 2091, 2144, 2324 },
 	},
 	passenger_ridealong = {
-		name = "Passenger + Ride Along",
+		name = "Passenger + Ride Along (flying only)",
 		mountIDs = { 1287, 455, 960, 2597, 1698, 959, 2596, 407, 382, 1591, 1563, 1589, 1590, 1588, 1744, 1792, 1830, 1795, 1818, 2090, 2091, 2144, 2324 },
 	},
 }
@@ -100,7 +105,10 @@ function MountRules:InitializeDefaultRules()
 	-- Add default class hall flying rule
 	addon:DebugOptions("Adding default rule: Flying Pool in Class Halls")
 	-- Pass instance IDs as semicolon-separated string
-	self:AddRule("location", "pool", "1220;1221;1222", "instanceid", "flying")
+	self:AddRule("location", "pool", "1519;1540;1514;1469;1479", "instanceid", "flying")
+	-- Add chauffeur mount rule for low level characters
+	addon:DebugOptions("Adding default rule: Chauffeured mounts for level < 10")
+	self:AddRule("character_level", "specific", "<", 10, { 678, 679 })
 end
 
 -- Get available pool names for UI
@@ -110,9 +118,9 @@ function MountRules:GetAvailablePools()
 		{ value = "ground", text = "Ground Only" },
 		{ value = "groundUsable", text = "Ground + Flying" },
 		{ value = "underwater", text = "Underwater Pool" },
-		{ value = "passenger", text = "Passenger Mounts" },
-		{ value = "ridealong", text = "Ride Along Mounts" },
-		{ value = "passenger_ridealong", text = "Passenger + Ride Along" },
+		{ value = "passenger", text = "Passenger Mounts (flying only)" },
+		{ value = "ridealong", text = "Ride Along Mounts (flying only)" },
+		{ value = "passenger_ridealong", text = "Passenger + Ride Along (flying only)" },
 	}
 end
 
@@ -346,11 +354,45 @@ function MountRules:ProcessRuleParameters(rule, ...)
 		elseif socialType == "friend_in_party" then
 			rule.socialTypeName = "Friend in Party"
 		elseif socialType == "character_whitelist" then
-			rule.socialTypeName = "Specific Characters: " .. table.concat(socialData, ", ")
+			rule.socialTypeName = "Specific Players: " .. table.concat(socialData, ", ")
 		elseif socialType == "guild_member_in_party" then
 			rule.socialTypeName = "Guild Member in Party"
 		end
 
+		return true
+	elseif rule.ruleType == "character_level" then
+		local operator, level = args[1], args[2]
+		if not operator then
+			return false, "Operator is required"
+		end
+
+		local validOperators = { ["="] = true, ["<"] = true, ["<="] = true, [">"] = true, [">="] = true }
+		if not validOperators[operator] then
+			return false, "Invalid operator. Must be one of: =, <, <=, >, >="
+		end
+
+		if not level or type(level) ~= "number" or level < 1 or level > 80 then
+			return false, "Level must be a number between 1 and 80"
+		end
+
+		rule.operator = operator
+		rule.level = level
+		rule.levelDisplayName = "Level " .. operator .. " " .. level
+		return true
+	elseif rule.ruleType == "keybind" then
+		local keybindNumber = args[1]
+		if not keybindNumber or type(keybindNumber) ~= "number" or keybindNumber < 1 or keybindNumber > 4 then
+			return false, "Keybind number must be 1, 2, 3, or 4"
+		end
+
+		rule.keybindNumber = keybindNumber
+		local keybindNames = {
+			[1] = "RandomMountBuddy Summon",
+			[2] = "RandomMountBuddy Summon 2",
+			[3] = "RandomMountBuddy Summon 3",
+			[4] = "RandomMountBuddy Summon 4",
+		}
+		rule.keybindName = keybindNames[keybindNumber] or ("Keybind " .. keybindNumber)
 		return true
 	end
 
@@ -371,6 +413,10 @@ function MountRules:ProcessActionParameters(rule, actionType, args)
 			mountIDs = args[2] -- After groupState
 		elseif rule.ruleType == "social" then
 			mountIDs = args[3] -- After socialType, socialData
+		elseif rule.ruleType == "character_level" then
+			mountIDs = args[3] -- After operator, level
+		elseif rule.ruleType == "keybind" then
+			mountIDs = args[2] -- After keybindNumber
 		end
 
 		if not mountIDs or type(mountIDs) ~= "table" or #mountIDs == 0 then
@@ -408,6 +454,10 @@ function MountRules:ProcessActionParameters(rule, actionType, args)
 			poolName = args[2] -- After groupState
 		elseif rule.ruleType == "social" then
 			poolName = args[3] -- After socialType, socialData
+		elseif rule.ruleType == "character_level" then
+			poolName = args[3] -- After operator, level
+		elseif rule.ruleType == "keybind" then
+			poolName = args[2] -- After keybindNumber
 		end
 
 		if not poolName then
@@ -555,6 +605,11 @@ function MountRules:EvaluateLocationRule(rule)
 	local parentMapID = mapID and C_Map.GetMapInfo(mapID) and C_Map.GetMapInfo(mapID).parentMapID or nil
 	-- Support both old single locationID and new locationIDs array
 	local locationIDs = rule.locationIDs or { rule.locationID }
+	addon:DebugSummon("  Evaluating location rule:")
+	addon:DebugSummon("    Type:", rule.locationType)
+	addon:DebugSummon("    Rule IDs:", table.concat(locationIDs, ", "))
+	addon:DebugSummon("    Current mapID:", mapID or "nil", "instanceID:", instanceID or "nil", "parentMapID:",
+		parentMapID or "nil")
 	-- Check if current location matches any of the IDs
 	local currentID
 	if rule.locationType == "mapid" then
@@ -565,14 +620,17 @@ function MountRules:EvaluateLocationRule(rule)
 		currentID = parentMapID
 	end
 
+	addon:DebugSummon("    Checking currentID:", currentID or "nil")
 	if currentID then
 		for _, id in ipairs(locationIDs) do
 			if currentID == id then
+				addon:DebugSummon("    MATCH found! Current", currentID, "== Rule", id)
 				return true
 			end
 		end
 	end
 
+	addon:DebugSummon("    No match found")
 	return false
 end
 
@@ -692,33 +750,115 @@ function MountRules:EvaluateSocialRule(rule)
 	return false
 end
 
+-- Check if a character level rule matches
+function MountRules:EvaluateCharacterLevelRule(rule)
+	local playerLevel = UnitLevel("player")
+	local targetLevel = rule.level
+	if not targetLevel then
+		addon:DebugOptions("Character level rule has no level specified")
+		return false
+	end
+
+	local operator = rule.operator or "="
+	if operator == "=" then
+		return playerLevel == targetLevel
+	elseif operator == "<" then
+		return playerLevel < targetLevel
+	elseif operator == "<=" then
+		return playerLevel <= targetLevel
+	elseif operator == ">" then
+		return playerLevel > targetLevel
+	elseif operator == ">=" then
+		return playerLevel >= targetLevel
+	end
+
+	return false
+end
+
+-- Check if a keybind rule matches
+function MountRules:EvaluateKeybindRule(rule)
+	-- Get the active keybind number set by the macro
+	local activeKeybind = RandomMountBuddy.activeKeybind or 1
+	addon:DebugSummon("  Evaluating keybind rule: Rule keybind=" ..
+		(rule.keybindNumber or "nil") .. ", Active keybind=" .. activeKeybind)
+	local matches = rule.keybindNumber == activeKeybind
+	addon:DebugSummon("  Keybind match result: " .. tostring(matches))
+	return matches
+end
+
+-- Evaluate a single condition (helper function for multi-condition support)
+function MountRules:EvaluateSingleCondition(condition)
+	if condition.ruleType == "location" then
+		return self:EvaluateLocationRule(condition)
+	elseif condition.ruleType == "instance_type" then
+		return self:EvaluateInstanceTypeRule(condition)
+	elseif condition.ruleType == "group_state" then
+		return self:EvaluateGroupStateRule(condition)
+	elseif condition.ruleType == "social" then
+		return self:EvaluateSocialRule(condition)
+	elseif condition.ruleType == "character_level" then
+		return self:EvaluateCharacterLevelRule(condition)
+	elseif condition.ruleType == "keybind" then
+		return self:EvaluateKeybindRule(condition)
+	end
+
+	return false
+end
+
+-- Evaluate multiple conditions with AND logic
+function MountRules:EvaluateMultiConditionRule(rule)
+	if not rule.conditions or #rule.conditions == 0 then
+		return false
+	end
+
+	addon:DebugSummon("Evaluating multi-condition rule with " .. #rule.conditions .. " condition(s)")
+	-- ALL conditions must match (AND logic)
+	for i, condition in ipairs(rule.conditions) do
+		addon:DebugSummon("  Condition " .. i .. ": Type=" .. (condition.ruleType or "unknown"))
+		local matches = self:EvaluateSingleCondition(condition)
+		if not matches then
+			addon:DebugSummon("  Condition " .. i .. " did NOT match - rule fails")
+			return false
+		end
+
+		addon:DebugSummon("  Condition " .. i .. " matched")
+	end
+
+	addon:DebugSummon("All conditions matched - rule succeeds")
+	return true
+end
+
 -- Check current state against all rules
 -- Returns first matching rule in priority order (top to bottom)
 function MountRules:GetMatchingRules()
 	local data = addon.db.profile.zoneSpecificMounts
 	if not data or not data.rules or #data.rules == 0 then
+		addon:DebugSummon("No mount rules configured")
 		return nil
 	end
 
+	addon:DebugSummon("Checking " .. #data.rules .. " mount rule(s)")
 	-- Check rules in priority order (first match wins)
 	for _, rule in ipairs(data.rules) do
+		addon:DebugSummon("Evaluating rule ID " .. rule.id .. " (Priority " .. rule.priority .. ")")
 		local matches = false
-		if rule.ruleType == "location" then
-			matches = self:EvaluateLocationRule(rule)
-		elseif rule.ruleType == "instance_type" then
-			matches = self:EvaluateInstanceTypeRule(rule)
-		elseif rule.ruleType == "group_state" then
-			matches = self:EvaluateGroupStateRule(rule)
-		elseif rule.ruleType == "social" then
-			matches = self:EvaluateSocialRule(rule)
+		-- Check if this is a multi-condition rule (new format)
+		if rule.conditions and #rule.conditions > 0 then
+			addon:DebugSummon("  Multi-condition rule detected")
+			matches = self:EvaluateMultiConditionRule(rule)
+			-- Otherwise, single condition rule (backward compatible format)
+		elseif rule.ruleType then
+			addon:DebugSummon("  Single-condition rule: Type=" .. rule.ruleType)
+			matches = self:EvaluateSingleCondition(rule)
 		end
 
 		if matches then
-			addon:DebugSummon("Matched rule:", "ID:", rule.id, "Priority:", rule.priority, "Type:", rule.ruleType)
+			addon:DebugSummon("Matched rule:", "ID:", rule.id, "Priority:", rule.priority)
 			return rule
 		end
 	end
 
+	addon:DebugSummon("No mount rules matched current conditions")
 	return nil
 end
 
@@ -729,7 +869,7 @@ function MountRules:GetMountForCurrentLocation()
 		return nil, nil
 	end
 
-	addon:DebugSummon("Mount rule found:", "Action:", rule.actionType)
+	addon:DebugSummon("Mount rule matched:", self:GetRuleDescription(rule))
 	if rule.actionType == "specific" then
 		-- Rule has multiple mount IDs - randomly select one
 		if not rule.mountIDs or #rule.mountIDs == 0 then
@@ -737,23 +877,31 @@ function MountRules:GetMountForCurrentLocation()
 			return nil, nil
 		end
 
-		-- Build list of usable mounts
+		-- Build list of usable mounts from the rule
+		-- Filter out mounts that should be hidden (wrong faction, etc)
 		local usableMounts = {}
 		for _, mountID in ipairs(rule.mountIDs) do
-			local mountName, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
-			if isUsable then
+			local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected =
+					C_MountJournal.GetMountInfoByID(mountID)
+			if name and not shouldHideOnChar then
+				-- Mount exists and is not hidden from this character
 				table.insert(usableMounts, mountID)
+			elseif shouldHideOnChar then
+				addon:DebugSummon("Mount " ..
+					(name or ("ID " .. mountID)) .. " hidden from this character (wrong faction/requirements)")
 			end
 		end
 
 		if #usableMounts == 0 then
-			addon:DebugSummon("None of the rule's mounts are usable")
+			addon:DebugSummon("None of the rule's " .. #rule.mountIDs .. " mount(s) are usable in current context")
 			return nil, nil
 		end
 
 		-- Randomly select from usable mounts
 		local selectedMount = usableMounts[math.random(#usableMounts)]
-		addon:DebugSummon("Selected mount ID from rule:", selectedMount)
+		local mountName = C_MountJournal.GetMountInfoByID(selectedMount)
+		addon:DebugSummon("Rule matched: Selected mount '" ..
+			(mountName or "unknown") .. "' (ID " .. selectedMount .. ") from " .. #usableMounts .. " usable mount(s)")
 		return selectedMount, nil
 	elseif rule.actionType == "pool" then
 		-- Check if it's a custom pool (predefined mount list)
@@ -761,23 +909,33 @@ function MountRules:GetMountForCurrentLocation()
 			addon:DebugSummon("Custom pool found:", rule.poolName)
 			-- Treat custom pools like specific mount lists
 			local customMountIDs = CUSTOM_POOLS[rule.poolName].mountIDs
-			-- Build list of usable mounts (same logic as actionType="specific")
+			-- Build list of usable mounts from the custom pool
+			-- Filter out mounts that should be hidden (wrong faction, etc)
 			local usableMounts = {}
 			for _, mountID in ipairs(customMountIDs) do
-				local mountName, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
-				if isUsable then
+				local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected =
+						C_MountJournal.GetMountInfoByID(mountID)
+				if name and not shouldHideOnChar then
+					-- Mount exists and is not hidden from this character
 					table.insert(usableMounts, mountID)
+				elseif shouldHideOnChar then
+					addon:DebugSummon("Mount " ..
+						(name or ("ID " .. mountID)) .. " in custom pool hidden from this character (wrong faction/requirements)")
 				end
 			end
 
 			if #usableMounts == 0 then
-				addon:DebugSummon("None of the custom pool's mounts are usable")
+				addon:DebugSummon("None of the custom pool's " .. #customMountIDs .. " mount(s) are usable")
 				return nil, nil
 			end
 
 			-- Randomly select from usable mounts
 			local selectedMount = usableMounts[math.random(#usableMounts)]
-			addon:DebugSummon("Selected mount from custom pool", rule.poolName .. ":", selectedMount)
+			local mountName = C_MountJournal.GetMountInfoByID(selectedMount)
+			addon:DebugSummon("Custom pool '" ..
+				rule.poolName ..
+				"': Selected mount '" ..
+				(mountName or "unknown") .. "' (ID " .. selectedMount .. ") from " .. #usableMounts .. " usable mount(s)")
 			return selectedMount, nil -- Return mountID, not poolName
 		else
 			-- Standard pool (flying/ground/underwater/groundUsable)
@@ -792,15 +950,14 @@ end
 -- ============================================================================
 -- UI HELPER FUNCTIONS
 -- ============================================================================
--- Get a human-readable description of a rule
-function MountRules:GetRuleDescription(rule)
+-- Get a human-readable description of a single condition (helper for GetRuleDescription)
+function MountRules:GetSingleConditionDescription(condition)
 	local desc = ""
-	-- Rule match criteria
-	if rule.ruleType == "location" then
-		local displayName = rule.locationName or "Unknown"
+	if condition.ruleType == "location" then
+		local displayName = condition.locationName or "Unknown"
 		-- For instance IDs, try to get fresh name using GetRealZoneText
-		if rule.locationType == "instanceid" then
-			local locationIDs = rule.locationIDs or { rule.locationID }
+		if condition.locationType == "instanceid" then
+			local locationIDs = condition.locationIDs or { condition.locationID }
 			-- Get names for up to 3 instances
 			local names = {}
 			local maxNamesToShow = 3
@@ -823,30 +980,58 @@ function MountRules:GetRuleDescription(rule)
 			end
 		end
 
-		if rule.locationType == "mapid" then
+		if condition.locationType == "mapid" then
 			desc = "|cff00ffffMap:|r " .. displayName
-		elseif rule.locationType == "instanceid" then
+		elseif condition.locationType == "instanceid" then
 			desc = "|cff00ffffInstance:|r " .. displayName
-		elseif rule.locationType == "parentzone" then
+		elseif condition.locationType == "parentzone" then
 			desc = "|cff00ffffParent Zone:|r " .. displayName
 		end
 
 		-- Display IDs (support both old single ID and new array)
-		local locationIDs = rule.locationIDs or { rule.locationID }
+		local locationIDs = condition.locationIDs or { condition.locationID }
 		if #locationIDs > 1 then
 			desc = desc .. " (IDs: " .. table.concat(locationIDs, ", ") .. ")"
 		else
 			desc = desc .. " (ID: " .. locationIDs[1] .. ")"
 		end
-	elseif rule.ruleType == "instance_type" then
-		desc = "|cffff9900Instance Type:|r " .. (rule.instanceTypeName or "Unknown")
-	elseif rule.ruleType == "group_state" then
-		desc = "|cffff00ffGroup State:|r " .. (rule.groupStateName or "Unknown")
-	elseif rule.ruleType == "social" then
-		desc = "|cff00ff00Social:|r " .. (rule.socialTypeName or "Unknown")
+	elseif condition.ruleType == "instance_type" then
+		desc = "|cffff9900Instance Type:|r " .. (condition.instanceTypeName or "Unknown")
+	elseif condition.ruleType == "group_state" then
+		desc = "|cffff00ffGroup State:|r " .. (condition.groupStateName or "Unknown")
+	elseif condition.ruleType == "social" then
+		desc = "|cff00ff00Social:|r " .. (condition.socialTypeName or "Unknown")
+	elseif condition.ruleType == "character_level" then
+		desc = "|cffffcc00Character Level:|r " .. (condition.levelDisplayName or "Unknown")
+	elseif condition.ruleType == "keybind" then
+		desc = "|cffff6600Keybind:|r " .. (condition.keybindName or "Unknown")
 	end
 
-	-- Action
+	return desc
+end
+
+-- Get a human-readable description of a rule
+function MountRules:GetRuleDescription(rule)
+	local desc = ""
+	-- Check if this is a multi-condition rule
+	if rule.conditions and #rule.conditions > 0 then
+		-- Multi-condition rule - show all conditions with AND
+		for i, condition in ipairs(rule.conditions) do
+			-- Get description for this condition
+			local conditionDesc = self:GetSingleConditionDescription(condition)
+			desc = desc .. conditionDesc
+			-- Add AND between conditions (except after last one)
+			if i < #rule.conditions then
+				desc = desc .. "\n|cffaaaaaa  AND|r "
+			end
+		end
+
+		-- Single condition rule (backward compatible)
+	elseif rule.ruleType then
+		desc = self:GetSingleConditionDescription(rule)
+	end
+
+	-- Action (same for both formats)
 	desc = desc .. "\n"
 	if rule.actionType == "specific" then
 		-- Handle both old single mountID and new mountIDs array
@@ -880,9 +1065,9 @@ function MountRules:GetRuleDescription(rule)
 			ground = "Ground Only",
 			groundUsable = "Ground + Flying",
 			underwater = "Underwater Pool",
-			passenger = "Passenger Mounts",
-			ridealong = "Ride Along Mounts",
-			passenger_ridealong = "Passenger + Ride Along",
+			passenger = "Passenger Mounts (flying only)",
+			ridealong = "Ride Along Mounts (flying only)",
+			passenger_ridealong = "Passenger + Ride Along (flying only)",
 		}
 		desc = desc .. "|cff00ff00Action:|r Use " .. (poolDisplayNames[rule.poolName] or rule.poolName)
 	end
@@ -925,7 +1110,8 @@ function MountRules:PopulateZoneSpecificUI()
 				"Location (map, instance, parent zone)\n" ..
 				"Instance Type (dungeon, raid difficulty)\n" ..
 				"Group State (in group, party, raid)\n" ..
-				"Social (friends, specific characters)\n",
+				"Social (friends, specific players)\n" ..
+				"Character Level (level comparisons)\n",
 		fontSize = "medium",
 	}
 	-- CURRENT LOCATION INFO
@@ -979,12 +1165,14 @@ function MountRules:PopulateZoneSpecificUI()
 			instance_type = "Instance Type",
 			group_state = "Group State",
 			social = "Social",
+			character_level = "Character Level",
 		},
 		sorting = {
 			"location",
 			"instance_type",
 			"group_state",
 			"social",
+			"character_level",
 		},
 		get = function()
 			return addon.MountRules_TempRuleType
@@ -998,6 +1186,8 @@ function MountRules:PopulateZoneSpecificUI()
 			addon.MountRules_TempGroupState = nil
 			addon.MountRules_TempSocialType = nil
 			addon.MountRules_TempCharacterNames = nil
+			addon.MountRules_TempLevelOperator = nil
+			addon.MountRules_TempLevel = nil
 			self:PopulateZoneSpecificUI()
 		end,
 	}
@@ -1019,6 +1209,9 @@ function MountRules:PopulateZoneSpecificUI()
 			-- Clear action-related temp variables
 			addon.MountRules_TempMountID = nil
 			addon.MountRules_TempPoolName = nil
+			addon.MountRules_TempLevelOperator = nil
+			addon.MountRules_TempLevel = nil
+			addon.MountRules_TempModifierCombo = nil
 			self:PopulateZoneSpecificUI()
 		end,
 	}
@@ -1122,7 +1315,7 @@ function MountRules:PopulateZoneSpecificUI()
 			values = {
 				bnet_friend_in_party = "BNet Friend in Party",
 				friend_in_party = "In-Game Friend in Party",
-				character_whitelist = "Specific Characters",
+				character_whitelist = "Specific Players",
 			},
 			sorting = {
 				"bnet_friend_in_party",
@@ -1158,6 +1351,52 @@ function MountRules:PopulateZoneSpecificUI()
 				end,
 			}
 		end
+	elseif addon.MountRules_TempRuleType == "character_level" then
+		-- Operator dropdown
+		addon.zoneSpecificArgsRef.newLevelOperator = {
+			order = getOrder(),
+			type = "select",
+			name = "Operator",
+			desc = "Select the comparison operator",
+			width = 0.7,
+			values = {
+				["="] = "Equals (=)",
+				["<"] = "Less Than (<)",
+				["<="] = "Less Than or Equal (<=)",
+				[">"] = "Greater Than (>)",
+				[">="] = "Greater Than or Equal (>=)",
+			},
+			sorting = {
+				"=",
+				"<",
+				"<=",
+				">",
+				">=",
+			},
+			get = function()
+				return addon.MountRules_TempLevelOperator
+			end,
+			set = function(info, value)
+				addon.MountRules_TempLevelOperator = value
+			end,
+		}
+		-- Level input
+		addon.zoneSpecificArgsRef.newLevel = {
+			order = getOrder(),
+			type = "input",
+			name = "Level",
+			desc = "Enter the character level (1-80)",
+			width = 0.7,
+			get = function()
+				return tostring(addon.MountRules_TempLevel or "")
+			end,
+			set = function(info, value)
+				local num = tonumber(value)
+				if num and num >= 1 and num <= 80 then
+					addon.MountRules_TempLevel = num
+				end
+			end,
+		}
 	end
 
 	-- Mount ID input (only if specific action selected)
@@ -1301,6 +1540,21 @@ function MountRules:PopulateZoneSpecificUI()
 				else
 					table.insert(args, nil) -- No extra data for other social types
 				end
+			elseif ruleType == "character_level" then
+				local operator = addon.MountRules_TempLevelOperator
+				local level = addon.MountRules_TempLevel
+				if not operator then
+					addon:AlwaysPrint("Please select an operator")
+					return
+				end
+
+				if not level then
+					addon:AlwaysPrint("Please enter a level")
+					return
+				end
+
+				table.insert(args, operator)
+				table.insert(args, level)
 			end
 
 			-- Add action parameters
@@ -1351,8 +1605,14 @@ function MountRules:PopulateZoneSpecificUI()
 				addon.MountRules_TempGroupState = nil
 				addon.MountRules_TempSocialType = nil
 				addon.MountRules_TempCharacterNames = nil
+				addon.MountRules_TempLevelOperator = nil
+				addon.MountRules_TempLevel = nil
+				addon.MountRules_TempModifierCombo = nil
 				addon.MountRules_TempMountID = nil
 				addon.MountRules_TempPoolName = nil
+				addon.MountRules_TempLevelOperator = nil
+				addon.MountRules_TempLevel = nil
+				addon.MountRules_TempModifierCombo = nil
 				-- Refresh UI
 				self:PopulateZoneSpecificUI()
 			else

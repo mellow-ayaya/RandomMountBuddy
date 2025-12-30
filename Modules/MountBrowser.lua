@@ -1242,8 +1242,11 @@ function MountBrowser:Show()
 	addon:DebugUI("Cleared representative mount cache")
 	-- Show frame immediately (instant feedback)
 	self.mainFrame:Show()
-	-- Ensure filter buttons are visible (browser opens on Browse tab)
-	if self.mainFrame.filterButton then self.mainFrame.filterButton:Show() end
+	-- Ensure filter buttons are visible only if we're on the browser tab
+	-- (currentTab persists between open/close cycles, so check before showing)
+	if self.mainFrame.filterButton and self.mainFrame.currentTab == "browser" then
+		self.mainFrame.filterButton:Show()
+	end
 
 	-- Delay grid loading by 1 frame to prevent graphics overload
 	-- This makes opening feel instant while giving the engine time to process

@@ -393,7 +393,11 @@ function MountBrowser:LoadFamilyGrid(supergroupName, skipStackPush)
 
 	-- Update title to supergroup name
 	self.mainFrame.title:SetText(supergroupName)
-	self.mainFrame.backButton:Show()
+	-- Only show back button if we're on the browser tab
+	if self.mainFrame.currentTab == "browser" then
+		self.mainFrame.backButton:Show()
+	end
+
 	-- Add current state to navigation stack (unless called from NavigateBack)
 	if not skipStackPush then
 		table.insert(self.navigationStack, {
@@ -544,7 +548,11 @@ function MountBrowser:LoadMountGrid(familyName, fromSupergroup, skipStackPush)
 
 	-- Update title to family name
 	self.mainFrame.title:SetText(familyName)
-	self.mainFrame.backButton:Show()
+	-- Only show back button if we're on the browser tab
+	if self.mainFrame.currentTab == "browser" then
+		self.mainFrame.backButton:Show()
+	end
+
 	-- Add current state to navigation stack (unless called from NavigateBack)
 	if not skipStackPush then
 		table.insert(self.navigationStack, {

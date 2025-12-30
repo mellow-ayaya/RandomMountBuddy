@@ -1111,7 +1111,26 @@ function MountSummon:SummonRandomMount(useContext)
 		return true -- Return true to indicate successful action (dismounting)
 	end
 
-	-- Immediate validation if recent zone change + pools are empty
+	-- MOUNT RULES: Check if current state matches any rules
+	if addon.MountRules then
+		local specificMountID, specificPoolName = addon.MountRules:GetMountForCurrentLocation()
+		if specificMountID then
+			-- Summon the specific mount for this location
+			addon:DebugSummon("Zone-specific mount found, summoning mount ID:", specificMountID)
+			return self:SummonMount(specificMountID)
+		elseif specificPoolName then
+			-- Use the specific pool for this location
+			addon:DebugSummon("Zone-specific pool found, using pool:", specificPoolName)
+			local mountID, mountName = self:SelectMountFromPoolWithFilter(specificPoolName, nil)
+			if mountID then
+				return self:SummonMount(mountID)
+			else
+				addon:DebugSummon("No mounts available in zone-specific pool:", specificPoolName)
+				-- Fall through to normal logic
+			end
+		end
+	end
+
 	if not self:ArePoolsInitialized() then
 		local recentZoneChange = addon.lastZoneChangeTime and (GetTime() - addon.lastZoneChangeTime) < 3.0
 		if recentZoneChange then
@@ -1149,26 +1168,6 @@ function MountSummon:SummonRandomMount(useContext)
 		else
 			addon:DebugSummon("SAFETY: Cannot build pools - data not ready")
 			return false
-		end
-	end
-
-	-- MOUNT RULES: Check if current state matches any rules
-	if addon.MountRules then
-		local specificMountID, specificPoolName = addon.MountRules:GetMountForCurrentLocation()
-		if specificMountID then
-			-- Summon the specific mount for this location
-			addon:DebugSummon("Zone-specific mount found, summoning mount ID:", specificMountID)
-			return self:SummonMount(specificMountID)
-		elseif specificPoolName then
-			-- Use the specific pool for this location
-			addon:DebugSummon("Zone-specific pool found, using pool:", specificPoolName)
-			local mountID, mountName = self:SelectMountFromPoolWithFilter(specificPoolName, nil)
-			if mountID then
-				return self:SummonMount(mountID)
-			else
-				addon:DebugSummon("No mounts available in zone-specific pool:", specificPoolName)
-				-- Fall through to normal logic
-			end
 		end
 	end
 
