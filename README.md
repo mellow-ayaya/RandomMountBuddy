@@ -35,7 +35,7 @@ Summoning features:
 - Favorite Sync: Automatically sync with your WoW Mount Journal favorites.
 - D.R.I.V.E. support: Automatically summon G-99 Breakneck when in the correct zones.
 - Macros: Create macros using /run RMB:SRM(true) or /rmb s. Note: Macros won't automatically use class spells like Travel Form - you'll need to add those manually if desired.
-- Rules: Create rules to summon specific mounts in certain zones or instance types.
+- Rules: Create rules to summon specific mounts in specific conditions such as player level, zone, instance type, while in party with a friend, when using a specific keybind, and more!
 
 Utility features:
 - Press the addon keybind to use class spells such as Flight/Travel/Cat form depending on the situation, or Levitate while falling! Classes supported: Druid, Shaman, Mage, Monk, Priest.
