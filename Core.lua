@@ -243,6 +243,9 @@ function addon:InitializeUIState()
 
 		-- Current page (could persist but better UX to reset)
 		currentPage = 1,
+
+		-- Weight change notifications counter (max 5 per session)
+		weightChangeNotificationCount = 0,
 	}
 	addon:DebugUI("Fresh UI state initialized")
 end
@@ -1840,6 +1843,107 @@ function addon:SyncWeightForSingleMountFamily(groupKey, weight)
 
 		addon:DebugSync("Weight sync completed - mount pools will be refreshed by settings notification")
 	end
+end
+
+-- ============================================================================
+-- WEIGHT CHANGE NOTIFICATION HELPER
+-- ============================================================================
+-- Weight name mapping (matches WeightDisplayMapping)
+local WeightNames = {
+	[0] = "Never",
+	[1] = "Occasional",
+	[2] = "Uncommon",
+	[3] = "Normal",
+	[4] = "Common",
+	[5] = "Often",
+	[6] = "Always",
+}
+-- Check if we should notify the user about weight sync when changing weights
+-- Returns: shouldNotify (boolean), notificationMessage (string or nil)
+function addon:CheckWeightChangeNotification(groupKey, isIncrement)
+	-- Check if we've already shown 5 notifications this session
+	if not self.uiState or self.uiState.weightChangeNotificationCount >= 5 then
+		return false, nil
+	end
+
+	-- Check if weight sync is enabled
+	if not (self.FavoriteSync and self.FavoriteSync:GetSetting("enableFavoriteSync")) then
+		return false, nil
+	end
+
+	local syncMode = self.FavoriteSync:GetSetting("favoriteWeightMode") -- "set" or "minimum"
+	local favoriteWeight = self.FavoriteSync:GetSetting("favoriteWeight")
+	local nonFavoriteWeight = self.FavoriteSync:GetSetting("nonFavoriteWeight")
+	-- Check if this will be the 5th notification
+	local isFifthNotification = (self.uiState.weightChangeNotificationCount == 4)
+	local fifthNotificationSuffix = isFifthNotification and
+			" This is the 5th notification this session, you will not be notified further." or ""
+	-- For "set" mode, always notify
+	if syncMode == "set" then
+		local message =
+				'Favorite Sync "Replace weights" mode is enabled in Mount Browser Settings, manual weight changes will be overridden.' ..
+				fifthNotificationSuffix
+		return true, message
+	end
+
+	-- For "minimum" mode, only notify when decreasing weight below threshold
+	if syncMode == "minimum" and not isIncrement then
+		local hasFavoritedMount = false
+		local groupType = "mount" -- default
+		-- Determine what type of group this is and check for favorited mounts
+		local mountID = groupKey:match("^mount_(%d+)$")
+		if mountID then
+			-- Individual mount - check if it's favorited
+			mountID = tonumber(mountID)
+			if mountID then
+				local name, _, _, _, _, _, isFavorite = C_MountJournal.GetMountInfoByID(mountID)
+				if name then
+					hasFavoritedMount = isFavorite
+					groupType = "mount"
+				end
+			end
+		else
+			-- Family or supergroup - check if ANY mount in it is favorited
+			local mountIDs = {}
+			-- Check if it's a supergroup
+			if self.processedData and self.processedData.superGroupToMountIDsMap and
+					self.processedData.superGroupToMountIDsMap[groupKey] then
+				mountIDs = self.processedData.superGroupToMountIDsMap[groupKey]
+				groupType = "group"
+				-- Check if it's a family
+			elseif self.processedData and self.processedData.familyToMountIDsMap and
+					self.processedData.familyToMountIDsMap[groupKey] then
+				mountIDs = self.processedData.familyToMountIDsMap[groupKey]
+				groupType = "family"
+			end
+
+			-- Check each mount in the group for favorites
+			for _, mID in ipairs(mountIDs) do
+				local name, _, _, _, _, _, isFavorite = C_MountJournal.GetMountInfoByID(mID)
+				if name and isFavorite then
+					hasFavoritedMount = true
+					break -- Found at least one favorited mount
+				end
+			end
+		end
+
+		-- Determine threshold based on whether favorited mounts were found
+		local threshold = hasFavoritedMount and favoriteWeight or nonFavoriteWeight
+		local currentWeight = self:GetGroupWeight(groupKey)
+		local newWeight = math.max(0, currentWeight - 1)
+		-- Notify if decreasing below threshold
+		if newWeight < threshold then
+			local favoriteStatus = hasFavoritedMount and "favorited" or "non-favorited"
+			local weightName = WeightNames[threshold] or tostring(threshold)
+			local message = string.format(
+				'Favorite Sync "Only increase weights" mode is enabled in Mount Browser Settings, the weight you changed (%s %s) will be automatically synced to "%s".%s',
+				favoriteStatus, groupType, weightName, fifthNotificationSuffix
+			)
+			return true, message
+		end
+	end
+
+	return false, nil
 end
 
 function addon:IsGroupEnabled(gk)

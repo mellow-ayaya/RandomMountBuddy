@@ -748,6 +748,16 @@ function MountBrowser:CreateCard(parent)
 	card.weightDecrease:SetText("-")
 	card.weightDecrease:SetScript("OnClick", function(self, button)
 		if card.data and card.data.key then
+			-- Check if we should notify about weight sync
+			local shouldNotify, notificationMessage = addon:CheckWeightChangeNotification(card.data.key, false)
+			if shouldNotify and notificationMessage then
+				addon:AlwaysPrint(notificationMessage)
+				-- Increment notification counter
+				if addon.uiState then
+					addon.uiState.weightChangeNotificationCount = (addon.uiState.weightChangeNotificationCount or 0) + 1
+				end
+			end
+
 			addon:DecrementGroupWeight(card.data.key)
 			-- Refresh the card display
 			MountBrowser:UpdateCard(card, card.data)
@@ -762,6 +772,16 @@ function MountBrowser:CreateCard(parent)
 	card.weightIncrease:SetText("+")
 	card.weightIncrease:SetScript("OnClick", function(self, button)
 		if card.data and card.data.key then
+			-- Check if we should notify about weight sync
+			local shouldNotify, notificationMessage = addon:CheckWeightChangeNotification(card.data.key, true)
+			if shouldNotify and notificationMessage then
+				addon:AlwaysPrint(notificationMessage)
+				-- Increment notification counter
+				if addon.uiState then
+					addon.uiState.weightChangeNotificationCount = (addon.uiState.weightChangeNotificationCount or 0) + 1
+				end
+			end
+
 			addon:IncrementGroupWeight(card.data.key)
 			-- Refresh the card display
 			MountBrowser:UpdateCard(card, card.data)

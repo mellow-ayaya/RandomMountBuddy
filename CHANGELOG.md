@@ -1,3 +1,6 @@
+# 1.1.40 - 2025-12-31
+- Added chat notifications for when changing weights via Mount Browser while Favorite weight sync is enabled, up to 5 notifications will be sent per session.
+
 # 1.1.30 - 2025-12-30
 - Added a keybind for the Mount Browser.
 - Added 3 new keybindings for summoning.
