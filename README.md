@@ -58,7 +58,7 @@ NOTE: All the macros below can be used while moving, but you will see an error f
 
 Explanation:
 
-/cancelform [noform:4] -> Cancels form if not in Moonkin form. Do not set it to [noform:2] as it might give you issues.
+/cancelform [noform:4] -> This neds to be here because /rmb s does not work while in Bear or Cat form. [noform:4] is optional (recommended for Balance druids)
 
 /cast [swimming,noform:3][outdoors,noform:3] Travel Form;[noswimming,indoors,noform:2] Cat Form  -> If moving or unable to mount, summoning a mount will fail and it will instead cast Travel form if available, or Cat form instead.
 
