@@ -46,12 +46,16 @@ Utility features:
 You can use /rmb s to create macros that will summon using the addon's logic! Due to technical limitations, these macros will not be able to use the class specific settings, but everything else is compatible. If you would like to make macros that also have class functionality similar to the addon, see the below examples.
 
 NOTE: All the macros below can be used while moving, but you will see an error from failing to mount "Can't do that while moving". If you find that annoying, add this to the top of the macro:
+```
 /run UIErrorsFrame:SuppressMessagesThisFrame()
+```
 
 #### Druid
+```
 /cancelform [noform:4]
 /rmb s
 /cast [swimming,noform:3,nomounted][outdoors,noform:3,nomounted] Travel Form;[noswimming,indoors,noform:2,nomounted] Cat Form
+```
 
 Explanation:
 /cancelform [noform:4] -> Cancels form if not in Moonkin form. Do not set it to [noform:2] as it might give you issues.
@@ -59,25 +63,31 @@ Explanation:
 /rmb s  -> Summon random mount with fancy addon logic
 
 #### Shaman
+```
 /rmb s
 /cast [noform] Ghost Wolf
+```
 
 Explanation:
 /rmb s -> Summon random mount with fancy addon logic
 /cast [noform] Ghost Wolf  -> If moving or unable to mount, summoning a mount will fail and it will instead cast Ghost Wolf, [noform] makes it so that you can't cancel Ghost Wolf by clicking the macro twice
 
 #### Mage
+```
 /rmb s
 /cast [@player] Slowfall
+```
 
 Explanation:
 /rmb s -> Summon random mount with fancy addon logic
 /cast [@player] Slowfall  -> If moving or unable to mount, summoning a mount will fail and it will instead cast Slowfall
 
 #### Monk
+```
 /cancelaura [noflying] Zen Flight
 /rmb s
 /cast Zen Flight
+```
 
 Explanation:
 /cancelaura [noflying] Zen Flight -> Cancels Zen Flight only if you're on the ground
@@ -85,8 +95,10 @@ Explanation:
 /cast Zen Flight -> If moving or unable to mount, summoning a mount will fail and it will instead cast Zen Flight
 
 #### Priest
+```
 /rmb s
 /cast [@player] Levitate
+```
 
 Explanation:
 /rmb s -> Summon random mount with fancy addon logic
