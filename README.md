@@ -58,8 +58,11 @@ NOTE: All the macros below can be used while moving, but you will see an error f
 ```
 
 Explanation:
+
 /cancelform [noform:4] -> Cancels form if not in Moonkin form. Do not set it to [noform:2] as it might give you issues.
+
 /cast [swimming,noform:3][outdoors,noform:3] Travel Form;[noswimming,indoors,noform:2] Cat Form  -> If moving or unable to mount, summoning a mount will fail and it will instead cast Travel form if available, or Cat form instead.
+
 /rmb s  -> Summon random mount with fancy addon logic
 
 #### Shaman
@@ -69,7 +72,9 @@ Explanation:
 ```
 
 Explanation:
+
 /rmb s -> Summon random mount with fancy addon logic
+
 /cast [noform] Ghost Wolf  -> If moving or unable to mount, summoning a mount will fail and it will instead cast Ghost Wolf, [noform] makes it so that you can't cancel Ghost Wolf by clicking the macro twice
 
 #### Mage
@@ -79,7 +84,9 @@ Explanation:
 ```
 
 Explanation:
+
 /rmb s -> Summon random mount with fancy addon logic
+
 /cast [@player] Slowfall  -> If moving or unable to mount, summoning a mount will fail and it will instead cast Slowfall
 
 #### Monk
@@ -90,8 +97,11 @@ Explanation:
 ```
 
 Explanation:
+
 /cancelaura [noflying] Zen Flight -> Cancels Zen Flight only if you're on the ground
+
 /rmb s -> Summon random mount with fancy addon logic
+
 /cast Zen Flight -> If moving or unable to mount, summoning a mount will fail and it will instead cast Zen Flight
 
 #### Priest
@@ -101,7 +111,9 @@ Explanation:
 ```
 
 Explanation:
+
 /rmb s -> Summon random mount with fancy addon logic
+
 /cast [@player] Levitate  -> If moving or unable to mount, summoning a mount will fail and it will instead cast Levitate
 
 ### &nbsp;
