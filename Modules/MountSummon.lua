@@ -36,6 +36,8 @@ function MountSummon:Initialize()
 	}
 	-- Initialize deterministic summoning
 	self:InitializeDeterministicSystem()
+	-- Pool rebuild retry tracking (for NPC blocking on reload)
+	self.poolRebuildScheduled = false
 	-- Set up flight style tracking
 	self:CheckCurrentFlightStyle()
 	self:RegisterFlightStyleEvents()
@@ -750,6 +752,12 @@ end
 -- Build mount pools for different contexts
 function MountSummon:BuildMountPools()
 	addon:DebugSummon("Building context-based mount pools")
+	-- Cancel any scheduled retry since we're building now
+	if self.poolRebuildScheduled then
+		addon:DebugSummon("Cancelling scheduled pool rebuild retry (manual rebuild triggered)")
+		self.poolRebuildScheduled = false
+	end
+
 	-- Reset the pools
 	for poolName, pool in pairs(self.mountPools) do
 		pool.superGroups = {}
@@ -809,6 +817,24 @@ function MountSummon:BuildMountPools()
 	end
 
 	addon:DebugSummon("Processed " .. mountsProcessed .. " mounts into context pools")
+	-- If we processed 0 mounts, this is likely because we're near an NPC that blocks mounting
+	-- or reloaded/logged in near such an NPC (WoW extends the restriction after reload)
+	-- Schedule a retry after 2 seconds
+	if mountsProcessed == 0 then
+		addon:DebugSummon(
+			"WARNING: 0 mounts processed - likely near NPC blocking mounting. Scheduling retry in 2 seconds...")
+		if not self.poolRebuildScheduled then
+			self.poolRebuildScheduled = true
+			C_Timer.After(2.0, function()
+				self.poolRebuildScheduled = false
+				if addon.RMB_DataReadyForUI and addon.processedData and addon.processedData.allCollectedMountFamilyInfo then
+					addon:DebugSummon("Retry: Rebuilding pools after NPC blocking delay")
+					self:BuildMountPools()
+				end
+			end)
+		end
+	end
+
 	-- Apply family and supergroup weights to all pools
 	self:ApplyFamilyAndSuperGroupWeights()
 	-- Log pool sizes
@@ -1212,6 +1238,10 @@ function MountSummon:SummonRandomMount(useContext)
 					end)
 				else
 					addon:DebugSummon("SAFETY: Pool building failed")
+					-- Show user message explaining the likely cause
+					UIErrorsFrame:AddMessage(
+						"Login/Reload near some NPCs causes temporary mount restriction. Please move away to be able to mount again.",
+						1.0, 0.8, 0.0, 1.0)
 				end
 
 				return false

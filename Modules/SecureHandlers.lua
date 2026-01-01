@@ -38,7 +38,7 @@ local MACRO_TEMPLATES = {
 	"/run RMB.activeKeybind = %d\n/run RMB:SRM(true)\n/run UIErrorsFrame:SuppressMessagesThisFrame()\n/stopmacro [mounted]",
 
 	-- Regular zones: Handle forms, then regular mount
-	regularZone = "/run RMB.activeKeybind = %d\n/cancelform [form:2]\n/run RMB:SRM(true)",
+	regularZone = "/run RMB.activeKeybind = %d\n/cancelform\n/run RMB:SRM(true)",
 
 	druidSmart = {
 		keepActive = "/cast [swimming,noform:3][outdoors,noform:3] %s\n/cast [indoors,noform:2] %s",
@@ -65,7 +65,7 @@ local function getUndermineZoneMacro(buttonNumber)
 	buttonNumber = buttonNumber or 1
 	local g99Name = getLocalizedG99Name()
 	-- Add form cancellation logic that's smart about travel forms
-	local macro = "/cancelform [form:2]\n" .. -- Cancel bear/cat/moonkin but not travel form
+	local macro = "/cancelform\n" .. -- Cancel bear/cat/moonkin but not travel form
 			"/cast " .. g99Name .. "\n" ..
 			"/run RMB.activeKeybind = " .. buttonNumber .. "\n" ..
 			"/run RMB:SRM(true)"

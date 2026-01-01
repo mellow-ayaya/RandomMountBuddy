@@ -34,11 +34,64 @@ Summoning features:
 - Weight System: Prioritize your favorites while still getting variety.
 - Favorite Sync: Automatically sync with your WoW Mount Journal favorites.
 - D.R.I.V.E. support: Automatically summon G-99 Breakneck when in the correct zones.
-- Macros: Create macros using /run RMB:SRM(true) or /rmb s. Note: Macros won't automatically use class spells like Travel Form - you'll need to add those manually if desired.
+- Macros: Create macros using /run RMB:SRM(true) or /rmb s. Note: Macros won't automatically use class spells like Travel Form - see Macro examples below.
 - Rules: Create rules to summon specific mounts in specific conditions such as player level, zone, instance type, while in party with a friend, when using a specific keybind, and more!
 
 Utility features:
 - Press the addon keybind to use class spells such as Flight/Travel/Cat form depending on the situation, or Levitate while falling! Classes supported: Druid, Shaman, Mage, Monk, Priest.
+
+### &nbsp;
+### Macro examples:
+
+You can use /rmb s to create macros that will summon using the addon's logic! Due to technical limitations, these macros will not be able to use the class specific settings, but everything else is compatible. If you would like to make macros that also have class functionality similar to the addon, see the below examples.
+
+NOTE: All the macros below can be used while moving, but you will see an error from failing to mount "Can't do that while moving". If you find that annoying, add this to the top of the macro:
+/run UIErrorsFrame:SuppressMessagesThisFrame()
+
+#### Druid
+/cancelform [noform:4]
+/rmb s
+/cast [swimming,noform:3,nomounted][outdoors,noform:3,nomounted] Travel Form;[noswimming,indoors,noform:2,nomounted] Cat Form
+
+Explanation:
+/cancelform [noform:4] -> Cancels form if not in Moonkin form. Do not set it to [noform:2] as it might give you issues.
+/cast [swimming,noform:3][outdoors,noform:3] Travel Form;[noswimming,indoors,noform:2] Cat Form  -> If moving or unable to mount, summoning a mount will fail and it will instead cast Travel form if available, or Cat form instead.
+/rmb s  -> Summon random mount with fancy addon logic
+
+#### Shaman
+/rmb s
+/cast [noform] Ghost Wolf
+
+Explanation:
+/rmb s -> Summon random mount with fancy addon logic
+/cast [noform] Ghost Wolf  -> If moving or unable to mount, summoning a mount will fail and it will instead cast Ghost Wolf, [noform] makes it so that you can't cancel Ghost Wolf by clicking the macro twice
+
+#### Mage
+/rmb s
+/cast [@player] Slowfall
+
+Explanation:
+/rmb s -> Summon random mount with fancy addon logic
+/cast [@player] Slowfall  -> If moving or unable to mount, summoning a mount will fail and it will instead cast Slowfall
+
+#### Monk
+/cancelaura [noflying] Zen Flight
+/rmb s
+/cast Zen Flight
+
+Explanation:
+/cancelaura [noflying] Zen Flight -> Cancels Zen Flight only if you're on the ground
+/rmb s -> Summon random mount with fancy addon logic
+/cast Zen Flight -> If moving or unable to mount, summoning a mount will fail and it will instead cast Zen Flight
+
+#### Priest
+/rmb s
+/cast [@player] Levitate
+
+Explanation:
+/rmb s -> Summon random mount with fancy addon logic
+/cast [@player] Levitate  -> If moving or unable to mount, summoning a mount will fail and it will instead cast Levitate
+
 ### &nbsp;
 ### Installation
 

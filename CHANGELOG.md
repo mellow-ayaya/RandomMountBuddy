@@ -1,3 +1,8 @@
+# 1.1.51 - 2026-01-01
+- Fixed being unable to mount while in Cat or Bear form while specced as Feral.
+- Added Macros suggestions section in addon description.
+- Found a rare issue that prevents you from mounting if you reload/login next to NPCs that prevent mounting - added notifications that explain how to fix the issue.
+
 # 1.1.50 - 2026-01-01
 - Added a new feature: summon target's mount, enabled by default.
 - Weight related notifiactions wording improved.
