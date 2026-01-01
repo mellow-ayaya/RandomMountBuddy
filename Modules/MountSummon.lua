@@ -1111,6 +1111,63 @@ function MountSummon:SummonRandomMount(useContext)
 		return true -- Return true to indicate successful action (dismounting)
 	end
 
+	-- TARGET MOUNT: Check if we should summon target's mount
+	if addon:GetSetting("summonTargetMount") then
+		-- Check if we have a valid player target
+		if UnitExists("target") and UnitIsPlayer("target") then
+			addon:DebugSummon("Checking target for mount...")
+			-- Scan target's buffs to find a mount aura
+			local targetMountID = nil
+			local targetMountName = nil
+			for i = 1, 40 do
+				-- Use modern API to get buff data
+				local auraData = C_UnitAuras.GetBuffDataByIndex("target", i)
+				if not auraData then break end -- No more buffs
+
+				local buffSpellID = auraData.spellId
+				if buffSpellID then
+					-- Check if this spell ID matches any mount in the journal
+					local allMountIDs = C_MountJournal.GetMountIDs()
+					for _, mountID in ipairs(allMountIDs) do
+						local mountName, mountSpellID, _, _, isUsable, _, _, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(
+							mountID)
+						if mountSpellID == buffSpellID then
+							-- Found a match - this is a mount buff
+							targetMountID = mountID
+							targetMountName = mountName
+							if not isCollected then
+								-- Player doesn't own this mount
+								addon:DebugSummon("Target's mount not collected:", mountName)
+								UIErrorsFrame:AddMessage("Unable to summon " .. mountName .. ": not collected.", 1.0, 0.1, 0.1, 1.0)
+								-- Fall through to normal summoning
+								break
+							elseif not isUsable then
+								-- Player owns it but can't use it (faction/class/level restriction)
+								addon:DebugSummon("Target's mount not usable:", mountName)
+								UIErrorsFrame:AddMessage("Unable to summon " .. mountName .. ": not usable on this character.", 1.0, 0.1,
+									0.1, 1.0)
+								-- Fall through to normal summoning
+								break
+							else
+								-- Mount is collected AND usable - summon it!
+								addon:DebugSummon("Found target's mount (collected and usable) - summoning:", mountName)
+								return self:SummonMount(mountID)
+							end
+						end
+					end
+
+					-- If we found and processed a mount, stop scanning
+					if targetMountID then break end
+				end
+			end
+
+			if not targetMountID then
+				addon:DebugSummon("Target has no mount buff")
+				-- Fall through to normal summoning
+			end
+		end
+	end
+
 	-- MOUNT RULES: Check if current state matches any rules
 	if addon.MountRules then
 		local specificMountID, specificPoolName = addon.MountRules:GetMountForCurrentLocation()

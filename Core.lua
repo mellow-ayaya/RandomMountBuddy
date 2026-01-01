@@ -39,6 +39,7 @@ local dbDefaults = {
 		-- Summoning
 		contextualSummoning = true,
 		useDeterministicSummoning = true,
+		summonTargetMount = true,
 		-- Class Spells
 		-- Druid
 		useTravelFormWhileMoving = true,
@@ -1877,67 +1878,92 @@ function addon:CheckWeightChangeNotification(groupKey, isIncrement)
 	-- Check if this will be the 5th notification
 	local isFifthNotification = (self.uiState.weightChangeNotificationCount == 4)
 	local fifthNotificationSuffix = isFifthNotification and
-			" This is the 5th notification this session, you will not be notified further." or ""
-	-- For "set" mode, always notify
-	if syncMode == "set" then
-		local message =
-				'Favorite Sync "Replace weights" mode is enabled in Mount Browser Settings, manual weight changes will be overridden.' ..
-				fifthNotificationSuffix
-		return true, message
-	end
-
-	-- For "minimum" mode, only notify when decreasing weight below threshold
-	if syncMode == "minimum" and not isIncrement then
-		local hasFavoritedMount = false
-		local groupType = "mount" -- default
-		-- Determine what type of group this is and check for favorited mounts
+			" This is the 5th notification, disabling notifications for now." or ""
+	-- Determine group type and favorited status for the notification
+	local hasFavoritedMount = false
+	local groupType = "mount" -- default
+	local groupName = groupKey
+	-- Get actual display name for the group
+	if self.processedData then
+		-- Check if it's a mount
 		local mountID = groupKey:match("^mount_(%d+)$")
 		if mountID then
-			-- Individual mount - check if it's favorited
 			mountID = tonumber(mountID)
 			if mountID then
 				local name, _, _, _, _, _, isFavorite = C_MountJournal.GetMountInfoByID(mountID)
 				if name then
 					hasFavoritedMount = isFavorite
 					groupType = "mount"
+					groupName = name
 				end
 			end
 		else
-			-- Family or supergroup - check if ANY mount in it is favorited
-			local mountIDs = {}
 			-- Check if it's a supergroup
-			if self.processedData and self.processedData.superGroupToMountIDsMap and
+			if self.processedData.superGroupToMountIDsMap and
 					self.processedData.superGroupToMountIDsMap[groupKey] then
-				mountIDs = self.processedData.superGroupToMountIDsMap[groupKey]
 				groupType = "group"
-				-- Check if it's a family
-			elseif self.processedData and self.processedData.familyToMountIDsMap and
-					self.processedData.familyToMountIDsMap[groupKey] then
-				mountIDs = self.processedData.familyToMountIDsMap[groupKey]
-				groupType = "family"
-			end
+				groupName = groupKey
+				-- Check for favorited mounts in supergroup
+				local mountIDs = self.processedData.superGroupToMountIDsMap[groupKey]
+				for _, mID in ipairs(mountIDs) do
+					local name, _, _, _, _, _, isFavorite = C_MountJournal.GetMountInfoByID(mID)
+					if name and isFavorite then
+						hasFavoritedMount = true
+						break
+					end
+				end
 
-			-- Check each mount in the group for favorites
-			for _, mID in ipairs(mountIDs) do
-				local name, _, _, _, _, _, isFavorite = C_MountJournal.GetMountInfoByID(mID)
-				if name and isFavorite then
-					hasFavoritedMount = true
-					break -- Found at least one favorited mount
+				-- Check if it's a family
+			elseif self.processedData.familyToMountIDsMap and
+					self.processedData.familyToMountIDsMap[groupKey] then
+				groupType = "family"
+				groupName = groupKey
+				-- Check for favorited mounts in family
+				local mountIDs = self.processedData.familyToMountIDsMap[groupKey]
+				for _, mID in ipairs(mountIDs) do
+					local name, _, _, _, _, _, isFavorite = C_MountJournal.GetMountInfoByID(mID)
+					if name and isFavorite then
+						hasFavoritedMount = true
+						break
+					end
 				end
 			end
 		end
+	end
 
+	local favoriteStatus = hasFavoritedMount and "Favorited" or "Non-favorited"
+	-- Determine what the sync target weight would be
+	local targetWeight = hasFavoritedMount and favoriteWeight or nonFavoriteWeight
+	-- For "set" mode, only notify if the new weight differs from what sync would set
+	if syncMode == "set" then
+		local currentWeight = self:GetGroupWeight(groupKey)
+		local newWeight = isIncrement and math.min(6, currentWeight + 1) or math.max(0, currentWeight - 1)
+		-- Only notify if they're setting it to something OTHER than what sync wants
+		if newWeight ~= targetWeight then
+			local message = string.format(
+				"Warning: (%s %s) %s will be overridden by Weight Sync (Replace mode).%s",
+				favoriteStatus, groupType, groupName, fifthNotificationSuffix
+			)
+			return true, message
+		else
+			-- They're setting it to the correct weight, no need to notify
+			return false, nil
+		end
+	end
+
+	-- For "minimum" mode, only notify when decreasing weight below threshold
+	if syncMode == "minimum" and not isIncrement then
 		-- Determine threshold based on whether favorited mounts were found
 		local threshold = hasFavoritedMount and favoriteWeight or nonFavoriteWeight
 		local currentWeight = self:GetGroupWeight(groupKey)
 		local newWeight = math.max(0, currentWeight - 1)
 		-- Notify if decreasing below threshold
 		if newWeight < threshold then
-			local favoriteStatus = hasFavoritedMount and "favorited" or "non-favorited"
-			local weightName = WeightNames[threshold] or tostring(threshold)
+			local fromWeightName = WeightNames[newWeight] or tostring(newWeight)
+			local toWeightName = WeightNames[threshold] or tostring(threshold)
 			local message = string.format(
-				'Favorite Sync "Only increase weights" mode is enabled in Mount Browser Settings, the weight you changed (%s %s) will be automatically synced to "%s".%s',
-				favoriteStatus, groupType, weightName, fifthNotificationSuffix
+				'Warning: (%s %s) %s will sync from "%s" to "%s" by Weight Sync (Increase mode).%s',
+				favoriteStatus, groupType, groupName, fromWeightName, toWeightName, fifthNotificationSuffix
 			)
 			return true, message
 		end

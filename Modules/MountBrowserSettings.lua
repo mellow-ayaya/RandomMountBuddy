@@ -350,6 +350,13 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 		true
 	)
 	CreateCheckbox(
+		"targetMount",
+		"Summon Target's Mount",
+		"summonTargetMount",
+		"When targeting a player, summon their current mount instead of using normal logic.\n|cff00ff00Takes priority over rules and weight settings.|r",
+		true
+	)
+	CreateCheckbox(
 		"uniqueEffect",
 		"Favor Unique Mounts",
 		"treatUniqueEffectsAsDistinct",
@@ -390,7 +397,13 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 		"favoriteSync_enableFavoriteSync",
 		"Automatically sync mount weights based on your favorite mounts in the Mount Journal.",
 		true,
-		200
+		200,
+		function(isChecked)
+			-- Reset notification counter when toggling sync
+			if addon.uiState then
+				addon.uiState.weightChangeNotificationCount = 0
+			end
+		end
 	)
 	CreateCheckbox(
 		"syncOnLogin",
@@ -491,6 +504,11 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 		setInfo.func = function()
 			addon:SetSetting("favoriteSync_favoriteWeightMode", "set")
 			UIDropDownMenu_SetSelectedValue(modeDropdown, "set")
+			-- Reset notification counter when changing mode
+			if addon.uiState then
+				addon.uiState.weightChangeNotificationCount = 0
+			end
+
 			if addon.RefreshMountPools then
 				C_Timer.After(0.1, function()
 					addon:RefreshMountPools()
@@ -506,6 +524,11 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 		minInfo.func = function()
 			addon:SetSetting("favoriteSync_favoriteWeightMode", "minimum")
 			UIDropDownMenu_SetSelectedValue(modeDropdown, "minimum")
+			-- Reset notification counter when changing mode
+			if addon.uiState then
+				addon.uiState.weightChangeNotificationCount = 0
+			end
+
 			if addon.RefreshMountPools then
 				C_Timer.After(0.1, function()
 					addon:RefreshMountPools()
@@ -549,6 +572,19 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 		if addon.FavoriteSync and addon.FavoriteSync.ManualSync then
 			addon.FavoriteSync:ManualSync()
 			addon:AlwaysPrint("Favorite mount sync completed.")
+			-- Refresh mount browser weight displays
+			if mountBrowser then
+				-- Set flag for when user switches back to browse tab
+				mountBrowser.needsVisualRefresh = true
+				-- If already on browse tab, refresh immediately (with delay to avoid conflicts)
+				if mountBrowser.mainFrame and mountBrowser.mainFrame.currentTab == "browser" then
+					C_Timer.After(0.1, function()
+						if mountBrowser.mainFrame and mountBrowser.mainFrame.scrollFrame:IsShown() then
+							mountBrowser:RefreshAllCards()
+						end
+					end)
+				end
+			end
 		end
 	end)
 	mountBrowser:SetupSimpleTooltip(syncButton, {

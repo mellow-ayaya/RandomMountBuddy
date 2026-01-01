@@ -1,5 +1,11 @@
+# 1.1.50 - 2026-01-01
+- Added a new feature: summon target's mount, enabled by default.
+- Weight related notifiactions wording improved.
+- Weight related notifications now appear a bit more often if you switch the sync settings.
+- Weights displayed in the Mount Browser will now update automatically after clicking Sync Now.
+
 # 1.1.40 - 2025-12-31
-- Added chat notifications for when changing weights via Mount Browser while Favorite weight sync is enabled, up to 5 notifications will be sent per session.
+- Added chat notifications for when changing weights via Mount Browser while Weight sync is enabled, up to 5 notifications will be sent per session.
 
 # 1.1.30 - 2025-12-30
 - Added a keybind for the Mount Browser.

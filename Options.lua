@@ -174,6 +174,19 @@ local rootOptionsTable = {
 			width = 1.2,
 		},
 
+		summonTargetMount = {
+			order = 32.5,
+			type = "toggle",
+			name = "Summon Target's Mount",
+			desc =
+			"When targeting a player, summon their current mount instead of using normal mount selection logic. Takes priority over rules and weight settings. If you don't own the mount, the addon will use normal selection instead.",
+			get = function() return addon:GetSetting("summonTargetMount") end,
+			set = function(i, v)
+				addon:SetSetting("summonTargetMount", v)
+			end,
+			width = 1.2,
+		},
+
 		treatUniqueEffectsAsDistinct = {
 			order = 33,
 			type = "toggle",
@@ -217,6 +230,11 @@ local rootOptionsTable = {
 					set = function(i, v)
 						if addon.FavoriteSync then
 							addon.FavoriteSync:SetSetting("enableFavoriteSync", v)
+						end
+
+						-- Reset notification counter when toggling sync
+						if addon.uiState then
+							addon.uiState.weightChangeNotificationCount = 0
 						end
 
 						-- ENHANCED: Refresh mount pools since this affects weight assignments
@@ -345,6 +363,11 @@ local rootOptionsTable = {
 					set = function(i, v)
 						if addon.FavoriteSync then
 							addon.FavoriteSync:SetSetting("favoriteWeightMode", v)
+						end
+
+						-- Reset notification counter when changing mode
+						if addon.uiState then
+							addon.uiState.weightChangeNotificationCount = 0
 						end
 
 						-- ENHANCED: Refresh mount pools since this affects weight application
