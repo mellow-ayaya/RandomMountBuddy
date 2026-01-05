@@ -1,4 +1,4 @@
-# 1.1.52 - 2026-01-01
+# 1.1.52 - 2026-01-05
 - Added notification for when unable to summon due to mount restricted area (generally due to being next to some NPCs that prevent mounting)
 - Fixed Quick Preset rules only adding the condition instead of adding both the condition and action.
 - Fixed typo in Quick Preset for Chaffeured mounts (default rule was unaffected, just the preset for new rules).
