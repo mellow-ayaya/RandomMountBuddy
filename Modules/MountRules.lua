@@ -604,7 +604,12 @@ function MountRules:EvaluateLocationRule(rule)
 			GetInstanceInfo()
 	local parentMapID = mapID and C_Map.GetMapInfo(mapID) and C_Map.GetMapInfo(mapID).parentMapID or nil
 	-- Support both old single locationID and new locationIDs array
-	local locationIDs = rule.locationIDs or { rule.locationID }
+	local locationIDs = rule.locationIDs or (rule.locationID and { rule.locationID }) or {}
+	if #locationIDs == 0 then
+		addon:DebugSummon("  Location rule has no IDs - failing")
+		return false
+	end
+
 	addon:DebugSummon("  Evaluating location rule:")
 	addon:DebugSummon("    Type:", rule.locationType)
 	addon:DebugSummon("    Rule IDs:", table.concat(locationIDs, ", "))
@@ -737,8 +742,14 @@ function MountRules:EvaluateSocialRule(rule)
 				return true
 			end
 		elseif rule.socialType == "character_whitelist" then
-			if self:IsPartyMemberInWhitelist(unit, rule.characterNames) then
-				return true
+			-- Defensive: check if characterNames exists and is not empty
+			if rule.characterNames and #rule.characterNames > 0 then
+				if self:IsPartyMemberInWhitelist(unit, rule.characterNames) then
+					return true
+				end
+			else
+				addon:DebugSummon("  Character whitelist is empty or nil - rule fails")
+				return false
 			end
 		elseif rule.socialType == "guild_member_in_party" then
 			if UnitIsInMyGuild(unit) then
@@ -759,7 +770,8 @@ function MountRules:EvaluateCharacterLevelRule(rule)
 		return false
 	end
 
-	local operator = rule.operator or "="
+	-- Support both 'operator' (standard) and 'levelOperator' (UI/legacy field name)
+	local operator = rule.operator or rule.levelOperator or "="
 	if operator == "=" then
 		return playerLevel == targetLevel
 	elseif operator == "<" then
@@ -1038,8 +1050,21 @@ function MountRules:GetRuleDescription(rule)
 		local mountNames = {}
 		if rule.mountIDs then
 			-- New format: multiple mounts
-			for i, name in ipairs(rule.mountNames or {}) do
-				table.insert(mountNames, name)
+			if rule.mountNames then
+				-- Use stored names if available
+				for i, name in ipairs(rule.mountNames) do
+					table.insert(mountNames, name)
+				end
+			else
+				-- Fallback: Look up names from IDs if mountNames not stored
+				for _, mountID in ipairs(rule.mountIDs) do
+					local mountName = C_MountJournal.GetMountInfoByID(mountID)
+					if mountName then
+						table.insert(mountNames, mountName)
+					else
+						table.insert(mountNames, "Mount ID " .. mountID)
+					end
+				end
 			end
 		elseif rule.mountID then
 			-- Old format: single mount (for backwards compatibility)

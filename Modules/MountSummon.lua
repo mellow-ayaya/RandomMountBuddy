@@ -816,13 +816,18 @@ function MountSummon:BuildMountPools()
 		end
 	end
 
-	addon:DebugSummon("Processed " .. mountsProcessed .. " mounts into context pools")
-	-- If we processed 0 mounts, this is likely because we're near an NPC that blocks mounting
-	-- or reloaded/logged in near such an NPC (WoW extends the restriction after reload)
-	-- Schedule a retry after 2 seconds
-	if mountsProcessed == 0 then
+	local playerLevel = UnitLevel("player")
+	addon:DebugSummon("Processed " .. mountsProcessed .. " mounts into context pools (player level: " .. playerLevel .. ")")
+	-- Only treat mountsProcessed == 0 as NPC blocking if:
+	-- 1. Player is high enough level to mount (level 10+ for ground mounts)
+	-- 2. We have collected mounts but none were processed as usable
+	--
+	-- Skip NPC blocking detection for low-level characters since they legitimately
+	-- can't use mounts yet (level restriction shows all mounts as isUsable = false)
+	if mountsProcessed == 0 and playerLevel >= 10 then
 		addon:DebugSummon(
-			"WARNING: 0 mounts processed - likely near NPC blocking mounting. Scheduling retry in 2 seconds...")
+			"WARNING: 0 mounts processed at level " ..
+			playerLevel .. " - likely near NPC blocking mounting. Scheduling retry in 2 seconds...")
 		if not self.poolRebuildScheduled then
 			self.poolRebuildScheduled = true
 			C_Timer.After(2.0, function()
@@ -833,6 +838,8 @@ function MountSummon:BuildMountPools()
 				end
 			end)
 		end
+	elseif mountsProcessed == 0 and playerLevel < 10 then
+		addon:DebugSummon("No usable mounts at level " .. playerLevel .. " - this is expected (mounts unlock at level 10)")
 	end
 
 	-- Apply family and supergroup weights to all pools
@@ -1318,6 +1325,19 @@ function MountSummon:SummonRandomMount(useContext)
 	else
 		addon:DebugSummon("No eligible mounts found in " .. poolName .. " pool" ..
 			(mountTypeFilter and (" with " .. mountTypeFilter .. " filter") or ""))
+		-- Check if this is likely due to NPC restriction
+		-- If pools are populated but no mounts are eligible, and player is high enough level
+		local playerLevel = UnitLevel("player")
+		local poolsHaveMounts = self:ArePoolsInitialized()
+		addon:DebugSummon("NPC restriction check - pools initialized: " .. tostring(poolsHaveMounts) ..
+			", player level: " .. playerLevel ..
+			", in combat: " .. tostring(InCombatLockdown()))
+		if poolsHaveMounts and playerLevel >= 10 and not InCombatLockdown() then
+			-- Pools exist but no eligible mounts - likely NPC restriction
+			addon:DebugSummon("Likely NPC restriction - showing message to player")
+			UIErrorsFrame:AddMessage("Mount restricted area", 1.0, 0.1, 0.1, 1.0)
+		end
+
 		return false
 	end
 end

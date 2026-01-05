@@ -171,7 +171,7 @@ local rootOptionsTable = {
 					addon:DebugOptions("Refreshed mount pools after deterministic summoning change")
 				end
 			end,
-			width = 1.2,
+			width = 1.4,
 		},
 
 		summonTargetMount = {
@@ -184,16 +184,16 @@ local rootOptionsTable = {
 			set = function(i, v)
 				addon:SetSetting("summonTargetMount", v)
 			end,
-			width = 1.2,
+			width = 1.4,
 		},
 
 		treatUniqueEffectsAsDistinct = {
 			order = 33,
 			type = "toggle",
 			name = "Favor Unique Mounts",
-			width = "1.2",
+			width = 1.4,
 			desc =
-			"Displays mounts in their assigned groups regardless whether you enabled the Improved Unique Mount Chances setting.\n|cff00ff00Recommended to keep Enabled|r",
+			"Mounts labelled as Unique get their own independent chance to be summoned instead of sharing chances with similar mounts.\n|cff1eff00You can toggle which mounts are unique via the gem icon in Mount Browser (expand groups to see it).|r",
 			get = function() return addon:GetSetting("treatUniqueEffectsAsDistinct") end,
 			set = function(i, v)
 				addon:SetSetting("treatUniqueEffectsAsDistinct", v)

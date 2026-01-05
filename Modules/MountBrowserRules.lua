@@ -503,16 +503,20 @@ function Rules:CreateRulesFrame(parentFrame, mountBrowser)
 				end
 				info6.checked = (condition.ruleType == "social")
 				UIDropDownMenu_AddButton(info6)
-				local info7 = UIDropDownMenu_CreateInfo()
-				info7.text = "Quick Presets"
-				info7.value = "preset"
-				info7.func = function()
-					condition.ruleType = "preset"
-					UIDropDownMenu_SetText(ruleTypeDropdown, info7.text)
-					RebuildAddRuleUI()
+				-- Only show Quick Presets option for the first condition
+				-- (presets set both condition and action, so additional conditions don't make sense)
+				if conditionIndex == 1 then
+					local info7 = UIDropDownMenu_CreateInfo()
+					info7.text = "Quick Presets"
+					info7.value = "preset"
+					info7.func = function()
+						condition.ruleType = "preset"
+						UIDropDownMenu_SetText(ruleTypeDropdown, info7.text)
+						RebuildAddRuleUI()
+					end
+					info7.checked = (condition.ruleType == "preset")
+					UIDropDownMenu_AddButton(info7)
 				end
-				info7.checked = (condition.ruleType == "preset")
-				UIDropDownMenu_AddButton(info7)
 			end)
 			table.insert(conditionRow.elements, ruleTypeDropdown)
 			-- Conditional fields container for this condition (positioned to the RIGHT)
@@ -971,19 +975,31 @@ function Rules:CreateRulesFrame(parentFrame, mountBrowser)
 					info.func = function()
 						condition.presetType = preset.value
 						UIDropDownMenu_SetText(presetDropdown, preset.text)
-						-- Auto-populate preset values
+						-- Auto-populate preset values for both condition AND action
 						if preset.value == "m_plus_portal" then
+							-- Condition: Instance ID 2678 (M+ portal)
 							condition.ruleType = "location"
 							condition.locationID = "2678"
 							condition.locationType = "instanceid"
+							-- Action: Flying pool
+							newRule.actionType = "pool"
+							newRule.poolName = "flying"
 						elseif preset.value == "class_hall" then
+							-- Condition: Multiple instance IDs (class halls)
 							condition.ruleType = "location"
 							condition.locationID = "1519;1540;1514;1469;1479"
 							condition.locationType = "instanceid"
+							-- Action: Flying pool
+							newRule.actionType = "pool"
+							newRule.poolName = "flying"
 						elseif preset.value == "chauffeur" then
+							-- Condition: Character level < 10
 							condition.ruleType = "character_level"
 							condition.levelOperator = "<"
 							condition.level = 10
+							-- Action: Chauffeur mounts (IDs: 679=Chauffeured Mechano-Hog, 678=Chauffeured Chopper)
+							newRule.actionType = "specific"
+							newRule.mountIDs = "679;678"
 						end
 
 						RebuildAddRuleUI()
@@ -1224,49 +1240,69 @@ function Rules:CreateRulesFrame(parentFrame, mountBrowser)
 				}
 				conditionCopy.keybindName = keybindNames[condition.keybindNumber] or "Unknown"
 			elseif condition.ruleType == "location" then
-				-- Set location name based on ID
-				if condition.locationType == "mapid" then
-					local mapInfo = C_Map.GetMapInfo(tonumber(condition.locationID))
-					conditionCopy.locationName = (mapInfo and mapInfo.name) or ("Map " .. condition.locationID)
-				elseif condition.locationType == "instanceid" then
-					conditionCopy.locationName = GetRealZoneText(tonumber(condition.locationID)) or
-							("Instance " .. condition.locationID)
-				elseif condition.locationType == "parentzone" then
-					conditionCopy.locationName = "Parent Zone " .. condition.locationID
-				end
-
-				-- Parse semicolon-separated IDs into array
+				-- Set location name based on ID (use first ID for display)
+				local firstID
 				if type(condition.locationID) == "string" then
-					local locationIDs = {}
-					for id in condition.locationID:gmatch("[^;]+") do
-						local trimmed = id:match("^%s*(.-)%s*$")
-						local numID = tonumber(trimmed)
-						if numID then
-							table.insert(locationIDs, numID)
-						end
-					end
-
-					conditionCopy.locationIDs = locationIDs
+					firstID = tonumber(condition.locationID:match("^[^;]+"))
+				elseif type(condition.locationID) == "number" then
+					firstID = condition.locationID
 				end
+
+				if firstID and condition.locationType == "mapid" then
+					local mapInfo = C_Map.GetMapInfo(firstID)
+					conditionCopy.locationName = (mapInfo and mapInfo.name) or ("Map " .. firstID)
+				elseif firstID and condition.locationType == "instanceid" then
+					conditionCopy.locationName = GetRealZoneText(firstID) or ("Instance " .. firstID)
+				elseif firstID and condition.locationType == "parentzone" then
+					conditionCopy.locationName = "Parent Zone " .. firstID
+				end
+
+				-- Parse IDs into array (defensive: always create array, even if empty)
+				local locationIDs = {}
+				if condition.locationID then
+					if type(condition.locationID) == "string" then
+						-- Parse semicolon-separated IDs
+						for id in condition.locationID:gmatch("[^;]+") do
+							local trimmed = id:match("^%s*(.-)%s*$")
+							local numID = tonumber(trimmed)
+							if numID then
+								table.insert(locationIDs, numID)
+							end
+						end
+					elseif type(condition.locationID) == "number" then
+						-- Single numeric ID
+						table.insert(locationIDs, condition.locationID)
+					elseif type(condition.locationID) == "table" then
+						-- Already an array (shouldn't happen, but handle it)
+						locationIDs = condition.locationID
+					end
+				end
+
+				conditionCopy.locationIDs = locationIDs
 			elseif condition.ruleType == "character_level" then
 				-- Build display name for character level
 				conditionCopy.levelDisplayName = "Level " .. (condition.levelOperator or ">=") .. " " .. (condition.level or "?")
+				-- Normalize field name: UI uses 'levelOperator', but evaluation code expects 'operator'
+				conditionCopy.operator = condition.levelOperator
 			elseif condition.ruleType == "instance_type" then
 				-- Display name already set when dropdown selected (instanceTypeName)
 			elseif condition.ruleType == "group_state" then
 				-- Display name already set when dropdown selected (groupStateName)
 			elseif condition.ruleType == "social" then
 				-- Display name already set when dropdown selected (socialTypeName)
-				-- Parse character names for whitelist type
-				if condition.socialType == "character_whitelist" and condition.characterNames then
+				-- Parse character names for whitelist type (defensive: always create array, even if empty)
+				if condition.socialType == "character_whitelist" then
 					local names = {}
-					for name in condition.characterNames:gmatch("[^;,]+") do
-						local trimmed = name:match("^%s*(.-)%s*$")
-						if trimmed ~= "" then
-							table.insert(names, trimmed)
+					if condition.characterNames and condition.characterNames ~= "" then
+						for name in condition.characterNames:gmatch("[^;,]+") do
+							local trimmed = name:match("^%s*(.-)%s*$")
+							if trimmed ~= "" then
+								table.insert(names, trimmed)
+							end
 						end
 					end
 
+					-- Always set characterNames array, even if empty (prevents nil errors in evaluation)
 					conditionCopy.characterNames = names
 				end
 			end
@@ -1277,6 +1313,16 @@ function Rules:CreateRulesFrame(parentFrame, mountBrowser)
 		-- Add action fields
 		if newRule.actionType == "specific" then
 			rule.mountIDs = mountIDList
+			-- Look up and store mount names for display
+			rule.mountNames = {}
+			for _, mountID in ipairs(mountIDList) do
+				local mountName = C_MountJournal.GetMountInfoByID(mountID)
+				if mountName then
+					table.insert(rule.mountNames, mountName)
+				else
+					table.insert(rule.mountNames, "Mount ID " .. mountID)
+				end
+			end
 		elseif newRule.actionType == "pool" then
 			rule.poolName = newRule.poolName
 		end
