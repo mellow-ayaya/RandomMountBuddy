@@ -1,3 +1,9 @@
+# 1.1.53 - 2026-01-13
+- Added Wago packaging - RMB can now be downloaded from Wago too!
+- Added new shop mount: Scorching Valor to Winged Flying Horses (unique)
+- Added Midnight mountID 2917 to the appropriate family (it will not show in the mount browser until Midnight)
+- Changed new mount notification to be sent to me only as there's no point in spamming the users.
+
 # 1.1.52 - 2026-01-05
 - Added notification for when unable to summon due to mount restricted area (generally due to being next to some NPCs that prevent mounting)
 - Fixed Quick Preset rules only adding the condition instead of adding both the condition and action.

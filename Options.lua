@@ -171,7 +171,7 @@ local rootOptionsTable = {
 					addon:DebugOptions("Refreshed mount pools after deterministic summoning change")
 				end
 			end,
-			width = 1.4,
+			width = 1.2,
 		},
 
 		summonTargetMount = {
@@ -184,16 +184,16 @@ local rootOptionsTable = {
 			set = function(i, v)
 				addon:SetSetting("summonTargetMount", v)
 			end,
-			width = 1.4,
+			width = 1.2,
 		},
 
 		treatUniqueEffectsAsDistinct = {
 			order = 33,
 			type = "toggle",
 			name = "Favor Unique Mounts",
-			width = 1.4,
+			width = "1.2",
 			desc =
-			"Mounts labelled as Unique get their own independent chance to be summoned instead of sharing chances with similar mounts.\n|cff1eff00You can toggle which mounts are unique via the gem icon in Mount Browser (expand groups to see it).|r",
+			"Displays mounts in their assigned groups regardless whether you enabled the Improved Unique Mount Chances setting.\n|cff00ff00Recommended to keep Enabled|r",
 			get = function() return addon:GetSetting("treatUniqueEffectsAsDistinct") end,
 			set = function(i, v)
 				addon:SetSetting("treatUniqueEffectsAsDistinct", v)
@@ -1498,9 +1498,40 @@ StaticPopupDialogs["RMB_EXPORT_CONFIG_POPUP"] = {
 	OnShow = function(self, data)
 		if data and data.configString then
 			-- Set the edit box text and select all for easy copying
-			self.editBox:SetText(data.configString)
-			self.editBox:HighlightText()
-			self.editBox:SetFocus()
+			self.EditBox:SetText(data.configString)
+			self.EditBox:HighlightText()
+			self.EditBox:SetFocus()
+		end
+	end,
+	EditBoxOnEnterPressed = function(self)
+		-- Just close when user presses enter
+		self:GetParent():Hide()
+	end,
+	EditBoxOnEscapePressed = function(self)
+		-- Close when user presses escape
+		self:GetParent():Hide()
+	end,
+	preferredIndex = 3,
+}
+StaticPopupDialogs["RMB_EXPORT_MOUNTS_POPUP"] = {
+	text = "New Mounts Export\n\nCopy the data below to add to your data files:",
+	button1 = "Close",
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	hasEditBox = true,
+	editBoxWidth = 350,
+	OnShow = function(self, data)
+		if data and data.exportString then
+			-- Set the edit box text and select all for easy copying
+			self.EditBox:SetText(data.exportString)
+			self.EditBox:HighlightText()
+			self.EditBox:SetFocus()
+			-- Update the text to show mount count
+			if data.mountCount then
+				self.Text:SetText("New Mounts Export (" ..
+					data.mountCount .. " mounts)\n\nCopy the data below to add to your data files:")
+			end
 		end
 	end,
 	EditBoxOnEnterPressed = function(self)

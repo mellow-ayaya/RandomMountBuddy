@@ -981,7 +981,8 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     -- ========================================================
     -- OWLS
     -- ========================================================
-    [1818] = "Anu'relos",    -- Anu'relos, Flame's Guidance
+    [1818] = "Anui",    -- Anu'relos, Flame's Guidance
+		[2917] = "Anui",    -- Anu'shalla, Shadow's Guidance
     [2140] = "Charming Courier",    -- Charming Courier
     -- ========================================================
     -- OXES
@@ -1775,6 +1776,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2605] = "Inarius' Charger",    -- Inarius' Charger
     [363] = "Invincible",    -- Invincible
     [439] = "Tyrael's Charger",    -- Tyrael's Charger
+		[2634] = "Scorching Valor",    -- Scorching Valor
     -- ========================================================
     -- WOLVES
     -- ========================================================
@@ -3414,7 +3416,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     },
 
     -- Owls
-    ["Anu'relos"] = {
+    ["Anui"] = {
         superGroup = "Owls",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
     },
@@ -4590,7 +4592,10 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         superGroup = "Winged Flying Horses",
         traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
     },
-
+    ["Scorching Valor"] = {
+        superGroup = "Winged Flying Horses",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
     -- Wolves
     ["Alliance Wolf Mount"] = {
         superGroup = "Wolves",

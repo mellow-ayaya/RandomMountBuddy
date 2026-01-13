@@ -1460,6 +1460,7 @@ MountIDtoMountTypeID = {
     [2631] = 424,    -- Scarlet Void Flyer
     [2632] = 424,    -- Astral Aurochs
     [2633] = 424,    -- Azure Void Flyer
+		[2634] = 444,    -- Scorching Valor
     [2640] = 424,    -- Brewfest Barrel Bomber
     [2645] = 230,    -- Kalu'ak Crest-horn
     [2649] = 230,    -- Sharktested Crest-Horn

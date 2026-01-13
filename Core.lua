@@ -3302,7 +3302,9 @@ function addon:DetectAndProcessNewMounts()
 	local elapsed = endTime - startTime
 	if newMountsFound > 0 then
 		addon:DebugCore("Detected " .. newMountsFound .. " new mounts in " .. string.format("%.2f", elapsed) .. "ms")
+		--@debug@
 		addon:AlwaysPrint("Detected " .. newMountsFound .. " new mounts and added them as standalone families")
+		--@end-debug@
 		-- Invalidate MountDataManager cache since we added new mounts
 		if self.MountDataManager then
 			self.MountDataManager:InvalidateCache("new_mounts_detected")
@@ -3357,22 +3359,23 @@ function addon:ExportAutoDetectedMounts()
 	for _ in pairs(exportData.mountToFamily) do count = count + 1 end
 
 	if count > 0 then
-		addon:AlwaysPrint("Found " .. count .. " new mounts. Export data available in debug console.")
-		addon:DebugCore("=== NEW MOUNTS EXPORT (New Two-Table Format) ===")
-		addon:DebugCore("")
+		-- Build export string for popup display
+		local exportLines = {}
+		table.insert(exportLines, "=== NEW MOUNTS EXPORT (New Two-Table Format) ===")
+		table.insert(exportLines, "")
 		-- MountToFamily section
-		addon:DebugCore("-- Add to MountToFamily table:")
+		table.insert(exportLines, "-- Add to MountToFamily table:")
 		for mountID, familyName in pairs(exportData.mountToFamily) do
-			local mountName, _, _, _, _, _, _, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(mountID)
-			addon:DebugCore("    [" .. mountID .. "] = \"" .. familyName .. "\",    -- " .. (mountName or "Unknown"))
+			local mountName = C_MountJournal.GetMountInfoByID(mountID)
+			table.insert(exportLines, "    [" .. mountID .. "] = \"" .. familyName .. "\",    -- " .. (mountName or "Unknown"))
 		end
 
-		addon:DebugCore("")
+		table.insert(exportLines, "")
 		-- FamilyDefinitions section
-		addon:DebugCore("-- Add to FamilyDefinitions table:")
+		table.insert(exportLines, "-- Add to FamilyDefinitions table:")
 		for familyName, familyDef in pairs(exportData.familyDefinitions) do
-			addon:DebugCore("    [\"" .. familyName .. "\"] = {")
-			addon:DebugCore("        superGroup = " ..
+			table.insert(exportLines, "    [\"" .. familyName .. "\"] = {")
+			table.insert(exportLines, "        superGroup = " ..
 				(familyDef.superGroup and ("\"" .. familyDef.superGroup .. "\"") or "nil") .. ",")
 			local traitOrder = { "hasMinorArmor", "hasMajorArmor", "hasModelVariant", "isUniqueEffect" }
 			local traitPairs = {}
@@ -3382,19 +3385,30 @@ function addon:ExportAutoDetectedMounts()
 				end
 			end
 
-			addon:DebugCore("        traits = { " .. table.concat(traitPairs, ", ") .. " },")
-			addon:DebugCore("    },")
+			table.insert(exportLines, "        traits = { " .. table.concat(traitPairs, ", ") .. " },")
+			table.insert(exportLines, "    },")
 		end
 
-		addon:DebugCore("")
-		-- MountIDtoMountTypeID section (NEW)
-		addon:DebugCore("-- Add to MountIDtoMountTypeID table:")
+		table.insert(exportLines, "")
+		-- MountIDtoMountTypeID section
+		table.insert(exportLines, "-- Add to MountIDtoMountTypeID table:")
 		for mountID, mountTypeID in pairs(exportData.mountIDtoMountTypeID) do
 			local mountName = C_MountJournal.GetMountInfoByID(mountID)
-			addon:DebugCore("    [" .. mountID .. "] = " .. mountTypeID .. ",    -- " .. (mountName or "Unknown"))
+			table.insert(exportLines, "    [" .. mountID .. "] = " .. mountTypeID .. ",    -- " .. (mountName or "Unknown"))
 		end
 
-		addon:DebugCore("=== END EXPORT ===")
+		table.insert(exportLines, "")
+		table.insert(exportLines, "=== END EXPORT ===")
+		-- Join all lines into a single string
+		local exportString = table.concat(exportLines, "\n")
+		-- Show popup with export data
+		StaticPopup_Show("RMB_EXPORT_MOUNTS_POPUP", nil, nil, {
+			exportString = exportString,
+			mountCount = count,
+		})
+		addon:AlwaysPrint("Found " .. count .. " new mounts. Export popup opened - copy the text from the dialog")
+		-- Also log to debug if enabled
+		addon:DebugCore("Exported " .. count .. " new mounts to popup")
 	else
 		addon:AlwaysPrint("No new mounts to export")
 	end

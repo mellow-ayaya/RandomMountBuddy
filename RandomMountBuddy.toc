@@ -1,7 +1,7 @@
 ## Interface: 110207, 120000
 ## Title: Random Mount Buddy
 ## Author: mellow_ayaya
-## Version: # 1.1.52
+## Version: # # 1.1.53
 ## IconTexture: Interface\AddOns\RandomMountBuddy\Media\icon.tga
 ## Notes: Groups similar mounts together for balanced summoning.
 ## AddonCompartmentFunc: RMB_OnAddonCompartmentClick
@@ -11,6 +11,7 @@
 
 ## X-License: GNU General Public License version 3 (GPLv3)
 ## X-Curse-Project-ID: 1280769
+## X-Wago-ID: EGPe2WN1
 
 # Libraries
 Libs\LibStub\LibStub.lua
