@@ -1,3 +1,6 @@
+# 1.1.54 - 2026-01-16
+- Fixed an issue that caused Shadow form to get cancelled automatically when mounting.
+
 # 1.1.53 - 2026-01-13
 - Added Wago packaging - RMB can now be downloaded from Wago too!
 - Added new shop mount: Scorching Valor to Winged Flying Horses (unique)

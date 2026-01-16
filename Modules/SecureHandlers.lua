@@ -34,11 +34,14 @@ end
 
 -- Common macro templates to reduce duplication
 local MACRO_TEMPLATES = {
+	-- Druid pre-prefix: Applied before other prefixes for druid form handling
+	druidPrePrefix = "/cancelform [spec:1,noform:4][nospec:1]\n",
+
 	prefix =
 	"/run RMB.activeKeybind = %d\n/run RMB:SRM(true)\n/run UIErrorsFrame:SuppressMessagesThisFrame()\n/stopmacro [mounted]",
 
 	-- Regular zones: Handle forms, then regular mount
-	regularZone = "/run RMB.activeKeybind = %d\n/cancelform\n/run RMB:SRM(true)",
+	regularZone = "/run RMB.activeKeybind = %d\n/run RMB:SRM(true)",
 
 	druidSmart = {
 		keepActive = "/cast [swimming,noform:3][outdoors,noform:3] %s\n/cast [indoors,noform:2] %s",
@@ -64,12 +67,10 @@ local MACRO_TEMPLATES = {
 local function getUndermineZoneMacro(buttonNumber)
 	buttonNumber = buttonNumber or 1
 	local g99Name = getLocalizedG99Name()
-	-- Add form cancellation logic that's smart about travel forms
-	local macro = "/cancelform\n" .. -- Cancel bear/cat/moonkin but not travel form
-			"/cast " .. g99Name .. "\n" ..
+	local macro = "/cast " .. g99Name .. "\n" ..
 			"/run RMB.activeKeybind = " .. buttonNumber .. "\n" ..
 			"/run RMB:SRM(true)"
-	addonTable:DebugCore("G99: Built Undermine macro with form handling and spell:", g99Name)
+	addonTable:DebugCore("G99: Built Undermine macro with spell:", g99Name)
 	return macro
 end
 -- Function to safely get cached settings
@@ -135,20 +136,32 @@ addonTable.isUpdatingMacros = false
 local function getMountMacroForCurrentZone(buttonNumber)
 	buttonNumber = buttonNumber or 1
 	local locationID = C_Map.GetBestMapForUnit("player")
+	local macro
 	-- Undermine zones: Try G99 first, then regular mount
 	if locationID == 2346 or locationID == 2406 then
 		addonTable:DebugCore("Mount macro: Using Undermine macro (G99 + fallback)")
-		return getUndermineZoneMacro(buttonNumber)
+		macro = getUndermineZoneMacro(buttonNumber)
 	else
 		addonTable:DebugCore("Mount macro: Using regular zone macro")
-		return string.format(MACRO_TEMPLATES.regularZone, buttonNumber)
+		macro = string.format(MACRO_TEMPLATES.regularZone, buttonNumber)
 	end
+
+	-- Prepend druid pre-prefix if player is a druid
+	local _, playerClass = UnitClass("player")
+	if playerClass == "DRUID" then
+		macro = MACRO_TEMPLATES.druidPrePrefix .. macro
+	end
+
+	return macro
 end
 
 -- Optimized macro builders
 local function buildDruidMacro(travelFormName, catFormName, useSmartFormSwitching, keepTravelFormActive, buttonNumber)
 	buttonNumber = buttonNumber or 1
-	local parts = { string.format(MACRO_TEMPLATES.prefix, buttonNumber) }
+	local parts = {
+		MACRO_TEMPLATES.druidPrePrefix,                    -- Druid form handling first
+		string.format(MACRO_TEMPLATES.prefix, buttonNumber), -- Then regular prefix
+	}
 	if useSmartFormSwitching then
 		local template = keepTravelFormActive and MACRO_TEMPLATES.druidSmart.keepActive or MACRO_TEMPLATES.druidSmart.normal
 		table.insert(parts, string.format(template, travelFormName, catFormName))
