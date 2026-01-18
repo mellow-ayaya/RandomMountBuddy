@@ -1,3 +1,10 @@
+# 1.1.60 - 2026-01-18
+- The Improved Randomness option has been refined to further randomize mounts: sometimes the game decides to only summon a few specific mounts, this update aims to resolve that (Weights still impact summon chances).
+- Fixed logic issue in Improved Randomness, resulting in more equal chances between groups and families (Weights still impact summon chances).
+- Fixed an issue that required reloading for some weight changes to take effect.
+- Fixed filtering by mount capabilities in Mount Browser.
+- Fixed Collected status using wrong API, resulting in wrong collection status sometimes.
+
 # 1.1.54 - 2026-01-16
 - Fixed an issue that caused Shadow form to get cancelled automatically when mounting.
 

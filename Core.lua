@@ -1642,9 +1642,8 @@ function addon:NotifyModulesSettingChanged(key, value)
 	if key == "groupWeights" then
 		addon:DebugCore("Group weight changed, refreshing mount pools")
 		-- Refresh mount pools so changes take effect immediately in summoning
-		if self.MountSummon and self.MountSummon.RefreshMountPools then
-			self.MountSummon:RefreshMountPools()
-		end
+		-- Use the wrapper to ensure grouping is rebuilt first
+		self:RefreshMountPools()
 	end
 
 	-- Add secure handler notifications

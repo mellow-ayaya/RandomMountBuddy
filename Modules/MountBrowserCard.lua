@@ -289,11 +289,23 @@ function MountBrowser:GetCollectionStatusText(data)
 		-- Single mount: Collected or Uncollected
 		local mountID = data.mountID or (data.mountData and data.mountData.mountID)
 		if mountID then
-			local _, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(mountID)
-			if isCollected then
-				return textColor .. "Collected|r"
+			-- Check if mount data has the isUncollected flag (most reliable source)
+			if data.mountData and data.mountData.isUncollected ~= nil then
+				-- Use the flag from mount data (set during mount grid construction)
+				if data.mountData.isUncollected then
+					return "|cffff0000Uncollected|r" -- Red
+				else
+					return textColor .. "Collected|r"
+				end
 			else
-				return "|cffff0000Uncollected|r" -- Red
+				-- Fallback to API call if flag not available
+				-- Use GetMountInfoExtraByID to check actual ownership, not current summonability
+				local _, _, _, _, _, _, _, _, _, _, isCollected = C_MountJournal.GetMountInfoExtraByID(mountID)
+				if isCollected then
+					return textColor .. "Collected|r"
+				else
+					return "|cffff0000Uncollected|r" -- Red
+				end
 			end
 		end
 	elseif data.type == "familyName" or data.type == "supergroup" then

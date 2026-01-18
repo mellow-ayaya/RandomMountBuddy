@@ -464,11 +464,6 @@ end
 -- ============================================================================
 function MountBrowserFilters:SetFilter(categoryKey, optionKey, value)
 	self.filterState[categoryKey][optionKey] = value
-	-- Update capability filters for backward compatibility
-	if categoryKey == "capabilities" then
-		MountBrowser.capabilityFilters[optionKey] = value
-	end
-
 	-- Update UI
 	self:UpdateCategoryBadges()
 	self:UpdateMainButtonBadge()
@@ -489,10 +484,6 @@ function MountBrowserFilters:SelectAllInCategory(categoryKey)
 	-- Set all options in this category to true
 	for _, option in ipairs(category.options) do
 		self.filterState[categoryKey][option.key] = true
-		-- Update capability filters for backward compatibility
-		if categoryKey == "capabilities" then
-			MountBrowser.capabilityFilters[option.key] = true
-		end
 	end
 
 	-- Update all checkboxes in the current menu
@@ -519,10 +510,6 @@ function MountBrowserFilters:ClearAllInCategory(categoryKey)
 	-- Set all options in this category to false
 	for _, option in ipairs(category.options) do
 		self.filterState[categoryKey][option.key] = false
-		-- Update capability filters for backward compatibility
-		if categoryKey == "capabilities" then
-			MountBrowser.capabilityFilters[option.key] = false
-		end
 	end
 
 	-- Update all checkboxes in the current menu
@@ -549,10 +536,6 @@ function MountBrowserFilters:ResetAllFilters()
 		for _, option in ipairs(category.options) do
 			-- Set to default value if specified, otherwise false
 			self.filterState[categoryKey][option.key] = option.default or false
-			-- Update capability filters for backward compatibility
-			if categoryKey == "capabilities" then
-				MountBrowser.capabilityFilters[option.key] = option.default or false
-			end
 		end
 	end
 
@@ -656,26 +639,44 @@ function MountBrowserFilters:ShouldShowMount(mountInfo)
 	-- Check capability filters
 	if self:GetActiveFilterCount("capabilities") > 0 then
 		local matchesCapability = false
+		-- Get mount capabilities from type traits
+		local mountID = mountInfo.mountID
+		if not mountID then
+			addon:DebugUI("RMB_FILTER: mountInfo has no mountID for capability check")
+			return false
+		end
+
+		local typeTraits = addon.MountSummon and addon.MountSummon:GetMountTypeTraits(mountID)
+		if not typeTraits then
+			addon:DebugUI("RMB_FILTER: Mount " .. mountID .. " has no type traits")
+			return false
+		end
+
+		-- Derive capability flags
+		local isGround = typeTraits.isGround or false
+		local isFlying = (typeTraits.isSteadyFly or typeTraits.isSkyriding) or false
+		local isSwimming = typeTraits.isAquatic or false
+		-- Check filters
 		if self.filterState.capabilities.groundOnly then
 			-- Special case: mount must be ground-only (no flying/swimming)
-			if mountInfo.isGround and not mountInfo.isFlying and not mountInfo.isSwimming then
+			if isGround and not isFlying and not isSwimming then
 				matchesCapability = true
 			end
 		end
 
-		if self.filterState.capabilities.ground and mountInfo.isGround then
+		if self.filterState.capabilities.flying and isFlying then
 			matchesCapability = true
 		end
 
-		if self.filterState.capabilities.flying and mountInfo.isFlying then
-			matchesCapability = true
-		end
-
-		if self.filterState.capabilities.swimming and mountInfo.isSwimming then
+		if self.filterState.capabilities.swimming and isSwimming then
 			matchesCapability = true
 		end
 
 		if not matchesCapability then
+			addon:DebugUI("RMB_FILTER: Mount " ..
+				mountID ..
+				" filtered out by capability (ground=" ..
+				tostring(isGround) .. ", flying=" .. tostring(isFlying) .. ", swimming=" .. tostring(isSwimming) .. ")")
 			return false
 		end
 	end

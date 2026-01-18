@@ -350,26 +350,26 @@ end
 -- ============================================================================
 -- Check if any capability filters are active
 function MountBrowser:HasActiveFilters()
-	-- Check both legacy capability filters and new comprehensive filters
-	local hasCapabilityFilters = self.capabilityFilters.groundOnly or
-			self.capabilityFilters.ground or
-			self.capabilityFilters.flying or
-			self.capabilityFilters.swimming
-	-- Check comprehensive filter system
+	-- Check comprehensive filter system (which includes capabilities)
 	local hasComprehensiveFilters = false
 	if self.Filters and self.Filters.GetTotalActiveFilterCount then
 		hasComprehensiveFilters = self.Filters:GetTotalActiveFilterCount() > 0
 	end
 
-	return hasCapabilityFilters or hasComprehensiveFilters
+	return hasComprehensiveFilters
 end
 
 -- Check if all filters are active (equivalent to none)
 function MountBrowser:AllFiltersActive()
-	return self.capabilityFilters.groundOnly and
-			self.capabilityFilters.ground and
-			self.capabilityFilters.flying and
-			self.capabilityFilters.swimming
+	-- Check if all capability filters are active
+	if self.Filters and self.Filters.filterState and self.Filters.filterState.capabilities then
+		local capFilters = self.Filters.filterState.capabilities
+		return capFilters.groundOnly and
+				capFilters.flying and
+				capFilters.swimming
+	end
+
+	return false
 end
 
 -- Check if a supergroup or family contains at least one mount that passes filters
@@ -493,14 +493,19 @@ function MountBrowser:PassesCapabilityFilter(data)
 	end
 
 	-- Check if there are capability filters active
-	local hasCapFilters = self.capabilityFilters.groundOnly or
-			self.capabilityFilters.ground or
-			self.capabilityFilters.flying or
-			self.capabilityFilters.swimming
-	local allCapFiltersActive = self.capabilityFilters.groundOnly and
-			self.capabilityFilters.ground and
-			self.capabilityFilters.flying and
-			self.capabilityFilters.swimming
+	-- Use MountBrowserFilters.filterState instead of old capabilityFilters table
+	local hasCapFilters = false
+	local allCapFiltersActive = false
+	if self.Filters and self.Filters.filterState and self.Filters.filterState.capabilities then
+		local capFilters = self.Filters.filterState.capabilities
+		hasCapFilters = capFilters.groundOnly or
+				capFilters.flying or
+				capFilters.swimming
+		allCapFiltersActive = capFilters.groundOnly and
+				capFilters.flying and
+				capFilters.swimming
+	end
+
 	-- For individual mounts, use comprehensive filter system
 	if data.type == "mount" and data.mountData and self.Filters and self.Filters.ShouldShowMount then
 		-- Check comprehensive filters (sources, traits, weights, capabilities)
@@ -553,8 +558,10 @@ function MountBrowser:PassesCapabilityFilter(data)
 		local capabilities = self:GetCapabilitiesForCard(data)
 		-- OR logic: item passes if it matches ANY active capability filter
 		local passesCapability = false
+		-- Get capability filter state
+		local capFilters = self.Filters.filterState.capabilities
 		-- Special case: ground-only filter (must have ONLY ground, no other capabilities)
-		if self.capabilityFilters.groundOnly then
+		if capFilters.groundOnly then
 			if capabilities.ground and
 					not capabilities.flight and
 					not capabilities.swimming then
@@ -562,15 +569,11 @@ function MountBrowser:PassesCapabilityFilter(data)
 			end
 		end
 
-		if self.capabilityFilters.ground and capabilities.ground then
+		if capFilters.flying and capabilities.flight then
 			passesCapability = true
 		end
 
-		if self.capabilityFilters.flying and capabilities.flight then
-			passesCapability = true
-		end
-
-		if self.capabilityFilters.swimming and capabilities.swimming then
+		if capFilters.swimming and capabilities.swimming then
 			passesCapability = true
 		end
 

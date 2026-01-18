@@ -700,18 +700,8 @@ function MountBrowser:Initialize()
 	-- Representative mount cache (prevents re-randomization on every scroll)
 	-- Cache key format: "supergroup:GroupName" or "family:FamilyName" or "mount:123"
 	self.representativeMountCache = {}
-	-- Movement capability filters
-	self.capabilityFilters = {
-
-		groundOnly = false, -- Special filter: ground ONLY (no flying/swimming)
-
-		ground = false,
-
-		flying = false, -- Merged flying + skyriding
-
-		swimming = false,
-
-	}
+	-- Note: Movement capability filters are now managed by MountBrowserFilters.filterState.capabilities
+	-- The old self.capabilityFilters table has been removed as it was not being synchronized with the UI
 	-- Combat state tracking
 	self.queuedShow = false
 	-- Register combat events
