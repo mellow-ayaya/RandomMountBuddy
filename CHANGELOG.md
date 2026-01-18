@@ -1,3 +1,6 @@
+# 1.1.62 - 2026-01-18
+- Sorted IDs for custom pools for easier maintenance.
+
 # 1.1.60 & 1.1.61 - 2026-01-18
 - The Improved Randomness option has been refined to further randomize mounts: sometimes the game decides to only summon a few specific mounts, this update aims to resolve that (Weights still impact summon chances).
 - Fixed logic issue in Improved Randomness, resulting in more equal chances between groups and families (Weights still impact summon chances).
@@ -8,6 +11,7 @@
 - Improved Randomness "memory" is now wiped on reload instead of persisting across sessions.
 - Changing the favorite/non favorite mount auto sync weight will automatically trigger a sync to occur, no need to click on Sync now anymore.
 - Fixed an issue causing non favorited mounts to sometimes not sync weights accordingly.
+- Added the missing mounts to the Ride Along and Passenger + Ride Along mount pools.
 
 # 1.1.54 - 2026-01-16
 - Fixed an issue that caused Shadow form to get cancelled automatically when mounting.

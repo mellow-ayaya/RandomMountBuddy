@@ -55,15 +55,70 @@ local INSTANCE_TYPES = {
 local CUSTOM_POOLS = {
 	passenger = {
 		name = "Passenger Mounts (flying only)",
-		mountIDs = { 1287, 455, 960, 2597, 1698, 959, 2596, 407, 382 },
+		mountIDs = {
+			382, -- X-53 Touring Rocket
+			407, -- Sandstone Drake
+			455, -- Obsidian Nightwing
+			959, -- Stormwind Skychaser
+			960, -- Orgrimmar Interceptor
+			1287, -- Explorer's Jungle Hopper
+			1698, -- Rocket Shredder 9001
+			2596, -- Stormwind Skyseeker
+			2597, -- Orgrimmar Sentinel
+		},
 	},
 	ridealong = {
 		name = "Ride Along Mounts (flying only)",
-		mountIDs = { 1591, 1563, 1589, 1590, 1588, 1744, 1792, 1830, 1795, 1818, 2090, 2091, 2144, 2324, 2512, 2296, 2917 },
+		mountIDs = {
+			1563, -- Highland Drake
+			1589, -- Renewed Proto-Drake
+			1590, -- Windborne Velocidrake
+			1591, -- Cliffside Wylderdrake
+			1744, -- Grotto Netherwing Drake
+			1792, -- Algarian Stormrider
+			1795, -- Auspicious Arborwyrm
+			1818, -- Anu'relos, Flame's Guidance
+			1830, -- Flourishing Whimsydrake
+			2090, -- Polly Roger
+			2091, -- Voyaging Wilderling
+			2144, -- Delver's Dirigible
+			2296, -- Delver's Gob-Trotter
+			2324, -- Hooktalon
+			2512, -- Delver's Mana-Skimmer
+			2917, -- Anu'shalla, Shadow's Guidance
+		},
 	},
 	passenger_ridealong = {
 		name = "Passenger + Ride Along (flying only)",
-		mountIDs = { 1287, 455, 960, 2597, 1698, 959, 2596, 407, 382, 1591, 1563, 1589, 1590, 1588, 1744, 1792, 1830, 1795, 1818, 2090, 2091, 2144, 2324, 2512, 2296, 2917 },
+		mountIDs = {
+			-- Passenger mounts
+			382, -- X-53 Touring Rocket
+			407, -- Sandstone Drake
+			455, -- Obsidian Nightwing
+			959, -- Stormwind Skychaser
+			960, -- Orgrimmar Interceptor
+			1287, -- Explorer's Jungle Hopper
+			1698, -- Rocket Shredder 9001
+			2596, -- Stormwind Skyseeker
+			2597, -- Orgrimmar Sentinel
+			-- Ride Along mounts
+			1563, -- Highland Drake
+			1589, -- Renewed Proto-Drake
+			1590, -- Windborne Velocidrake
+			1591, -- Cliffside Wylderdrake
+			1744, -- Grotto Netherwing Drake
+			1792, -- Algarian Stormrider
+			1795, -- Auspicious Arborwyrm
+			1818, -- Anu'relos, Flame's Guidance
+			1830, -- Flourishing Whimsydrake
+			2090, -- Polly Roger
+			2091, -- Voyaging Wilderling
+			2144, -- Delver's Dirigible
+			2296, -- Delver's Gob-Trotter
+			2324, -- Hooktalon
+			2512, -- Delver's Mana-Skimmer
+			2917, -- Anu'shalla, Shadow's Guidance
+		},
 	},
 }
 -- Expose CUSTOM_POOLS for use by MountSummon
