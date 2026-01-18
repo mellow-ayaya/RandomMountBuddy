@@ -460,10 +460,36 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 				weightInfo.func = function()
 					addon:SetSetting(settingKey, weight)
 					UIDropDownMenu_SetSelectedValue(dropdown, weight)
-					if addon.RefreshMountPools then
-						C_Timer.After(0.1, function()
-							addon:RefreshMountPools()
+					-- Auto-sync after weight change if it's a favorite sync setting
+					if settingKey:find("favoriteSync_") then
+						C_Timer.After(0.2, function()
+							if addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync") then
+								addon:DebugOptions("Auto-syncing after weight change: " .. settingKey .. " = " .. weight)
+								addon.FavoriteSync:SyncFavoriteMounts(true)
+								-- Refresh mount browser weight displays (same as manual sync button)
+								if mountBrowser then
+									mountBrowser.needsVisualRefresh = true
+									if mountBrowser.mainFrame and mountBrowser.mainFrame.currentTab == "browser" then
+										C_Timer.After(0.1, function()
+											if mountBrowser.mainFrame and mountBrowser.mainFrame.scrollFrame:IsShown() then
+												mountBrowser:RefreshAllCards()
+											end
+										end)
+									end
+								end
+							end
+
+							if addon.RefreshMountPools then
+								addon:RefreshMountPools()
+							end
 						end)
+					else
+						-- For non-sync settings, just refresh pools
+						if addon.RefreshMountPools then
+							C_Timer.After(0.1, function()
+								addon:RefreshMountPools()
+							end)
+						end
 					end
 				end
 				weightInfo.checked = (addon:GetSetting(settingKey) == weight)
@@ -509,11 +535,28 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 				addon.uiState.weightChangeNotificationCount = 0
 			end
 
-			if addon.RefreshMountPools then
-				C_Timer.After(0.1, function()
+			-- Auto-sync after mode change
+			C_Timer.After(0.2, function()
+				if addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync") then
+					addon:DebugOptions("Auto-syncing after mode change to 'set'")
+					addon.FavoriteSync:SyncFavoriteMounts(true)
+					-- Refresh mount browser weight displays
+					if mountBrowser then
+						mountBrowser.needsVisualRefresh = true
+						if mountBrowser.mainFrame and mountBrowser.mainFrame.currentTab == "browser" then
+							C_Timer.After(0.1, function()
+								if mountBrowser.mainFrame and mountBrowser.mainFrame.scrollFrame:IsShown() then
+									mountBrowser:RefreshAllCards()
+								end
+							end)
+						end
+					end
+				end
+
+				if addon.RefreshMountPools then
 					addon:RefreshMountPools()
-				end)
-			end
+				end
+			end)
 		end
 		setInfo.checked = (addon:GetSetting("favoriteSync_favoriteWeightMode") == "set")
 		UIDropDownMenu_AddButton(setInfo)
@@ -529,11 +572,28 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 				addon.uiState.weightChangeNotificationCount = 0
 			end
 
-			if addon.RefreshMountPools then
-				C_Timer.After(0.1, function()
+			-- Auto-sync after mode change
+			C_Timer.After(0.2, function()
+				if addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync") then
+					addon:DebugOptions("Auto-syncing after mode change to 'minimum'")
+					addon.FavoriteSync:SyncFavoriteMounts(true)
+					-- Refresh mount browser weight displays
+					if mountBrowser then
+						mountBrowser.needsVisualRefresh = true
+						if mountBrowser.mainFrame and mountBrowser.mainFrame.currentTab == "browser" then
+							C_Timer.After(0.1, function()
+								if mountBrowser.mainFrame and mountBrowser.mainFrame.scrollFrame:IsShown() then
+									mountBrowser:RefreshAllCards()
+								end
+							end)
+						end
+					end
+				end
+
+				if addon.RefreshMountPools then
 					addon:RefreshMountPools()
-				end)
-			end
+				end
+			end)
 		end
 		minInfo.checked = (addon:GetSetting("favoriteSync_favoriteWeightMode") == "minimum")
 		UIDropDownMenu_AddButton(minInfo)

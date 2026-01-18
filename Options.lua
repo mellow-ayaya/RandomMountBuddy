@@ -153,16 +153,22 @@ local rootOptionsTable = {
 			get = function() return addon:GetSetting("useDeterministicSummoning") end,
 			set = function(i, v)
 				addon:SetSetting("useDeterministicSummoning", v)
-				-- Reset cache when toggling mode
-				if addon.db and addon.db.profile and addon.db.profile.deterministicCache then
-					for poolName, cache in pairs(addon.db.profile.deterministicCache) do
+				-- Reset normal deterministic cache when toggling mode
+				if addon.MountSummon and addon.MountSummon.deterministicCache then
+					for poolName, cache in pairs(addon.MountSummon.deterministicCache) do
 						if cache then
 							cache.unavailableGroups = {}
 							cache.pendingSummon = nil
 						end
 					end
 
-					addon:DebugSummon("Cache reset due to mode toggle")
+					addon:DebugSummon("Normal cache reset due to mode toggle")
+				end
+
+				-- Also reset rule deterministic cache
+				if addon.MountSummon and addon.MountSummon.rulesDeterministicCache then
+					addon.MountSummon.rulesDeterministicCache = {}
+					addon:DebugSummon("Cleared rule deterministic cache due to mode toggle")
 				end
 
 				-- ENHANCED: Refresh mount pools since this affects selection logic
@@ -370,8 +376,13 @@ local rootOptionsTable = {
 							addon.uiState.weightChangeNotificationCount = 0
 						end
 
-						-- ENHANCED: Refresh mount pools since this affects weight application
-						C_Timer.After(0.1, function()
+						-- ENHANCED: Auto-sync after mode change
+						C_Timer.After(0.2, function()
+							if addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync") then
+								addon:DebugOptions("Auto-syncing after weight mode change to " .. v)
+								addon.FavoriteSync:SyncFavoriteMounts(true)
+							end
+
 							if addon.RefreshMountPools then
 								addon:RefreshMountPools()
 								addon:DebugOptions("Refreshed mount pools after weight mode change")
@@ -393,7 +404,7 @@ local rootOptionsTable = {
 						[0] = "Never (0)",
 						[1] = "Occasional (1)",
 						[2] = "Uncommon (2)",
-						[3] = "Normal (3) - No Change",
+						[3] = "Normal (3)",
 						[4] = "Common (4)",
 						[5] = "Often (5)",
 						[6] = "Always (6)",
@@ -406,8 +417,13 @@ local rootOptionsTable = {
 							addon.FavoriteSync:SetSetting("nonFavoriteWeight", v)
 						end
 
-						-- ENHANCED: Refresh mount pools since this affects weights
-						C_Timer.After(0.1, function()
+						-- ENHANCED: Auto-sync after weight change
+						C_Timer.After(0.2, function()
+							if addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync") then
+								addon:DebugOptions("Auto-syncing after non-favorite weight change to " .. v)
+								addon.FavoriteSync:SyncFavoriteMounts(true)
+							end
+
 							if addon.RefreshMountPools then
 								addon:RefreshMountPools()
 								addon:DebugOptions("Refreshed mount pools after non-favorite weight change")
@@ -442,8 +458,13 @@ local rootOptionsTable = {
 							addon.FavoriteSync:SetSetting("favoriteWeight", v)
 						end
 
-						-- ENHANCED: Refresh mount pools since this affects weights
-						C_Timer.After(0.1, function()
+						-- ENHANCED: Auto-sync after weight change
+						C_Timer.After(0.2, function()
+							if addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync") then
+								addon:DebugOptions("Auto-syncing after favorite weight change to " .. v)
+								addon.FavoriteSync:SyncFavoriteMounts(true)
+							end
+
 							if addon.RefreshMountPools then
 								addon:RefreshMountPools()
 								addon:DebugOptions("Refreshed mount pools after favorite weight change")

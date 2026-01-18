@@ -176,17 +176,15 @@ function FavoriteSync:AreWeightsMisaligned()
 		end
 	end
 
-	-- Check if any non-favorites have wrong weight (if non-favorite weight is set to something other than default)
-	if nonFavoriteWeight ~= 3 then
-		for _, mount in ipairs(nonFavoriteMounts) do
-			local mountKey = "mount_" .. mount.id
-			local currentWeight = addon:GetGroupWeight(mountKey)
-			-- For non-favorites, always use "set" mode (exact weight)
-			if currentWeight ~= nonFavoriteWeight then
-				addon:DebugSync("Non-favorite mount " ..
-					mount.name .. " has weight " .. currentWeight .. ", should be " .. nonFavoriteWeight)
-				return true -- Found misalignment
-			end
+	-- Check if any non-favorites have wrong weight
+	for _, mount in ipairs(nonFavoriteMounts) do
+		local mountKey = "mount_" .. mount.id
+		local currentWeight = addon:GetGroupWeight(mountKey)
+		-- For non-favorites, always use "set" mode (exact weight)
+		if currentWeight ~= nonFavoriteWeight then
+			addon:DebugSync("Non-favorite mount " ..
+				mount.name .. " has weight " .. currentWeight .. ", should be " .. nonFavoriteWeight)
+			return true -- Found misalignment
 		end
 	end
 
@@ -197,38 +195,73 @@ function FavoriteSync:AreWeightsMisaligned()
 		-- Analyze which families and supergroups contain favorites
 		local familiesWithFavorites, superGroupsWithFavorites = self:AnalyzeFavoriteHierarchy(favoriteMounts)
 		if syncFamilies then
-			-- Check family weights
-			for familyName, _ in pairs(familiesWithFavorites) do
+			-- Get all families to check both with and without favorites
+			local allFamilies = {}
+			if addon.processedData and addon.processedData.familyToMountIDsMap then
+				for familyName, _ in pairs(addon.processedData.familyToMountIDsMap) do
+					allFamilies[familyName] = true
+				end
+			end
+
+			-- Check family weights (both with and without favorites)
+			for familyName, _ in pairs(allFamilies) do
+				local targetWeight
+				if familiesWithFavorites[familyName] then
+					targetWeight = favoriteWeight
+				else
+					targetWeight = nonFavoriteWeight
+				end
+
 				local currentWeight = addon:GetGroupWeight(familyName)
 				local needsUpdate = false
 				if weightMode == "set" then
-					needsUpdate = (currentWeight ~= favoriteWeight)
+					needsUpdate = (currentWeight ~= targetWeight)
 				elseif weightMode == "minimum" then
-					needsUpdate = (currentWeight < favoriteWeight)
+					needsUpdate = (currentWeight < targetWeight)
 				end
 
 				if needsUpdate then
-					addon:DebugSync("Family with favorites " ..
-						familyName .. " has weight " .. currentWeight .. ", should be " .. favoriteWeight)
+					addon:DebugSync("Family " .. familyName ..
+						(familiesWithFavorites[familyName] and " with favorites " or " without favorites ") ..
+						"has weight " .. currentWeight .. ", should be " .. targetWeight)
 					return true
 				end
 			end
 		end
 
 		if syncSuperGroups then
-			-- Check supergroup weights
-			for superGroupName, _ in pairs(superGroupsWithFavorites) do
+			-- Get all supergroups to check both with and without favorites
+			local allSuperGroups = {}
+			if addon.processedData then
+				local superGroupMap = addon.processedData.dynamicSuperGroupMap or addon.processedData.superGroupMap
+				if superGroupMap then
+					for sgName, _ in pairs(superGroupMap) do
+						allSuperGroups[sgName] = true
+					end
+				end
+			end
+
+			-- Check supergroup weights (both with and without favorites)
+			for superGroupName, _ in pairs(allSuperGroups) do
+				local targetWeight
+				if superGroupsWithFavorites[superGroupName] then
+					targetWeight = favoriteWeight
+				else
+					targetWeight = nonFavoriteWeight
+				end
+
 				local currentWeight = addon:GetGroupWeight(superGroupName)
 				local needsUpdate = false
 				if weightMode == "set" then
-					needsUpdate = (currentWeight ~= favoriteWeight)
+					needsUpdate = (currentWeight ~= targetWeight)
 				elseif weightMode == "minimum" then
-					needsUpdate = (currentWeight < favoriteWeight)
+					needsUpdate = (currentWeight < targetWeight)
 				end
 
 				if needsUpdate then
-					addon:DebugSync("SuperGroup with favorites " ..
-						superGroupName .. " has weight " .. currentWeight .. ", should be " .. favoriteWeight)
+					addon:DebugSync("SuperGroup " .. superGroupName ..
+						(superGroupsWithFavorites[superGroupName] and " with favorites " or " without favorites ") ..
+						"has weight " .. currentWeight .. ", should be " .. targetWeight)
 					return true
 				end
 			end
@@ -379,23 +412,23 @@ function FavoriteSync:SyncFavoriteMountsOptimized(forceSync)
 		end
 	end
 
-	-- Step 2: Update ALL non-favorite mounts at once (if needed)
-	if nonFavoriteWeight ~= 0 then
-		for _, mount in ipairs(nonFavoriteMounts) do
-			local mountKey = "mount_" .. mount.id
-			local currentWeight = addon:GetGroupWeight(mountKey)
-			if currentWeight ~= nonFavoriteWeight then
-				self:SetWeightDirectly(mountKey, nonFavoriteWeight)
-				counters.mountsUpdated = counters.mountsUpdated + 1
-			else
-				counters.mountsSkipped = counters.mountsSkipped + 1
-			end
+	-- Step 2: Update ALL non-favorite mounts at once
+	addon:DebugSync("Step 2: Processing " ..
+		#nonFavoriteMounts .. " non-favorite mounts, target weight: " .. nonFavoriteWeight)
+	local step2Updated = 0
+	for _, mount in ipairs(nonFavoriteMounts) do
+		local mountKey = "mount_" .. mount.id
+		local currentWeight = addon:GetGroupWeight(mountKey)
+		if currentWeight ~= nonFavoriteWeight then
+			self:SetWeightDirectly(mountKey, nonFavoriteWeight)
+			counters.mountsUpdated = counters.mountsUpdated + 1
+			step2Updated = step2Updated + 1
+		else
+			counters.mountsSkipped = counters.mountsSkipped + 1
 		end
-	else
-		-- Count non-favorites as skipped since we're not changing them
-		counters.mountsSkipped = counters.mountsSkipped + #nonFavoriteMounts
 	end
 
+	addon:DebugSync("Step 2 complete: Updated " .. step2Updated .. " non-favorite mounts to weight " .. nonFavoriteWeight)
 	-- Step 3: Update ALL families with favorites at once
 	if syncFamilies then
 		-- Get all families that exist
@@ -411,26 +444,20 @@ function FavoriteSync:SyncFavoriteMountsOptimized(forceSync)
 			if familiesWithFavorites[familyName] then
 				targetWeight = favoriteWeight
 			else
-				if nonFavoriteWeight ~= 3 then
-					targetWeight = nonFavoriteWeight
-				else
-					targetWeight = nil -- Skip if non-favorite weight is default
-				end
+				targetWeight = nonFavoriteWeight
 			end
 
-			if targetWeight then
-				local currentWeight = addon:GetGroupWeight(familyName)
-				local shouldUpdate = false
-				if weightMode == "set" then
-					shouldUpdate = (currentWeight ~= targetWeight)
-				elseif weightMode == "minimum" then
-					shouldUpdate = (currentWeight < targetWeight)
-				end
+			local currentWeight = addon:GetGroupWeight(familyName)
+			local shouldUpdate = false
+			if weightMode == "set" then
+				shouldUpdate = (currentWeight ~= targetWeight)
+			elseif weightMode == "minimum" then
+				shouldUpdate = (currentWeight < targetWeight)
+			end
 
-				if shouldUpdate then
-					self:SetWeightDirectly(familyName, targetWeight)
-					counters.familiesUpdated = counters.familiesUpdated + 1
-				end
+			if shouldUpdate then
+				self:SetWeightDirectly(familyName, targetWeight)
+				counters.familiesUpdated = counters.familiesUpdated + 1
 			end
 		end
 	end
@@ -452,26 +479,20 @@ function FavoriteSync:SyncFavoriteMountsOptimized(forceSync)
 			if superGroupsWithFavorites[superGroupName] then
 				targetWeight = favoriteWeight
 			else
-				if nonFavoriteWeight ~= 3 then
-					targetWeight = nonFavoriteWeight
-				else
-					targetWeight = nil -- Skip if non-favorite weight is default
-				end
+				targetWeight = nonFavoriteWeight
 			end
 
-			if targetWeight then
-				local currentWeight = addon:GetGroupWeight(superGroupName)
-				local shouldUpdate = false
-				if weightMode == "set" then
-					shouldUpdate = (currentWeight ~= targetWeight)
-				elseif weightMode == "minimum" then
-					shouldUpdate = (currentWeight < targetWeight)
-				end
+			local currentWeight = addon:GetGroupWeight(superGroupName)
+			local shouldUpdate = false
+			if weightMode == "set" then
+				shouldUpdate = (currentWeight ~= targetWeight)
+			elseif weightMode == "minimum" then
+				shouldUpdate = (currentWeight < targetWeight)
+			end
 
-				if shouldUpdate then
-					self:SetWeightDirectly(superGroupName, targetWeight)
-					counters.superGroupsUpdated = counters.superGroupsUpdated + 1
-				end
+			if shouldUpdate then
+				self:SetWeightDirectly(superGroupName, targetWeight)
+				counters.superGroupsUpdated = counters.superGroupsUpdated + 1
 			end
 		end
 	end
@@ -612,27 +633,22 @@ function FavoriteSync:VerifySyncResults()
 
 	local correctNonFavorites = 0
 	local incorrectNonFavorites = 0
-	-- Check non-favorite mounts (only if non-favorite weight is not default)
-	if nonFavoriteWeight ~= 3 then
-		for _, mount in ipairs(nonFavoriteMounts) do
-			local mountKey = "mount_" .. mount.id
-			local currentWeight = addon:GetGroupWeight(mountKey)
-			if currentWeight == nonFavoriteWeight then
-				correctNonFavorites = correctNonFavorites + 1
-			else
-				incorrectNonFavorites = incorrectNonFavorites + 1
-			end
+	-- Check non-favorite mounts
+	for _, mount in ipairs(nonFavoriteMounts) do
+		local mountKey = "mount_" .. mount.id
+		local currentWeight = addon:GetGroupWeight(mountKey)
+		if currentWeight == nonFavoriteWeight then
+			correctNonFavorites = correctNonFavorites + 1
+		else
+			incorrectNonFavorites = incorrectNonFavorites + 1
+			addon:DebugSync("WARNING - Non-favorite mount " .. mount.name ..
+				" has weight " .. currentWeight .. ", expected " .. nonFavoriteWeight)
 		end
 	end
 
 	addon:DebugSync("Verification Results:")
 	addon:DebugSync("Favorites: " .. correctFavorites .. " correct, " .. incorrectFavorites .. " incorrect")
-	if nonFavoriteWeight ~= 3 then
-		addon:DebugSync("Non-favorites: " .. correctNonFavorites .. " correct, " .. incorrectNonFavorites .. " incorrect")
-	else
-		addon:DebugSync("Non-favorites: Not checked (weight set to default)")
-	end
-
+	addon:DebugSync("Non-favorites: " .. correctNonFavorites .. " correct, " .. incorrectNonFavorites .. " incorrect")
 	return (incorrectFavorites == 0) and (incorrectNonFavorites == 0)
 end
 

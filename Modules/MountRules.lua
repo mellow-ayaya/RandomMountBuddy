@@ -59,13 +59,15 @@ local CUSTOM_POOLS = {
 	},
 	ridealong = {
 		name = "Ride Along Mounts (flying only)",
-		mountIDs = { 1591, 1563, 1589, 1590, 1588, 1744, 1792, 1830, 1795, 1818, 2090, 2091, 2144, 2324 },
+		mountIDs = { 1591, 1563, 1589, 1590, 1588, 1744, 1792, 1830, 1795, 1818, 2090, 2091, 2144, 2324, 2512, 2296, 2917 },
 	},
 	passenger_ridealong = {
 		name = "Passenger + Ride Along (flying only)",
-		mountIDs = { 1287, 455, 960, 2597, 1698, 959, 2596, 407, 382, 1591, 1563, 1589, 1590, 1588, 1744, 1792, 1830, 1795, 1818, 2090, 2091, 2144, 2324 },
+		mountIDs = { 1287, 455, 960, 2597, 1698, 959, 2596, 407, 382, 1591, 1563, 1589, 1590, 1588, 1744, 1792, 1830, 1795, 1818, 2090, 2091, 2144, 2324, 2512, 2296, 2917 },
 	},
 }
+-- Expose CUSTOM_POOLS for use by MountSummon
+MountRules.CUSTOM_POOLS = CUSTOM_POOLS
 -- ============================================================================
 -- INITIALIZATION
 -- ============================================================================
@@ -497,6 +499,11 @@ function MountRules:RemoveRule(ruleID)
 			end
 
 			addon:DebugOptions("Removed rule ID:", ruleID)
+			-- Clean up orphaned deterministic cache for this rule
+			if addon.MountSummon and addon.MountSummon.CleanupOrphanedRuleCaches then
+				addon.MountSummon:CleanupOrphanedRuleCaches()
+			end
+
 			return true, "Rule removed successfully"
 		end
 	end
@@ -882,6 +889,12 @@ function MountRules:GetMountForCurrentLocation()
 	end
 
 	addon:DebugSummon("Mount rule matched:", self:GetRuleDescription(rule))
+	-- Use deterministic filtering if enabled
+	if addon.MountSummon:IsDeterministicModeEnabled() then
+		return addon.MountSummon:SelectMountFromRuleDeterministic(rule)
+	end
+
+	-- Otherwise use existing random logic
 	if rule.actionType == "specific" then
 		-- Rule has multiple mount IDs - randomly select one
 		if not rule.mountIDs or #rule.mountIDs == 0 then

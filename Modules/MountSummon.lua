@@ -38,6 +38,18 @@ function MountSummon:Initialize()
 	self:InitializeDeterministicSystem()
 	-- Initialize individual mount tracking (session-only, not persisted)
 	self.individualMountTracking = {}
+	-- Initialize rule deterministic tracking (session-only, not persisted)
+	self.rulesDeterministicCache = {}
+	-- Structure: [ruleID] = {
+	--   type = "pool" or "specific",
+	--   poolName = "flying",  -- for pool-based rules only
+	--   unavailableGroups = {},  -- for pool-based rules (counts until available)
+	--   unavailableMounts = {},  -- for specific mount rules { [mountID] = bannedUntil timestamp }
+	--   recentSummons = {},  -- for specific mount rules { [mountID] = { timestamp1, timestamp2, ... } }
+	--   pendingSummon = nil  -- { ruleID, mountID, timestamp }
+	-- }
+	-- Track summon source to prevent double processing
+	self.currentSummonSource = nil -- "rule" or "normal" or nil
 	-- Pool rebuild retry tracking (for NPC blocking on reload)
 	self.poolRebuildScheduled = false
 	-- Set up flight style tracking
@@ -288,21 +300,15 @@ end
 -- Initialize deterministic summoning system
 function MountSummon:InitializeDeterministicSystem()
 	addon:DebugSummon("Initializing deterministic summoning system...")
-	-- Ensure cache structure exists
-	if not addon.db or not addon.db.profile then
-		addon:DebugSummon("No database available, skipping initialization")
-		return
-	end
-
-	if not addon.db.profile.deterministicCache then
-		addon.db.profile.deterministicCache = {
-			flying = { unavailableGroups = {}, pendingSummon = nil },
-			ground = { unavailableGroups = {}, pendingSummon = nil },
-			underwater = { unavailableGroups = {}, pendingSummon = nil },
-		}
-	end
-
-	addon:DebugSummon("System initialized")
+	-- Create session-only cache (not persisted to database)
+	-- This ensures bans clear on reload/logout
+	self.deterministicCache = {
+		flying = { unavailableGroups = {}, pendingSummon = nil },
+		ground = { unavailableGroups = {}, pendingSummon = nil },
+		underwater = { unavailableGroups = {}, pendingSummon = nil },
+		groundUsable = { unavailableGroups = {}, pendingSummon = nil },
+	}
+	addon:DebugSummon("System initialized (session-only cache)")
 end
 
 -- Check if deterministic mode is enabled
@@ -383,6 +389,56 @@ function MountSummon:GetSelectableGroupsInPool(poolName)
 	--print("RMB_DEBUG_COUNT: Pool " .. poolName .. " - Data structure groups: " .. totalDataGroups ..
 	--	", Actually selectable: " .. selectableGroups)
 	return selectableGroups
+end
+
+-- Count groups in pool ignoring weights (for rule deterministic mode)
+-- Rules should consider ALL groups with usable mounts, regardless of weight settings
+-- Works directly with mountsByFamily to bypass weight-based pool structure filtering
+function MountSummon:GetTotalGroupsInPoolIgnoreWeights(poolName)
+	local pool = self.mountPools[poolName]
+	if not pool then return 0 end
+
+	-- Build list of ALL families that have usable mounts, regardless of pool structure
+	local allFamilies = {}
+	for familyName, mounts in pairs(pool.mountsByFamily) do
+		if mounts and #mounts > 0 then
+			-- Check if family has any usable mounts
+			local hasUsableMounts = false
+			for _, mountID in ipairs(mounts) do
+				local _, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
+				if isUsable then
+					hasUsableMounts = true
+					break
+				end
+			end
+
+			if hasUsableMounts then
+				table.insert(allFamilies, familyName)
+			end
+		end
+	end
+
+	-- Group families by supergroup
+	local superGroups = {}
+	local standaloneFamilies = 0
+	for _, familyName in ipairs(allFamilies) do
+		local superGroup = addon:GetDynamicSuperGroup(familyName)
+		if superGroup then
+			superGroups[superGroup] = true
+		else
+			standaloneFamilies = standaloneFamilies + 1
+		end
+	end
+
+	-- Count total groups (unique supergroups + standalone families)
+	local totalGroups = standaloneFamilies
+	for _ in pairs(superGroups) do
+		totalGroups = totalGroups + 1
+	end
+
+	addon:DebugSummon("Pool " .. poolName .. " (ignore weights): " .. totalGroups .. " groups (" ..
+		#allFamilies .. " total families)")
+	return totalGroups
 end
 
 -- Check if a family has any selectable mounts (mirrors SelectMountFromPoolFamily logic)
@@ -477,7 +533,7 @@ function MountSummon:FilterPoolForDeterministic(pool, poolName)
 		return pool -- Return original pool if deterministic mode disabled
 	end
 
-	local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+	local deterministicCache = self.deterministicCache
 	local cache = deterministicCache and deterministicCache[poolName]
 	if not cache or not cache.unavailableGroups then
 		return pool -- Return original if no cache
@@ -569,7 +625,7 @@ function MountSummon:MarkGroupUnavailable(poolName, groupKey, groupType)
 		return
 	end
 
-	local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+	local deterministicCache = self.deterministicCache
 	local cache = deterministicCache and deterministicCache[poolName]
 	if not cache then
 		addon:DebugSummon("No cache for pool " .. poolName)
@@ -593,7 +649,7 @@ function MountSummon:DecrementUnavailabilityCounters(poolName)
 		return
 	end
 
-	local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+	local deterministicCache = self.deterministicCache
 	local cache = deterministicCache and deterministicCache[poolName]
 	if not cache or not cache.unavailableGroups then
 		return
@@ -624,7 +680,7 @@ function MountSummon:StorePendingSummon(poolName, groupKey, groupType, mountID)
 		return
 	end
 
-	local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+	local deterministicCache = self.deterministicCache
 	local cache = deterministicCache and deterministicCache[poolName]
 	if not cache then
 		return
@@ -645,9 +701,16 @@ function MountSummon:StorePendingSummonFromCastStart(mountID)
 		return
 	end
 
+	-- Skip normal cache processing if this is a rule summon
+	-- Rule summons use their own cache system
+	if self.currentSummonSource == "rule" then
+		addon:DebugSummon("Skipping normal cache for rule summon")
+		return
+	end
+
 	local poolName, groupName, groupType = self:FindMountPoolAndGroup(mountID)
 	if poolName and groupName and groupType then
-		local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+		local deterministicCache = self.deterministicCache
 		local cache = deterministicCache and deterministicCache[poolName]
 		if cache then
 			cache.pendingSummon = {
@@ -725,18 +788,37 @@ function MountSummon:ProcessSuccessfulMountSummon(mountID)
 		return
 	end
 
-	-- Find which pool this mount was summoned from by checking pending summons
-	local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
-	if deterministicCache then
-		for poolName, cache in pairs(deterministicCache) do
-			local pendingSummon = cache and cache.pendingSummon
+	-- Check which system initiated this summon
+	local isRuleSummon = self.currentSummonSource == "rule"
+	-- Process normal pool summons (skip if this is a rule summon)
+	if not isRuleSummon then
+		local deterministicCache = self.deterministicCache
+		if deterministicCache then
+			for poolName, cache in pairs(deterministicCache) do
+				local pendingSummon = cache and cache.pendingSummon
+				if pendingSummon and pendingSummon.mountID and pendingSummon.mountID == mountID then
+					addon:DebugSummon("Processing successful summon for pool: " .. poolName)
+					self:ProcessSuccessfulSummon(poolName)
+					break
+				end
+			end
+		end
+	end
+
+	-- Process rule-based summons (only if this is a rule summon)
+	if isRuleSummon and self.rulesDeterministicCache then
+		for ruleID, ruleCache in pairs(self.rulesDeterministicCache) do
+			local pendingSummon = ruleCache and ruleCache.pendingSummon
 			if pendingSummon and pendingSummon.mountID and pendingSummon.mountID == mountID then
-				addon:DebugSummon("Processing successful summon for pool: " .. poolName)
-				self:ProcessSuccessfulSummon(poolName)
+				addon:DebugSummon("Processing successful summon for rule: " .. ruleID)
+				self:ProcessSuccessfulRuleSummon(ruleID)
 				break
 			end
 		end
 	end
+
+	-- Clear summon source flag
+	self.currentSummonSource = nil
 end
 
 -- Process successful summon
@@ -745,7 +827,7 @@ function MountSummon:ProcessSuccessfulSummon(poolName)
 		return
 	end
 
-	local cache = addon.db.profile.deterministicCache and addon.db.profile.deterministicCache[poolName]
+	local cache = self.deterministicCache and self.deterministicCache[poolName]
 	if not cache or not cache.pendingSummon then
 		return
 	end
@@ -1329,7 +1411,7 @@ function MountSummon:SummonMount(mountID)
 	self.lastSummonAttempt = GetTime()
 	-- Clear any very old pending summons (older than 10 seconds) as they're likely stale
 	if self:IsDeterministicModeEnabled() then
-		local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+		local deterministicCache = self.deterministicCache
 		if deterministicCache then
 			local currentTime = GetTime()
 			for poolName, cache in pairs(deterministicCache) do
@@ -1372,7 +1454,7 @@ function MountSummon:ClearPendingSummon()
 		return
 	end
 
-	local deterministicCache = addon.db and addon.db.profile and addon.db.profile.deterministicCache
+	local deterministicCache = self.deterministicCache
 	if deterministicCache then
 		for poolName, cache in pairs(deterministicCache) do
 			if cache and cache.pendingSummon then
@@ -1456,15 +1538,18 @@ function MountSummon:SummonRandomMount(useContext)
 		if specificMountID then
 			-- Summon the specific mount for this location
 			addon:DebugSummon("Zone-specific mount found, summoning mount ID:", specificMountID)
+			self.currentSummonSource = "rule" -- Mark as rule summon
 			return self:SummonMount(specificMountID)
 		elseif specificPoolName then
 			-- Use the specific pool for this location
 			addon:DebugSummon("Zone-specific pool found, using pool:", specificPoolName)
+			self.currentSummonSource = "rule" -- Mark as rule summon
 			local mountID, mountName = self:SelectMountFromPoolWithFilter(specificPoolName, nil)
 			if mountID then
 				return self:SummonMount(mountID)
 			else
 				addon:DebugSummon("No mounts available in zone-specific pool:", specificPoolName)
+				self.currentSummonSource = nil -- Clear flag on failure
 				-- Fall through to normal logic
 			end
 		end
@@ -1955,6 +2040,598 @@ function MountSummon:RefreshMountPools()
 	addon:DebugSummon("Refreshing mount pools")
 	self:ResetAllIndividualBans() -- Clear individual mount tracking on pool refresh
 	self:BuildMountPools()
+end
+
+-- ============================================================================
+-- RULE DETERMINISTIC MODE
+-- ============================================================================
+-- Main entry point for deterministic rule selection
+function MountSummon:SelectMountFromRuleDeterministic(rule)
+	if not rule then
+		return nil, nil
+	end
+
+	addon:DebugSummon("=== Deterministic rule selection: Rule ID " .. rule.id .. " ===")
+	if rule.actionType == "pool" then
+		return self:SelectMountFromRulePool(rule)
+	elseif rule.actionType == "specific" then
+		return self:SelectMountFromRuleSpecific(rule)
+	else
+		addon:DebugSummon("Unknown rule action type:", rule.actionType)
+		return nil, nil
+	end
+end
+
+-- Select mount from pool-based rule with group-level deterministic banning
+function MountSummon:SelectMountFromRulePool(rule)
+	local poolName = rule.poolName
+	-- Handle custom pools (ridealong, passenger, etc.)
+	if addon.MountRules.CUSTOM_POOLS and addon.MountRules.CUSTOM_POOLS[poolName] then
+		addon:DebugSummon("Custom pool detected, treating as specific mount list")
+		-- Treat custom pools like specific mount rules
+		local customMountIDs = addon.MountRules.CUSTOM_POOLS[poolName].mountIDs
+		return self:SelectMountFromRuleSpecific({
+			id = rule.id,
+			actionType = "specific",
+			mountIDs = customMountIDs,
+		})
+	end
+
+	-- Get the actual mount pool
+	local originalPool = self.mountPools[poolName]
+	if not originalPool then
+		addon:DebugSummon("Invalid pool name for rule:", poolName)
+		return nil, nil
+	end
+
+	-- Initialize rule cache if needed
+	if not self.rulesDeterministicCache[rule.id] then
+		self.rulesDeterministicCache[rule.id] = {
+			type = "pool",
+			poolName = poolName,
+			unavailableGroups = {},
+			pendingSummon = nil,
+		}
+	end
+
+	local ruleCache = self.rulesDeterministicCache[rule.id]
+	-- Validate cache type matches current rule action (handle rule modifications)
+	if ruleCache.type ~= "pool" then
+		addon:DebugSummon("Rule " .. rule.id .. " cache type mismatch (was " .. (ruleCache.type or "nil") ..
+			", expected pool), resetting cache")
+		self.rulesDeterministicCache[rule.id] = {
+			type = "pool",
+			poolName = poolName,
+			unavailableGroups = {},
+			pendingSummon = nil,
+		}
+		ruleCache = self.rulesDeterministicCache[rule.id]
+	end
+
+	-- Decrement unavailability counters
+	self:DecrementRuleUnavailabilityCounters(rule.id)
+	-- Pass the pool and banned groups to selection (no pre-filtering needed)
+	-- SelectFromPoolIgnoreWeights will check bans during group selection
+	local mountID, mountName = self:SelectFromPoolIgnoreWeights(originalPool, poolName, ruleCache.unavailableGroups)
+	if mountID then
+		-- Find which group this mount belongs to
+		local groupKey, groupType = self:FindMountGroupInPool(originalPool, mountID)
+		if groupKey and groupType then
+			-- Store pending summon for this rule
+			ruleCache.pendingSummon = {
+				ruleID = rule.id,
+				groupKey = groupKey,
+				groupType = groupType,
+				mountID = mountID,
+				timestamp = GetTime(),
+			}
+			addon:DebugSummon("Stored pending rule summon - Rule ID: " .. rule.id ..
+				", Group: " .. groupKey .. ", Mount: " .. mountID)
+		end
+	end
+
+	return mountID, mountName
+end
+
+-- Filter pool for rule-specific deterministic banning (group-based)
+function MountSummon:FilterPoolForRuleDeterministic(pool, ruleID)
+	local ruleCache = self.rulesDeterministicCache[ruleID]
+	if not ruleCache or not ruleCache.unavailableGroups then
+		return pool -- Return original if no cache
+	end
+
+	local filteredPool = {
+		superGroups = {},
+		families = {},
+		mountsByFamily = pool.mountsByFamily,
+		mountWeights = pool.mountWeights,
+	}
+	-- Filter supergroups
+	for sgName, families in pairs(pool.superGroups) do
+		local unavailableCount = ruleCache.unavailableGroups[sgName]
+		if not unavailableCount or unavailableCount <= 0 then
+			filteredPool.superGroups[sgName] = families
+		else
+			addon:DebugSummon("Supergroup " .. sgName .. " unavailable for rule " .. ruleID ..
+				" (" .. unavailableCount .. " summons remaining)")
+		end
+	end
+
+	-- Filter standalone families
+	for familyName, _ in pairs(pool.families) do
+		local unavailableCount = ruleCache.unavailableGroups[familyName]
+		if not unavailableCount or unavailableCount <= 0 then
+			filteredPool.families[familyName] = true
+		else
+			addon:DebugSummon("Family " .. familyName .. " unavailable for rule " .. ruleID ..
+				" (" .. unavailableCount .. " summons remaining)")
+		end
+	end
+
+	return filteredPool
+end
+
+-- Decrement unavailability counters for a rule
+function MountSummon:DecrementRuleUnavailabilityCounters(ruleID)
+	local ruleCache = self.rulesDeterministicCache[ruleID]
+	if not ruleCache or not ruleCache.unavailableGroups then
+		return
+	end
+
+	local decremented = false
+	for groupKey, count in pairs(ruleCache.unavailableGroups) do
+		if count > 0 then
+			ruleCache.unavailableGroups[groupKey] = count - 1
+			decremented = true
+			if count - 1 == 0 then
+				addon:DebugSummon("Group " .. groupKey .. " now available for rule " .. ruleID)
+			end
+		end
+	end
+
+	if decremented then
+		addon:DebugSummon("Decremented unavailability counters for rule " .. ruleID)
+	end
+end
+
+-- Find which group a mount belongs to in a pool
+-- Works directly with GetDynamicSuperGroup to bypass weight-filtered pool structure
+function MountSummon:FindMountGroupInPool(pool, mountID)
+	-- Check all families in the pool
+	for familyName, mounts in pairs(pool.mountsByFamily) do
+		for _, mID in ipairs(mounts) do
+			if mID == mountID then
+				-- Found the family, check if it's in a supergroup
+				local superGroup = addon:GetDynamicSuperGroup(familyName)
+				if superGroup then
+					-- Return the supergroup (don't check pool.superGroups which may be empty)
+					return superGroup, "superGroup"
+				else
+					-- Standalone family
+					return familyName, "family"
+				end
+			end
+		end
+	end
+
+	return nil, nil
+end
+
+-- Select mount from pool ignoring weights (all groups equal chance)
+-- Works directly with mountsByFamily to bypass weight-based pool structure filtering
+-- bannedGroups parameter allows filtering out deterministically banned groups
+function MountSummon:SelectFromPoolIgnoreWeights(pool, poolName, bannedGroups)
+	addon:DebugSummon("Selecting from pool (ignore weights):", poolName)
+	-- Build list of ALL families that have usable mounts, regardless of pool structure
+	-- This bypasses the weight-based filtering that happens in ApplyFamilyAndSuperGroupWeights
+	local allFamilies = {}
+	for familyName, mounts in pairs(pool.mountsByFamily) do
+		if mounts and #mounts > 0 then
+			-- Check if family has any usable mounts
+			local hasUsableMounts = false
+			for _, mountID in ipairs(mounts) do
+				local _, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
+				if isUsable then
+					hasUsableMounts = true
+					break
+				end
+			end
+
+			if hasUsableMounts then
+				table.insert(allFamilies, familyName)
+			end
+		end
+	end
+
+	if #allFamilies == 0 then
+		addon:DebugSummon("No families with usable mounts in pool")
+		return nil, nil
+	end
+
+	-- Group families by supergroup
+	local superGroupFamilies = {}
+	local standaloneFamilies = {}
+	for _, familyName in ipairs(allFamilies) do
+		local superGroup = addon:GetDynamicSuperGroup(familyName)
+		if superGroup then
+			if not superGroupFamilies[superGroup] then
+				superGroupFamilies[superGroup] = {}
+			end
+
+			table.insert(superGroupFamilies[superGroup], familyName)
+		else
+			table.insert(standaloneFamilies, familyName)
+		end
+	end
+
+	-- Build list of selectable groups (supergroups + standalone families)
+	-- Filter out banned groups if bannedGroups table provided
+	local allGroups = {}
+	for sgName, families in pairs(superGroupFamilies) do
+		-- Check if this supergroup is banned
+		if not bannedGroups or not bannedGroups[sgName] or bannedGroups[sgName] <= 0 then
+			table.insert(allGroups, { name = sgName, type = "superGroup", families = families })
+		else
+			addon:DebugSummon("Supergroup " .. sgName .. " unavailable (" ..
+				bannedGroups[sgName] .. " summons remaining)")
+		end
+	end
+
+	for _, familyName in ipairs(standaloneFamilies) do
+		-- Check if this family is banned
+		if not bannedGroups or not bannedGroups[familyName] or bannedGroups[familyName] <= 0 then
+			table.insert(allGroups, { name = familyName, type = "family" })
+		else
+			addon:DebugSummon("Family " .. familyName .. " unavailable (" ..
+				bannedGroups[familyName] .. " summons remaining)")
+		end
+	end
+
+	if #allGroups == 0 then
+		addon:DebugSummon("No valid groups in pool (all banned or empty)")
+		return nil, nil
+	end
+
+	-- Randomly select a group
+	local selectedGroup = allGroups[math.random(#allGroups)]
+	-- Select mount from the chosen group
+	if selectedGroup.type == "superGroup" then
+		-- Randomly select a family from the supergroup
+		local familyName = selectedGroup.families[math.random(#selectedGroup.families)]
+		return self:SelectMountFromFamilyIgnoreWeights(pool, familyName)
+	else
+		return self:SelectMountFromFamilyIgnoreWeights(pool, selectedGroup.name)
+	end
+end
+
+-- Select mount from supergroup ignoring weights
+function MountSummon:SelectMountFromSuperGroupIgnoreWeights(pool, sgName)
+	local families = pool.superGroups[sgName]
+	if not families or #families == 0 then
+		return nil, nil
+	end
+
+	-- Collect all valid families
+	local validFamilies = {}
+	for _, familyName in ipairs(families) do
+		if pool.mountsByFamily[familyName] and #pool.mountsByFamily[familyName] > 0 then
+			table.insert(validFamilies, familyName)
+		end
+	end
+
+	if #validFamilies == 0 then
+		return nil, nil
+	end
+
+	-- Randomly select a family
+	local familyName = validFamilies[math.random(#validFamilies)]
+	return self:SelectMountFromFamilyIgnoreWeights(pool, familyName)
+end
+
+-- Select mount from family ignoring weights
+function MountSummon:SelectMountFromFamilyIgnoreWeights(pool, familyName)
+	local familyMounts = pool.mountsByFamily[familyName]
+	if not familyMounts or #familyMounts == 0 then
+		return nil, nil
+	end
+
+	-- Collect all usable mounts
+	local usableMounts = {}
+	for _, mountID in ipairs(familyMounts) do
+		local name, _, _, _, isUsable = C_MountJournal.GetMountInfoByID(mountID)
+		if isUsable then
+			table.insert(usableMounts, mountID)
+		end
+	end
+
+	if #usableMounts == 0 then
+		return nil, nil
+	end
+
+	-- Randomly select a mount
+	local mountID = usableMounts[math.random(#usableMounts)]
+	local mountName = C_MountJournal.GetMountInfoByID(mountID)
+	return mountID, mountName
+end
+
+-- Select mount from specific mount list with individual mount banning (30min logic)
+function MountSummon:SelectMountFromRuleSpecific(rule)
+	local mountIDs = rule.mountIDs
+	if not mountIDs or #mountIDs == 0 then
+		addon:DebugSummon("Rule has no mount IDs")
+		return nil, nil
+	end
+
+	-- Build list of valid usable mounts (collected, usable, not hidden by faction)
+	local validMounts = {}
+	for _, mountID in ipairs(mountIDs) do
+		local name, spellID, icon, isActive, isUsable, sourceType, isFavorite,
+		isFactionSpecific, faction, shouldHideOnChar, isCollected =
+				C_MountJournal.GetMountInfoByID(mountID)
+		if name and not shouldHideOnChar and isUsable then
+			table.insert(validMounts, mountID)
+		end
+	end
+
+	local validCount = #validMounts
+	addon:DebugSummon("Rule has " .. validCount .. " valid mounts (out of " .. #mountIDs .. " total)")
+	-- Only use deterministic banning if we have at least 5 valid mounts
+	if validCount < 5 then
+		addon:DebugSummon("Rule has < 5 valid mounts, using random selection")
+		if validCount == 0 then
+			return nil, nil
+		end
+
+		-- Random selection without banning
+		local mountID = validMounts[math.random(validCount)]
+		local mountName = C_MountJournal.GetMountInfoByID(mountID)
+		return mountID, mountName
+	end
+
+	-- Initialize rule cache if needed
+	if not self.rulesDeterministicCache[rule.id] then
+		self.rulesDeterministicCache[rule.id] = {
+			type = "specific",
+			unavailableMounts = {},
+			recentSummons = {},
+			pendingSummon = nil,
+		}
+	end
+
+	local ruleCache = self.rulesDeterministicCache[rule.id]
+	-- Validate cache type matches current rule action (handle rule modifications)
+	if ruleCache.type ~= "specific" then
+		addon:DebugSummon("Rule " .. rule.id .. " cache type mismatch (was " .. (ruleCache.type or "nil") ..
+			", expected specific), resetting cache")
+		self.rulesDeterministicCache[rule.id] = {
+			type = "specific",
+			unavailableMounts = {},
+			recentSummons = {},
+			pendingSummon = nil,
+		}
+		ruleCache = self.rulesDeterministicCache[rule.id]
+	end
+
+	-- Clean expired ban timers
+	local currentTime = GetTime()
+	for mountID, bannedUntil in pairs(ruleCache.unavailableMounts) do
+		if currentTime >= bannedUntil then
+			ruleCache.unavailableMounts[mountID] = nil
+			addon:DebugSummon("Mount " .. mountID .. " ban expired for rule " .. rule.id)
+		end
+	end
+
+	-- Clean expired summon history (older than 31 minutes)
+	for mountID, summons in pairs(ruleCache.recentSummons) do
+		local cleaned = {}
+		for _, timestamp in ipairs(summons) do
+			if (currentTime - timestamp) < 1860 then -- 31 minutes
+				table.insert(cleaned, timestamp)
+			end
+		end
+
+		if #cleaned > 0 then
+			ruleCache.recentSummons[mountID] = cleaned
+		else
+			ruleCache.recentSummons[mountID] = nil
+		end
+	end
+
+	-- Check if >50% of valid mounts are banned
+	local bannedCount = 0
+	for _, mountID in ipairs(validMounts) do
+		if ruleCache.unavailableMounts[mountID] then
+			bannedCount = bannedCount + 1
+		end
+	end
+
+	local bannedPercent = bannedCount / validCount
+	addon:DebugSummon("Rule " .. rule.id .. " has " .. bannedCount .. "/" .. validCount ..
+		" mounts banned (" .. math.floor(bannedPercent * 100) .. "%)")
+	-- Reset if >50% are banned
+	if bannedPercent > 0.5 then
+		addon:DebugSummon("RESET: >50% of mounts banned for rule " .. rule.id .. ", clearing all bans and summon history")
+		ruleCache.unavailableMounts = {}
+		ruleCache.recentSummons = {}
+		bannedCount = 0
+	end
+
+	-- Build list of available mounts (valid and not banned)
+	local availableMounts = {}
+	for _, mountID in ipairs(validMounts) do
+		if not ruleCache.unavailableMounts[mountID] then
+			table.insert(availableMounts, mountID)
+		end
+	end
+
+	addon:DebugSummon("Rule " .. rule.id .. " has " .. #availableMounts .. " available mounts")
+	-- Fallback if all mounts somehow banned (shouldn't happen after >50% reset)
+	if #availableMounts == 0 then
+		addon:DebugSummon("All mounts banned for rule " .. rule.id .. ", falling back to random from all valid")
+		availableMounts = validMounts
+	end
+
+	-- Randomly select from available mounts
+	local selectedMount = availableMounts[math.random(#availableMounts)]
+	local mountName = C_MountJournal.GetMountInfoByID(selectedMount)
+	-- Store pending summon
+	ruleCache.pendingSummon = {
+		ruleID = rule.id,
+		mountID = selectedMount,
+		timestamp = currentTime,
+	}
+	addon:DebugSummon("Selected mount " .. (mountName or selectedMount) .. " from rule " .. rule.id)
+	return selectedMount, mountName
+end
+
+-- Process successful summon from a rule
+function MountSummon:ProcessSuccessfulRuleSummon(ruleID)
+	if not self:IsDeterministicModeEnabled() then
+		return
+	end
+
+	local ruleCache = self.rulesDeterministicCache[ruleID]
+	if not ruleCache or not ruleCache.pendingSummon then
+		return
+	end
+
+	local pending = ruleCache.pendingSummon
+	if ruleCache.type == "pool" then
+		-- Pool-based rule: ban the group
+		if not pending.groupKey or not pending.groupType then
+			addon:DebugSummon("Invalid pending summon data for pool rule")
+			ruleCache.pendingSummon = nil
+			return
+		end
+
+		self:MarkRuleGroupUnavailable(ruleID, pending.groupKey, pending.groupType)
+	elseif ruleCache.type == "specific" then
+		-- Specific mount rule: record summon and potentially ban mount
+		if not pending.mountID then
+			addon:DebugSummon("Invalid pending summon data for specific rule")
+			ruleCache.pendingSummon = nil
+			return
+		end
+
+		self:RecordRuleMountSummon(ruleID, pending.mountID)
+	end
+
+	-- Clear pending summon
+	ruleCache.pendingSummon = nil
+	addon:DebugSummon("Processed successful rule summon for rule " .. ruleID)
+end
+
+-- Mark a group unavailable for a rule (pool-based)
+function MountSummon:MarkRuleGroupUnavailable(ruleID, groupKey, groupType)
+	local ruleCache = self.rulesDeterministicCache[ruleID]
+	if not ruleCache then
+		return
+	end
+
+	-- Get pool to calculate ban duration
+	local poolName = ruleCache.poolName
+	local pool = self.mountPools[poolName]
+	if not pool then
+		addon:DebugSummon("Cannot find pool for rule group ban")
+		return
+	end
+
+	-- Calculate ban duration (simpler than normal - no weights)
+	-- Use weight-ignoring count since rules should work regardless of weight settings
+	local totalGroups = self:GetTotalGroupsInPoolIgnoreWeights(poolName)
+	-- Safeguard: Don't use deterministic for very small pools
+	if totalGroups < 5 then
+		if totalGroups == 4 then
+			ruleCache.unavailableGroups[groupKey] = 1
+			addon:DebugSummon("Rule " .. ruleID .. " pool has 4 groups, ban duration: 1")
+		else
+			addon:DebugSummon("Rule " .. ruleID .. " pool has only " .. totalGroups ..
+				" groups, skipping ban")
+		end
+
+		return
+	end
+
+	-- Ban duration = floor(totalGroups * 0.4), capped at 12
+	local banDuration = math.floor(totalGroups * 0.4)
+	banDuration = math.min(12, banDuration)
+	banDuration = math.max(1, banDuration)
+	ruleCache.unavailableGroups[groupKey] = banDuration
+	addon:DebugSummon("Rule " .. ruleID .. " (" .. totalGroups .. " groups) - " ..
+		groupType .. " '" .. groupKey .. "' banned for " .. banDuration .. " summons")
+end
+
+-- Clean up orphaned rule cache entries (for deleted rules)
+function MountSummon:CleanupOrphanedRuleCaches()
+	if not self.rulesDeterministicCache or not addon.MountRules then
+		return
+	end
+
+	-- Get list of valid rule IDs
+	local validRuleIDs = {}
+	local data = addon.db and addon.db.profile and addon.db.profile.zoneSpecificMounts
+	if data and data.rules then
+		for _, rule in ipairs(data.rules) do
+			validRuleIDs[rule.id] = true
+		end
+	end
+
+	-- Remove cache entries for non-existent rules
+	local removedCount = 0
+	for ruleID, _ in pairs(self.rulesDeterministicCache) do
+		if not validRuleIDs[ruleID] then
+			self.rulesDeterministicCache[ruleID] = nil
+			removedCount = removedCount + 1
+		end
+	end
+
+	if removedCount > 0 then
+		addon:DebugSummon("Cleaned up " .. removedCount .. " orphaned rule cache entries")
+	end
+end
+
+-- Record a mount summon for a specific mount rule (30min logic)
+function MountSummon:RecordRuleMountSummon(ruleID, mountID)
+	local ruleCache = self.rulesDeterministicCache[ruleID]
+	if not ruleCache then
+		return
+	end
+
+	local currentTime = GetTime()
+	-- Don't record if mount is already banned
+	if ruleCache.unavailableMounts[mountID] and currentTime < ruleCache.unavailableMounts[mountID] then
+		local mountName = C_MountJournal.GetMountInfoByID(mountID)
+		addon:DebugSummon("Mount " .. (mountName or mountID) .. " summoned via fallback for rule " ..
+			ruleID .. ", already banned")
+		return
+	end
+
+	-- Initialize summon history for this mount if needed
+	if not ruleCache.recentSummons[mountID] then
+		ruleCache.recentSummons[mountID] = {}
+	end
+
+	-- Add current summon timestamp
+	local summons = ruleCache.recentSummons[mountID]
+	table.insert(summons, currentTime)
+	-- Keep only last 10 summons
+	if #summons > 10 then
+		table.remove(summons, 1)
+	end
+
+	local mountName = C_MountJournal.GetMountInfoByID(mountID)
+	-- For specific mount rules, we use a fixed threshold of 2 summons
+	-- (same as weight 1-3 mounts in normal logic)
+	local threshold = 2
+	addon:DebugSummon("Tracked rule " .. ruleID .. " mount summon: " .. (mountName or mountID) ..
+		" (" .. #summons .. "/" .. threshold .. " summons)")
+	-- Check if we should ban this mount
+	if #summons >= threshold then
+		-- Ban for 30 minutes from now
+		ruleCache.unavailableMounts[mountID] = currentTime + 1800 -- 30 minutes
+		addon:DebugSummon("Mount " .. (mountName or mountID) .. " BANNED for 30 minutes in rule " ..
+			ruleID .. " (triggered after " .. #summons .. " summons within 30min)")
+	end
 end
 
 -- Get action for smart button (used by SecureHandlers)

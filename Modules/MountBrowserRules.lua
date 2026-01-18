@@ -43,19 +43,21 @@ function Rules:CreateRulesFrame(parentFrame, mountBrowser)
 	descText:SetPoint("TOPLEFT", 20, -35) -- 25px below header
 	descText:SetPoint("TOPRIGHT", -40, -35)
 	descText:SetText(
-		"|cffffffffRules override the addon's fancy summoning system, disregarding the weight and favorite status. Instead, a random useable mount is summoned from your specified list using WoW's default logic.|r |cff9d9d9dExample uses: Summon Chauffeured mounts below level 10. Summon passenger mounts when grouped with friends. Bind utility mounts like the to one of the 4 summoning RandomMountBuddy keybinds (e.g., Grand Expedition Yak on keybind 2).|r")
+		"|cffffffffRules override the addon's fancy summoning system, disregarding the weight and favorite status. Instead, a random useable mount is summoned from your specified list using WoW's default logic.|r " ..
+		"|cff00ff00New:|r |cffffffffthe Improved Randomness setting now works with rules that use mount pools and rules with 5 or more specific mount IDs.|r" ..
+		"\n|cff9d9d9dExample uses: Summon Chauffeured mounts below level 10. Summon passenger mounts when grouped with friends. Bind utility mounts to one of the 4 summoning RandomMountBuddy keybinds (e.g., Grand Expedition Yak on keybind 2).|r")
 	descText:SetJustifyH("LEFT")
 	descText:SetWordWrap(true)
 	-- Create a two-column layout at the top
 	local topLeftContainer = CreateFrame("Frame", nil, scrollChild)
-	topLeftContainer:SetPoint("TOPLEFT", 20, -80)
+	topLeftContainer:SetPoint("TOPLEFT", 20, -90)
 	topLeftContainer:SetWidth((scrollFrame:GetWidth() - 60) / 2)
 	topLeftContainer:SetHeight(200)
 	local topRightContainer = CreateFrame("Frame", nil, scrollChild)
 	topRightContainer:SetPoint("TOPLEFT", topLeftContainer, "TOPRIGHT", 200, 0)
-	topRightContainer:SetPoint("TOPRIGHT", -40, -80)
+	topRightContainer:SetPoint("TOPRIGHT", -40, -90)
 	topRightContainer:SetHeight(200)
-	local yOffset = -310 -- Start below the two-column section
+	local yOffset = -320 -- Start below the two-column section
 	-- Helper to create section headers
 	local function CreateHeader(text, color)
 		color = color or { r = 1, g = 0.82, b = 0 } -- Gold default
