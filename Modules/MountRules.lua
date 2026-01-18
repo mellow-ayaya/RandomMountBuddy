@@ -71,6 +71,7 @@ local CUSTOM_POOLS = {
 		name = "Ride Along Mounts (flying only)",
 		mountIDs = {
 			1563, -- Highland Drake
+			1588, -- Winding Slitherdrake
 			1589, -- Renewed Proto-Drake
 			1590, -- Windborne Velocidrake
 			1591, -- Cliffside Wylderdrake
@@ -103,6 +104,7 @@ local CUSTOM_POOLS = {
 			2597, -- Orgrimmar Sentinel
 			-- Ride Along mounts
 			1563, -- Highland Drake
+			1588, -- Winding Slitherdrake
 			1589, -- Renewed Proto-Drake
 			1590, -- Windborne Velocidrake
 			1591, -- Cliffside Wylderdrake
