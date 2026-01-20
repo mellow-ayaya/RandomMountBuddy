@@ -868,7 +868,7 @@ end
 -- ============================================================================
 -- INDIVIDUAL MOUNT TRACKING (TIME-BASED BANS)
 -- ============================================================================
--- Clean expired summon history for a mount (removes timestamps older than 31 minutes)
+-- Clean expired summon history for a mount (removes timestamps older than 61 minutes)
 function MountSummon:CleanExpiredSummonHistory(mountID)
 	if not self:IsDeterministicModeEnabled() then
 		return
@@ -882,8 +882,8 @@ function MountSummon:CleanExpiredSummonHistory(mountID)
 	local currentTime = GetTime()
 	local cleaned = {}
 	for _, timestamp in ipairs(tracking.recentSummons) do
-		-- Keep timestamps less than 31 minutes old
-		if (currentTime - timestamp) < 1860 then -- 31 minutes in seconds
+		-- Keep timestamps less than 61 minutes old
+		if (currentTime - timestamp) < 3660 then -- 61 minutes in seconds
 			table.insert(cleaned, timestamp)
 		end
 	end
@@ -955,7 +955,7 @@ function MountSummon:RecordIndividualMountSummon(mountID, mountWeight)
 		-- Ban for 30 minutes from now
 		tracking.bannedUntil = currentTime + 1800 -- 30 minutes
 		addon:DebugSummon("Mount " .. (mountName or mountID) .. " BANNED for 30 minutes (triggered after " ..
-			#tracking.recentSummons .. " summons within 30min)")
+			#tracking.recentSummons .. " summons within 60min)")
 	end
 end
 
@@ -2354,7 +2354,7 @@ function MountSummon:SelectMountFromFamilyIgnoreWeights(pool, familyName)
 	return mountID, mountName
 end
 
--- Select mount from specific mount list with individual mount banning (30min logic)
+-- Select mount from specific mount list with individual mount banning (60min logic)
 function MountSummon:SelectMountFromRuleSpecific(rule)
 	local mountIDs = rule.mountIDs
 	if not mountIDs or #mountIDs == 0 then
@@ -2421,11 +2421,11 @@ function MountSummon:SelectMountFromRuleSpecific(rule)
 		end
 	end
 
-	-- Clean expired summon history (older than 31 minutes)
+	-- Clean expired summon history (older than 61 minutes)
 	for mountID, summons in pairs(ruleCache.recentSummons) do
 		local cleaned = {}
 		for _, timestamp in ipairs(summons) do
-			if (currentTime - timestamp) < 1860 then -- 31 minutes
+			if (currentTime - timestamp) < 3660 then -- 61 minutes
 				table.insert(cleaned, timestamp)
 			end
 		end
@@ -2590,7 +2590,7 @@ function MountSummon:CleanupOrphanedRuleCaches()
 	end
 end
 
--- Record a mount summon for a specific mount rule (30min logic)
+-- Record a mount summon for a specific mount rule (60min logic)
 function MountSummon:RecordRuleMountSummon(ruleID, mountID)
 	local ruleCache = self.rulesDeterministicCache[ruleID]
 	if not ruleCache then
@@ -2630,7 +2630,7 @@ function MountSummon:RecordRuleMountSummon(ruleID, mountID)
 		-- Ban for 30 minutes from now
 		ruleCache.unavailableMounts[mountID] = currentTime + 1800 -- 30 minutes
 		addon:DebugSummon("Mount " .. (mountName or mountID) .. " BANNED for 30 minutes in rule " ..
-			ruleID .. " (triggered after " .. #summons .. " summons within 30min)")
+			ruleID .. " (triggered after " .. #summons .. " summons within 60min)")
 	end
 end
 

@@ -1,3 +1,6 @@
+# 1.1.63 - 2026-01-20
+- Small adjustment to the new behavior of Improved Randomness (now even more random!).
+
 # 1.1.62 - 2026-01-18
 - Sorted IDs for custom pools for easier maintenance.
 
