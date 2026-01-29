@@ -1,3 +1,9 @@
+# 1.1.64 - 2026-01-28
+- The Improved Randomness option is now properly and fully applied to rules, now starting at 4 mounts instead of 5.
+- Removed Anu'shalla from the Ride along and Passenger+Ride along mount pools as ride along does not work for it at the moment.
+- Removed debug output from the setting that enables debugging.
+- TOC update.
+
 # 1.1.63 - 2026-01-20
 - Small adjustment to the new behavior of Improved Randomness (now even more random!).
 

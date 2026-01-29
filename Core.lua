@@ -1571,7 +1571,11 @@ function addon:SetSetting(key, value)
 
 	-- Handle normal persistent settings
 	self.db.profile[key] = value
-	addon:DebugCore("K:'" .. key .. "',V:'" .. tostring(value) .. "'")
+	-- Only log setting changes when not changing the debug setting itself (to avoid confusing output)
+	if key ~= "enableDebugMode" then
+		addon:DebugCore("Setting changed: " .. key .. " = " .. tostring(value))
+	end
+
 	-- Notify all modules of setting changes
 	self:NotifyModulesSettingChanged(key, value)
 	-- Trigger grouping rebuild for trait-related settings

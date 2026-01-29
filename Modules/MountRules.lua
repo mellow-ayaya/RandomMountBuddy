@@ -86,7 +86,7 @@ local CUSTOM_POOLS = {
 			2296, -- Delver's Gob-Trotter
 			2324, -- Hooktalon
 			2512, -- Delver's Mana-Skimmer
-			2917, -- Anu'shalla, Shadow's Guidance
+			--	2917, -- Anu'shalla, Shadow's Guidance, commented out as it does not actually work as ridealong at the moment..
 		},
 	},
 	passenger_ridealong = {
@@ -119,7 +119,7 @@ local CUSTOM_POOLS = {
 			2296, -- Delver's Gob-Trotter
 			2324, -- Hooktalon
 			2512, -- Delver's Mana-Skimmer
-			2917, -- Anu'shalla, Shadow's Guidance
+			--	2917, -- Anu'shalla, Shadow's Guidance, commented out as it does not actually work as ridealong at the moment..
 		},
 	},
 }

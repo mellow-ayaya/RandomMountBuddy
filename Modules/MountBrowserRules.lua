@@ -44,7 +44,7 @@ function Rules:CreateRulesFrame(parentFrame, mountBrowser)
 	descText:SetPoint("TOPRIGHT", -40, -35)
 	descText:SetText(
 		"|cffffffffRules override the addon's fancy summoning system, disregarding the weight and favorite status. Instead, a random useable mount is summoned from your specified list using WoW's default logic.|r " ..
-		"|cff00ff00New:|r |cffffffffthe Improved Randomness setting now works with rules that use mount pools and rules with 5 or more specific mount IDs.|r" ..
+		"|cff00ff00New:|r |cffffffffthe Improved Randomness setting now works with rules that use mount pools and rules with 4 or more specific mount IDs.|r" ..
 		"\n|cff9d9d9dExample uses: Summon Chauffeured mounts below level 10. Summon passenger mounts when grouped with friends. Bind utility mounts to one of the 4 summoning RandomMountBuddy keybinds (e.g., Grand Expedition Yak on keybind 2).|r")
 	descText:SetJustifyH("LEFT")
 	descText:SetWordWrap(true)
