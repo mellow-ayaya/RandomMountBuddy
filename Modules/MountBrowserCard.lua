@@ -150,6 +150,12 @@ local CameraOverrides = {
 	["Salamanthes"] = { x = 6.70, y = -3.60, z = 3.40, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
 	["Snails"] = { x = 8.20, y = -4.50, z = 4.70, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
 	["Snapdragons"] = { x = 5.90, y = -3.20, z = 3.50, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
+	["Defenders"] = { x = 6.00, y = -3.30, z = 3.90, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
+	["Grimclaws"] = { x = 7.80, y = -4.20, z = 4.30, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
+	["Pangolin"] = { x = 5.80, y = -2.80, z = 3.10, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
+	["Untainted Grove Crawler"] = { x = 3.50, y = -1.60, z = 1.80, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
+	["Vibrant Petalwing"] = { x = 5.80, y = -3.10, z = 3.50, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
+	["Vicious Snaplizard"] = { x = 7.00, y = -3.30, z = 3.30, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
 	-- Add more calibrated settings here...
 }
 -- Default camera settings (fallback)

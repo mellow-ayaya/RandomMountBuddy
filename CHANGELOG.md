@@ -1,3 +1,6 @@
+# 1.1.70 - 2026-02-27
+- Added all Midnight release mounts + the TBC promo mount; some new families/groups may be reogranized later.
+
 # 1.1.65 - 2026-02-11
 - TOC push.
 

@@ -10,6 +10,96 @@ end
 -- ============================================================
 
 RandomMountBuddy_PreloadData.MountToFamily = {
+    [2794] = "Vicious Snaplizard",    -- Vicious Snaplizard
+    [2793] = "Vicious Snaplizard",    -- Vicious Snaplizard
+    [2708] = "Vibrant Petalwing",    -- Vibrant Petalwing
+
+    [2710] = "Cerulean Sporeglider",    -- Cerulean Sporeglider
+    [2713] = "Ruddy Sporeglider",    -- Ruddy Sporeglider
+
+    [2772] = "Pangolin",    -- Blessed Amani Burrower
+    [2773] = "Pangolin",    -- Giganto Manis
+    [2775] = "Pangolin",    -- Witherbark Pango
+
+
+    [2790] = "Shredclaw",    -- Insatiable Shredclaw
+    [2791] = "Shredclaw",    -- Prowling Shredclaw
+    [2792] = "Shredclaw",    -- Frenzied Shredclaw
+
+    [2747] = "Untainted Grove Crawler",    -- Untainted Grove Crawler
+    [2785] = "Armored Warhorse",    -- Relinquished Scarlet Charger
+    [2801] = "Galactic Gladiator's Goredrake",    -- Galactic Gladiator's Goredrake
+
+    [2615] = "Grimlynx",    -- Rootstalker Grimlynx
+    [2616] = "Grimlynx",    -- Ivory Grimlynx
+    [2614] = "Grimlynx",    -- Fierce Grimlynx
+
+    [2849] = "Hypo-Speed X6000",    -- Hypo-Speed X6000
+
+    [2838] = "Surfboard",    -- Fantastical Goblin Waveshredder
+
+    [2769] = "Preyseeker",    -- Preyseeker's Hubris
+    [2770] = "Preyseeker",    -- Preyseeker's Wrath
+    [2771] = "Preyseeker",    -- Preyseeker's Nightmare
+
+    [2841] = "Arcane Defender",    -- Elven Arcane Guardian
+    [2840] = "Arcane Defender",    -- Silvermoon's Arcane Defender
+
+    [2842] = "Arcanovoid Construct",    -- Arcanovoid Construct
+    [2913] = "Vivid Chloroceros",    -- Vivid Chloroceros
+
+    [2786] = "Hexed Vilefeather Eagle",    -- Hexed Vilefeather Eagle
+
+    [2719] = "Starspark Netherdrake",    -- Starspark Netherdrake
+
+    [2836] = "Pseudoshell",    -- Accented Pseudoshell
+    [2835] = "Pseudoshell",    -- Lavender Pseudoshell
+    [2834] = "Pseudoshell",    -- Cabbage Pseudoshell
+    [2833] = "Pseudoshell",    -- Arboreal Pseudoshell
+
+    [2843] = "Snailemental",    -- Ghastropod
+    [1578] = "Blacklisted",    -- [DND] Test Mount JZB
+
+    [2778] = "Midnight Bear",    -- Ancestral War Bear
+    [2776] = "Midnight Bear",    -- Amani Blessed Bear
+
+    [2914] = "Stormcrow",    -- Fel Spirehawk
+
+    [2607] = "Ashes of Belo'ren",    -- Ashes of Belo'ren
+    [2760] = "Sharptalon",    -- Amani Sharptalon
+    [2693] = "Sharptalon",    -- Amani Sunfeather
+    [2694] = "Sharptalon",    -- Amani Windcaller
+
+    [2733] = "Carrion",    -- Calamitous Carrion
+    [2734] = "Carrion",    -- Convalescent Carrion
+
+    [2817] = "Midnight Hawkstrider",    -- Lucent Hawkstrider
+    [2761] = "Midnight Hawkstrider",    -- Crimson Silvermoon Hawkstrider
+    [2762] = "Midnight Hawkstrider",    -- Cerulean Hawkstrider
+
+    [2758] = "Midnight Dragonhawk",    -- Cobalt Dragonhawk
+    [2595] = "Blacklisted",    -- Swift Spectral Dragonhawk
+    [2756] = "Midnight Dragonhawk",    -- Crimson Dragonhawk
+    [2755] = "Midnight Dragonhawk",    -- Umbral Dragonhawk
+    [2753] = "Midnight Dragonhawk",    -- Fiery Dragonhawk
+    [2969] = "Blacklisted",    -- Swift Spectral Dragonhawk
+
+    [2850] = "Quilt",    -- Fluffy Comfy Flying Quilt
+    [2851] = "Quilt",    -- Gruffy Comfy Flying Quilt
+    [2852] = "Quilt",    -- Comfy Bel'ameth Flying Quilt
+    [2853] = "Quilt",    -- Comfy Silvermoon Flying Quilt
+
+    [2845] = "Snapvine",    -- Vicious Snapvine
+    [2846] = "Snapvine",    -- Ferocious Snapvine
+    [2847] = "Snapvine",    -- Blooded Snapvine
+    [2848] = "Snapvine",    -- Savage Snapvine
+
+    [2751] = "Stormray",    -- Augmented Stormray
+    [2829] = "Stormray",    -- Lab-grown Stormray
+
+    [2827] = "Harrower",    -- Sanguine Harrower
+    [2764] = "Harrower",    -- Duskbrute Harrower
+    [2831] = "Harrower",    -- Tenebrous Harrower
     -- ========================================================
     -- AERIAL UNITS
     -- ========================================================
@@ -1862,6 +1952,114 @@ RandomMountBuddy_PreloadData.MountToFamily = {
 -- ============================================================
 
 RandomMountBuddy_PreloadData.FamilyDefinitions = {
+		["Vibrant Petalwing"] = {
+        superGroup = nil,
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+    ["Vicious Snaplizard"] = {
+        superGroup = nil,
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+    ["Sporeglider"] = {
+        superGroup = nil,
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+		["Pangolin"] = {
+        superGroup = nil,
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+    ["Untainted Grove Crawler"] = {
+        superGroup = nil,
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+    ["Galactic Gladiator's Goredrake"] = {
+        superGroup = "Proto-Drakes",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+    ["Shredclaw"] = {
+        superGroup = "Grimclaws",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+    ["Grimlynx"] = {
+        superGroup = "Grimclaws",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+    ["Hypo-Speed X6000"] = {
+        superGroup = "Goblin Trikes",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["Arcane Defender"] = {
+        superGroup = "Defenders",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["Arcanovoid Construct"] = {
+        superGroup = "Defenders",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+		["Vivid Chloroceros"] = {
+        superGroup = "Armoredons",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+
+		["Hexed Vilefeather Eagle"] = {
+        superGroup = "Hawks",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+    ["Starspark Netherdrake"] = {
+        superGroup = "Nether Drakes",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+    ["Pseudoshell"] = {
+        superGroup = "Snails",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+    ["Preyseeker"] = {
+        superGroup = "Eels",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+    ["Midnight Bear"] = {
+        superGroup = "Bears",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+		["Ashes of Belo'ren"] = {
+        superGroup = "Hawks",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+    ["Sharptalon"] = {
+        superGroup = "Hawks",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+    ["Carrion"] = {
+        superGroup = "Dread ravens",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+    ["Midnight Hawkstrider"] = {
+        superGroup = "Hawkstriders",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		},
+    ["Midnight Dragonhawk"] = {
+        superGroup = "Dragonhawks",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		},
+    ["Quilt"] = {
+        superGroup = "Flying Carpets",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		},
+    ["Snapvine"] = {
+        superGroup = "Serpents",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		},
+    ["Stormray"] = {
+        superGroup = "Outland Rays",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		},
+    ["Harrower"] = {
+        superGroup = "Plaguebats",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
     -- Aerial Units
     ["Aerial Unit"] = {
         superGroup = "Aerial Units",
@@ -4015,7 +4213,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 
     ["Snapdragon"] = {
         superGroup = "Snapdragons",
-        traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+        traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
     },
 
     -- Soul Eaters
@@ -4088,7 +4286,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     },
 
     ["Armoredon"] = {
-        superGroup = nil,
+        superGroup = "Armoredons",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
 
@@ -4248,7 +4446,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     },
 
     ["Nether Ray"] = {
-        superGroup = nil,
+        superGroup = "Outland Rays",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
 
@@ -4328,7 +4526,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     },
 
     ["Vicious Electro Eel (PVP)"] = {
-        superGroup = nil,
+        superGroup = "Eels",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
 

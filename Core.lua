@@ -1571,11 +1571,7 @@ function addon:SetSetting(key, value)
 
 	-- Handle normal persistent settings
 	self.db.profile[key] = value
-	-- Only log setting changes when not changing the debug setting itself (to avoid confusing output)
-	if key ~= "enableDebugMode" then
-		addon:DebugCore("Setting changed: " .. key .. " = " .. tostring(value))
-	end
-
+	addon:DebugCore("K:'" .. key .. "',V:'" .. tostring(value) .. "'")
 	-- Notify all modules of setting changes
 	self:NotifyModulesSettingChanged(key, value)
 	-- Trigger grouping rebuild for trait-related settings
@@ -3266,10 +3262,11 @@ function addon:DetectAndProcessNewMounts()
 		-- Check if mount is NOT in our manual data
 		if not (self.MountToFamily and self.MountToFamily[mountID]) then
 			-- Get mount info
-			local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected =
+			local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar =
 					C_MountJournal.GetMountInfoByID(mountID)
-			-- Only process collected mounts with valid names
-			if name and type(name) == "string" and name ~= "" and isCollected == true then
+			-- Process all mounts with valid names, regardless of collection status
+			-- Detection should catch any mount missing from manual data, not just collected ones
+			if name and type(name) == "string" and name ~= "" then
 				-- Get extended mount info for better defaults
 				local creatureDisplayInfoID, description, source, isSelfMount, mountTypeID, uiModelSceneID = C_MountJournal
 						.GetMountInfoExtraByID(mountID)
