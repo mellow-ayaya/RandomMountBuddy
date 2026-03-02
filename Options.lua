@@ -514,7 +514,7 @@ local rootOptionsTable = {
 								end
 
 								local stats = addon.FavoriteSync:GetSyncStatistics()
-								return string.format("Stats: %d favorite, %d usable mounts | Last sync: %s",
+								return string.format("Stats: %d favorite / %d collected mounts | Last sync: %s",
 									stats.favoriteMountCount, stats.totalMountCount, stats.lastSyncTimeFormatted)
 							end,
 							width = 3,
