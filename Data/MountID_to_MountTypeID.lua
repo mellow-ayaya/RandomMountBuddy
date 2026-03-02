@@ -1601,5 +1601,6 @@ MountIDtoMountTypeID = {
     [1578] = 247,    -- [DND] Test Mount JZB
     [2838] = 437,    -- Fantastical Goblin Waveshredder
     [2616] = 230,    -- Ivory Grimlynx
+    [2912] = 230,    -- Vivacious Chloroceros
 }
 return MountIDtoMountTypeID

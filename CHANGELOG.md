@@ -1,3 +1,8 @@
+# 1.1.71 - 2026-03-02
+- 2 mounts that were r ecently made available have been added.
+- Fix macro length warning spam in SecureHandlers (thanks bnjdpn).
+- Fix favorite mount stats showing wrong count (thanks bnjdpn).
+
 # 1.1.70 - 2026-02-27
 - Added all Midnight release mounts + the TBC promo mount; some new families/groups may be reogranized later.
 - Improved logic for dev debug notifications for mounts that need to be added to the addon.

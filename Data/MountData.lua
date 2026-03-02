@@ -47,9 +47,10 @@ RandomMountBuddy_PreloadData.MountToFamily = {
 
     [2842] = "Arcanovoid Construct",    -- Arcanovoid Construct
     [2913] = "Vivid Chloroceros",    -- Vivid Chloroceros
-
+    [2912] = "Vivacious Chloroceros",    -- Vivacious Chloroceros
     [2786] = "Hexed Vilefeather Eagle",    -- Hexed Vilefeather Eagle
 
+    [2767] = "Harrower",    -- Contained Stormarion Defender
     [2719] = "Starspark Netherdrake",    -- Starspark Netherdrake
 
     [2836] = "Pseudoshell",    -- Accented Pseudoshell
@@ -1998,7 +1999,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         superGroup = "Defenders",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
-		["Vivid Chloroceros"] = {
+		["Chloroceros"] = {
         superGroup = "Armoredons",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
     },
