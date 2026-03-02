@@ -291,18 +291,20 @@ function FavoriteSync:GetAllFavoriteMounts()
 		mountCount = mountCount + 1
 		-- Get fresh favorite status from WoW API
 		local name, _, _, _, isUsable, _, isFavorite = C_MountJournal.GetMountInfoByID(mountID)
-		-- Process ALL collected mounts, regardless of usability
-		if isFavorite then
+		-- Skip mounts where API returns no valid data (removed/invalid mount IDs)
+		if not name then
+			addon:DebugSync("Skipping mount ID " .. tostring(mountID) .. " - API returned no data")
+		elseif isFavorite then
 			table.insert(favoriteMounts, {
 				id = mountID,
-				name = name or mountInfo.name,
+				name = name,
 				familyName = mountInfo.familyName,
 				superGroup = mountInfo.superGroup,
 			})
 		else
 			table.insert(nonFavoriteMounts, {
 				id = mountID,
-				name = name or mountInfo.name,
+				name = name,
 				familyName = mountInfo.familyName,
 				superGroup = mountInfo.superGroup,
 			})
@@ -326,6 +328,15 @@ function FavoriteSync:CreateFavoriteHash()
 	local hash = table.concat(ids, ",")
 	addon:DebugSync("Created hash from " .. #ids .. " favorites: " .. string.sub(hash, 1, 50) .. "...")
 	return hash
+end
+
+function FavoriteSync:HasFavoritesChanged()
+	local currentHash = self:CreateFavoriteHash()
+	if currentHash ~= self.lastFavoriteHash then
+		self.lastFavoriteHash = currentHash
+		return true
+	end
+	return false
 end
 
 -- ============================================================================
