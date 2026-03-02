@@ -38,10 +38,10 @@ local MACRO_TEMPLATES = {
 	druidPrePrefix = "/cancelform [spec:1,noform:4][nospec:1]\n",
 
 	prefix =
-	"/run RMB.activeKeybind = %d\n/run RMB:SRM(true)\n/run UIErrorsFrame:SuppressMessagesThisFrame()\n/stopmacro [mounted]",
+	"/run RMB.activeKeybind=%d;RMB:SRM(true);UIErrorsFrame:SuppressMessagesThisFrame()\n/stopmacro [mounted]",
 
 	-- Regular zones: Handle forms, then regular mount
-	regularZone = "/run RMB.activeKeybind = %d\n/run RMB:SRM(true)",
+	regularZone = "/run RMB.activeKeybind=%d;RMB:SRM(true)",
 
 	druidSmart = {
 		keepActive = "/cast [swimming,noform:3][outdoors,noform:3] %s\n/cast [indoors,noform:2] %s",
@@ -68,8 +68,7 @@ local function getUndermineZoneMacro(buttonNumber)
 	buttonNumber = buttonNumber or 1
 	local g99Name = getLocalizedG99Name()
 	local macro = "/cast " .. g99Name .. "\n" ..
-			"/run RMB.activeKeybind = " .. buttonNumber .. "\n" ..
-			"/run RMB:SRM(true)"
+			"/run RMB.activeKeybind=" .. buttonNumber .. ";RMB:SRM(true)"
 	addonTable:DebugCore("G99: Built Undermine macro with spell:", g99Name)
 	return macro
 end
@@ -116,10 +115,12 @@ local function isActionOnCooldown(actionType, cooldownDuration)
 end
 
 -- Function to build macro text efficiently
+local macroLengthWarned = false
 local function buildMacro(parts)
 	local result = table.concat(parts, "\n")
-	if #result > 255 then
-		addonTable:AlwaysPrint("Macro length is " .. #result .. " characters (limit: 255)")
+	if #result > 255 and not macroLengthWarned then
+		macroLengthWarned = true
+		addonTable:DebugCore("Macro length is " .. #result .. " characters (limit: 255)")
 	end
 
 	return result
