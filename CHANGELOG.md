@@ -1,3 +1,8 @@
+# 1.1.72 - 2026-03-03
+- Fixed Sporegliders being in differrernt families and added them to Dragonhawks group.
+- Updated script for easier organization of mounts in the data files.
+- Organized the mounts in the data files.
+
 # 1.1.71 - 2026-03-02
 - 2 mounts that were recently made available have been added.
 - Fix macro length warning spam in SecureHandlers (thanks @bnjdpn ).

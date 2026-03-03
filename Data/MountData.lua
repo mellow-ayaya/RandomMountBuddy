@@ -371,6 +371,8 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2755] = "Midnight Dragonhawk",    -- Umbral Dragonhawk
     [2756] = "Midnight Dragonhawk",    -- Crimson Dragonhawk
     [2758] = "Midnight Dragonhawk",    -- Cobalt Dragonhawk
+    [2710] = "Sporeglider",    -- Cerulean Sporeglider
+    [2713] = "Sporeglider",    -- Ruddy Sporeglider
     [1471] = "Vengeance",    -- Vengeance
     -- ========================================================
     -- DRAKES
@@ -1750,11 +1752,6 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1351] = "Vicious War Spider (PVP)",    -- Vicious War Spider
     [1352] = "Vicious War Spider (PVP)",    -- Vicious War Spider
     -- ========================================================
-    -- SPOREGLIDER
-    -- ========================================================
-    [2710] = "Sporeglider",    -- Cerulean Sporeglider
-    [2713] = "Sporeglider",    -- Ruddy Sporeglider
-    -- ========================================================
     -- SQUEAKERS, THE TRICKSTER
     -- ========================================================
     [1290] = "Squeakers, the Trickster",    -- Squeakers, the Trickster
@@ -2234,8 +2231,8 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
 		},
 
     ["Sporeglider"] = {
-        superGroup = nil,
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+        superGroup = "Dragonhawks",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
     },
 
     ["Starspark Netherdrake"] = {
