@@ -10,104 +10,12 @@ end
 -- ============================================================
 
 RandomMountBuddy_PreloadData.MountToFamily = {
-    [2794] = "Vicious Snaplizard",    -- Vicious Snaplizard
-    [2793] = "Vicious Snaplizard",    -- Vicious Snaplizard
-    [2708] = "Vibrant Petalwing",    -- Vibrant Petalwing
-
-    [2710] = "Cerulean Sporeglider",    -- Cerulean Sporeglider
-    [2713] = "Ruddy Sporeglider",    -- Ruddy Sporeglider
-
-    [2772] = "Pangolin",    -- Blessed Amani Burrower
-    [2773] = "Pangolin",    -- Giganto Manis
-    [2775] = "Pangolin",    -- Witherbark Pango
-
-
-    [2790] = "Shredclaw",    -- Insatiable Shredclaw
-    [2791] = "Shredclaw",    -- Prowling Shredclaw
-    [2792] = "Shredclaw",    -- Frenzied Shredclaw
-
-    [2747] = "Untainted Grove Crawler",    -- Untainted Grove Crawler
-    [2785] = "Armored Warhorse",    -- Relinquished Scarlet Charger
-    [2801] = "Galactic Gladiator's Goredrake",    -- Galactic Gladiator's Goredrake
-
-    [2615] = "Grimlynx",    -- Rootstalker Grimlynx
-    [2616] = "Grimlynx",    -- Ivory Grimlynx
-    [2614] = "Grimlynx",    -- Fierce Grimlynx
-
-    [2849] = "Hypo-Speed X6000",    -- Hypo-Speed X6000
-
-    [2838] = "Surfboard",    -- Fantastical Goblin Waveshredder
-
-    [2769] = "Preyseeker",    -- Preyseeker's Hubris
-    [2770] = "Preyseeker",    -- Preyseeker's Wrath
-    [2771] = "Preyseeker",    -- Preyseeker's Nightmare
-
-    [2841] = "Arcane Defender",    -- Elven Arcane Guardian
-    [2840] = "Arcane Defender",    -- Silvermoon's Arcane Defender
-
-    [2842] = "Arcanovoid Construct",    -- Arcanovoid Construct
-    [2913] = "Vivid Chloroceros",    -- Vivid Chloroceros
-    [2912] = "Vivacious Chloroceros",    -- Vivacious Chloroceros
-    [2786] = "Hexed Vilefeather Eagle",    -- Hexed Vilefeather Eagle
-
-    [2767] = "Harrower",    -- Contained Stormarion Defender
-    [2719] = "Starspark Netherdrake",    -- Starspark Netherdrake
-
-    [2836] = "Pseudoshell",    -- Accented Pseudoshell
-    [2835] = "Pseudoshell",    -- Lavender Pseudoshell
-    [2834] = "Pseudoshell",    -- Cabbage Pseudoshell
-    [2833] = "Pseudoshell",    -- Arboreal Pseudoshell
-
-    [2843] = "Snailemental",    -- Ghastropod
-    [1578] = "Blacklisted",    -- [DND] Test Mount JZB
-
-    [2778] = "Midnight Bear",    -- Ancestral War Bear
-    [2776] = "Midnight Bear",    -- Amani Blessed Bear
-
-    [2914] = "Stormcrow",    -- Fel Spirehawk
-
-    [2607] = "Ashes of Belo'ren",    -- Ashes of Belo'ren
-    [2760] = "Sharptalon",    -- Amani Sharptalon
-    [2693] = "Sharptalon",    -- Amani Sunfeather
-    [2694] = "Sharptalon",    -- Amani Windcaller
-
-    [2733] = "Carrion",    -- Calamitous Carrion
-    [2734] = "Carrion",    -- Convalescent Carrion
-
-    [2817] = "Midnight Hawkstrider",    -- Lucent Hawkstrider
-    [2761] = "Midnight Hawkstrider",    -- Crimson Silvermoon Hawkstrider
-    [2762] = "Midnight Hawkstrider",    -- Cerulean Hawkstrider
-
-    [2758] = "Midnight Dragonhawk",    -- Cobalt Dragonhawk
-    [2595] = "Blacklisted",    -- Swift Spectral Dragonhawk
-    [2756] = "Midnight Dragonhawk",    -- Crimson Dragonhawk
-    [2755] = "Midnight Dragonhawk",    -- Umbral Dragonhawk
-    [2753] = "Midnight Dragonhawk",    -- Fiery Dragonhawk
-    [2969] = "Blacklisted",    -- Swift Spectral Dragonhawk
-
-    [2850] = "Quilt",    -- Fluffy Comfy Flying Quilt
-    [2851] = "Quilt",    -- Gruffy Comfy Flying Quilt
-    [2852] = "Quilt",    -- Comfy Bel'ameth Flying Quilt
-    [2853] = "Quilt",    -- Comfy Silvermoon Flying Quilt
-
-    [2845] = "Snapvine",    -- Vicious Snapvine
-    [2846] = "Snapvine",    -- Ferocious Snapvine
-    [2847] = "Snapvine",    -- Blooded Snapvine
-    [2848] = "Snapvine",    -- Savage Snapvine
-
-    [2751] = "Stormray",    -- Augmented Stormray
-    [2829] = "Stormray",    -- Lab-grown Stormray
-
-    [2827] = "Harrower",    -- Sanguine Harrower
-    [2764] = "Harrower",    -- Duskbrute Harrower
-    [2831] = "Harrower",    -- Tenebrous Harrower
     -- ========================================================
     -- AERIAL UNITS
     -- ========================================================
     [1227] = "Aerial Unit",    -- Aerial Unit R-21/X
     [1254] = "Aerial Unit",    -- Rustbolt Resistor
     [1813] = "Aerial Unit",    -- Mimiron's Jumpjets
-    [1270] = "Blacklisted",    -- Swift Spectral Magnetocraft
     [2640] = "Brewfest Barrel Bomber",    -- Brewfest Barrel Bomber
     [2291] = "Cartel Aerial Unit",    -- Salvaged Goblin Gazillionaire's Flying Machine
     [2292] = "Cartel Aerial Unit",    -- Margin Manipulator
@@ -116,12 +24,34 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2295] = "Cartel Aerial Unit",    -- Bilgewater Bombardier
     [2507] = "Prototype A.S.M.R.",    -- Prototype A.S.M.R.
     -- ========================================================
-    -- ANTORAN FELHOUNDS
+    -- ALPACA
+    -- ========================================================
+    [1250] = "Alpaca",    -- Mollie
+    [1324] = "Alpaca",    -- Elusive Quickhoof
+    [1329] = "Alpaca",    -- Springfur Alpaca
+    [1794] = "Alpaca",    -- Pattie
+    -- ========================================================
+    -- ANTORAN HOUND
     -- ========================================================
     [955] = "Antoran Hound",    -- Vile Fiend
     [979] = "Antoran Hound",    -- Crimson Slavermaw
     [980] = "Antoran Hound",    -- Acid Belcher
     [981] = "Antoran Hound",    -- Biletooth Gnasher
+    -- ========================================================
+    -- AQUILON
+    -- ========================================================
+    [1436] = "Aquilon",    -- Battle-Hardened Aquilon
+    [1492] = "Aquilon",    -- Elysian Aquilon
+    [1493] = "Aquilon",    -- Forsworn Aquilon
+    [1494] = "Aquilon",    -- Ascendant's Aquilon
+    [2796] = "Aquilon",    -- Bronze Aquilon
+    -- ========================================================
+    -- ARMOREDONS
+    -- ========================================================
+    [1681] = "Armoredon",    -- Hailstorm Armoredon
+    [1725] = "Armoredon",    -- Inferno Armoredon
+    [1801] = "Armoredon",    -- Verdant Armoredon
+    [2055] = "Armoredon",    -- Infinite Armoredon
     -- ========================================================
     -- BAKARS
     -- ========================================================
@@ -171,8 +101,18 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [243] = "Big Blizzard Bear",    -- Big Blizzard Bear
     [1199] = "Blackpaw",    -- Blackpaw
     [434] = "Darkmoon Dancing Bear",    -- Darkmoon Dancing Bear
+    [1298] = "Gargon",    -- Hopecrusher Gargon
+    [1299] = "Gargon",    -- Battle Gargon Vrednic
+    [1382] = "Gargon",    -- Inquisition Gargon
+    [1384] = "Gargon",    -- Sinfall Gargon
+    [1385] = "Gargon",    -- Crypt Gargon
+    [1387] = "Gargon",    -- Desire's Battle Gargon
+    [1388] = "Gargon",    -- Gravestone Battle Gargon
+    [1389] = "Gargon",    -- Battle Gargon Silessa
     [2237] = "Grizzly Hills Packmaster",    -- Grizzly Hills Packmaster
     [2262] = "Harmonious Salutations Bear",    -- Harmonious Salutations Bear
+    [2776] = "Midnight Bear",    -- Amani Blessed Bear
+    [2778] = "Midnight Bear",    -- Ancestral War Bear
     [1304] = "Shadehound",    -- Mawsworn Soulhunter
     [1441] = "Shadehound",    -- Bound Shadehound
     [1442] = "Shadehound",    -- Corridor Creeper
@@ -181,10 +121,12 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1506] = "Shardhide",    -- Crimson Shardhide
     [1507] = "Shardhide",    -- Darkmaul
     [1424] = "Snowstorm",    -- Snowstorm
+    [1819] = "Vicious Moonbeast (PVP)",    -- Vicious Moonbeast
+    [1820] = "Vicious Moonbeast (PVP)",    -- Vicious Moonbeast
     [873] = "Vicious War Bear (PVP)",    -- Vicious War Bear
     [874] = "Vicious War Bear (PVP)",    -- Vicious War Bear
     -- ========================================================
-    -- Birds
+    -- BIRDS
     -- ========================================================
     [1042] = "Albatross",    -- Siltwing Albatross
     [1317] = "Albatross",    -- Waste Marauder
@@ -207,6 +149,23 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [634] = "Stormcrow",    -- Solar Spirehawk
     [978] = "Stormcrow",    -- Violet Spellwing
     [2322] = "Stormcrow",    -- Thrayir, Eyes of the Siren
+    [2914] = "Stormcrow",    -- Fel Spirehawk
+    -- ========================================================
+    -- BLACKLISTED
+    -- ========================================================
+    [238] = "Blacklisted",    -- Swift Spectral Gryphon
+    [776] = "Blacklisted",    -- Swift Spectral Rylak
+    [934] = "Blacklisted",    -- Swift Spectral Hippogryph
+    [1269] = "Blacklisted",    -- Swift Spectral Fathom Ray
+    [1270] = "Blacklisted",    -- Swift Spectral Magnetocraft
+    [1271] = "Blacklisted",    -- Swift Spectral Armored Gryphon
+    [1272] = "Blacklisted",    -- Swift Spectral Pterrordax
+    [1578] = "Blacklisted",    -- [DND] Test Mount JZB
+    [1607] = "Blacklisted",    -- Swift Spectral Drake
+    [1690] = "Blacklisted",    -- Whelpling
+    [1796] = "Blacklisted",    -- Whelpling
+    [2595] = "Blacklisted",    -- Swift Spectral Dragonhawk
+    [2969] = "Blacklisted",    -- Swift Spectral Dragonhawk
     -- ========================================================
     -- BOARDS
     -- ========================================================
@@ -218,6 +177,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2152] = "Surfboard",    -- Pearlescent Goblin Wave Shredder
     [2333] = "Surfboard",    -- Soweezi's Vintage Waveshredder
     [2334] = "Surfboard",    -- Bronze Goblin Waveshredder
+    [2838] = "Surfboard",    -- Fantastical Goblin Waveshredder
     -- ========================================================
     -- BOARS
     -- ========================================================
@@ -242,6 +202,11 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1523] = "Progenitor Wombat",    -- Curious Crystalsniffer
     [1524] = "Progenitor Wombat",    -- Darkened Vombata
     [1525] = "Progenitor Wombat",    -- Adorned Vombata
+    -- ========================================================
+    -- BRUFFALON
+    -- ========================================================
+    [1467] = "Bruffalon",    -- Noble Bruffalon
+    [1614] = "Bruffalon",    -- Stormtouched Bruffalon
     -- ========================================================
     -- BRUTOSAURS
     -- ========================================================
@@ -307,6 +272,38 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1487] = "Wilderling",    -- Summer Wilderling
     [2795] = "Wilderling",    -- Bronze Wilderling
     -- ========================================================
+    -- CORE HOUND
+    -- ========================================================
+    [606] = "Core Hound",    -- Core Hound
+    [797] = "Core Hound",    -- Steelbound Devourer
+    [1781] = "Core Hound",    -- Sulfur Hound
+    -- ========================================================
+    -- CRANE
+    -- ========================================================
+    [479] = "Crane",    -- Azure Riding Crane
+    [480] = "Crane",    -- Golden Riding Crane
+    [481] = "Crane",    -- Regal Riding Crane
+    [482] = "Crane",    -- Jungle Riding Crane
+    [2072] = "Crane",    -- Gilded Riding Crane
+    [2073] = "Crane",    -- Pale Riding Crane
+    [2074] = "Crane",    -- Rose Riding Crane
+    [2075] = "Crane",    -- Silver Riding Crane
+    [2076] = "Crane",    -- Luxurious Riding Crane
+    [2077] = "Crane",    -- Tropical Riding Crane
+    -- ========================================================
+    -- CRAWGS
+    -- ========================================================
+    [963] = "Crawg",    -- Bloodgorged Crawg
+    [1053] = "Crawg",    -- Underrot Crawg
+    [1454] = "Devouring Mauler",    -- Tamed Mauler
+    [1514] = "Devouring Mauler",    -- Rampaging Mauler
+    [2603] = "Devouring Mauler",    -- Sthaarbs's Last Lunch
+    -- ========================================================
+    -- CRAWLER
+    -- ========================================================
+    [1238] = "Crawler",    -- Snapback Scuttler
+    [1574] = "Crawler",    -- Crusty Crawler
+    -- ========================================================
     -- CREEPERS
     -- ========================================================
     [2555] = "Void Creeper",    -- The Bone Freezer
@@ -327,6 +324,12 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1566] = "Mawrat",    -- Colossal Ebonclaw Mawrat
     [1584] = "Mawrat",    -- Colossal Plaguespew Mawrat
     [1585] = "Mawrat",    -- Colossal Wraithbound Mawrat
+    -- ========================================================
+    -- DEFENDERS
+    -- ========================================================
+    [2840] = "Arcane Defender",    -- Silvermoon's Arcane Defender
+    [2841] = "Arcane Defender",    -- Elven Arcane Guardian
+    [2842] = "Arcanovoid Construct",    -- Arcanovoid Construct
     -- ========================================================
     -- DIREHORNS
     -- ========================================================
@@ -364,11 +367,14 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2567] = "Infused Dragonhawk",    -- Voidwing Dragonhawk
     [2568] = "Infused Dragonhawk",    -- Lightwing Dragonhawk
     [2598] = "Infused Dragonhawk",    -- Voidlight Surger
+    [2753] = "Midnight Dragonhawk",    -- Fiery Dragonhawk
+    [2755] = "Midnight Dragonhawk",    -- Umbral Dragonhawk
+    [2756] = "Midnight Dragonhawk",    -- Crimson Dragonhawk
+    [2758] = "Midnight Dragonhawk",    -- Cobalt Dragonhawk
     [1471] = "Vengeance",    -- Vengeance
     -- ========================================================
     -- DRAKES
     -- ========================================================
-    [1607] = "Blacklisted",    -- Swift Spectral Drake
     [2518] = "Chrono Corsair",    -- Chrono Corsair
     [246] = "Drake",    -- Azure Drake
     [247] = "Drake",    -- Blue Drake
@@ -421,6 +427,8 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     -- ========================================================
     -- DREAD RAVENS
     -- ========================================================
+    [2733] = "Carrion",    -- Calamitous Carrion
+    [2734] = "Carrion",    -- Convalescent Carrion
     [753] = "Corrupted Dreadwing",    -- Corrupted Dreadwing
     [600] = "Dread Raven",    -- Dread Raven
     [2505] = "Kareshi Dread Raven",    -- Resplendent K'arroc
@@ -431,6 +439,14 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1409] = "Roc",    -- Bonesewn Fleshroc
     [1410] = "Roc",    -- Hulking Deathroc
     [1411] = "Roc",    -- Predatory Plagueroc
+    -- ========================================================
+    -- EELS
+    -- ========================================================
+    [2769] = "Preyseeker",    -- Preyseeker's Hubris
+    [2770] = "Preyseeker",    -- Preyseeker's Wrath
+    [2771] = "Preyseeker",    -- Preyseeker's Nightmare
+    [2299] = "Vicious Electro Eel (PVP)",    -- Vicious Electro Eel
+    [2300] = "Vicious Electro Eel (PVP)",    -- Vicious Electro Eel
     -- ========================================================
     -- ELDERHORNS
     -- ========================================================
@@ -503,12 +519,33 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2663] = "Felstalker",    -- Illidari Dreadstalker
     [2664] = "Felstalker",    -- Illidari Blightstalker
     -- ========================================================
+    -- FEROCIOUS JAWCRAWLER
+    -- ========================================================
+    [2184] = "Ferocious Jawcrawler",    -- Ferocious Jawcrawler
+    -- ========================================================
+    -- FISHES
+    -- ========================================================
+    [800] = "Brinedeep Bottom-Feeder",    -- Brinedeep Bottom-Feeder
+    -- ========================================================
+    -- FLARENDO THE FURIOUS
+    -- ========================================================
+    [2278] = "Flarendo the Furious",    -- Flarendo the Furious
+    -- ========================================================
     -- FLYERS
     -- ========================================================
     [2510] = "Kareshi Flyer",    -- Terror of the Wastes
     [2511] = "Kareshi Flyer",    -- Terror of the Night
     [2631] = "Void Infused Kareshi Flyer",    -- Scarlet Void Flyer
     [2633] = "Void Infused Kareshi Flyer",    -- Azure Void Flyer
+    -- ========================================================
+    -- FLYING BEARS
+    -- ========================================================
+    [1699] = "Gleaming Moonbeast",    -- Gleaming Moonbeast
+    [2342] = "Meeksi",    -- Meeksi Rufflefur
+    [2343] = "Meeksi",    -- Meeksi Softpaw
+    [2344] = "Meeksi",    -- Meeksi Rollingpaw
+    [2345] = "Meeksi",    -- Meeksi Teatuft
+    [2346] = "Meeksi",    -- Meeksi Brewthief
     -- ========================================================
     -- FLYING CARPETS
     -- ========================================================
@@ -519,6 +556,10 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2317] = "Flying Carpet",    -- Enchanted Spellweave Carpet
     [905] = "Leywoven Flying Carpet",    -- Leywoven Flying Carpet
     [2023] = "Noble Flying Carpet",    -- Noble Flying Carpet
+    [2850] = "Quilt",    -- Fluffy Comfy Flying Quilt
+    [2851] = "Quilt",    -- Gruffy Comfy Flying Quilt
+    [2852] = "Quilt",    -- Comfy Bel'ameth Flying Quilt
+    [2853] = "Quilt",    -- Comfy Silvermoon Flying Quilt
     -- ========================================================
     -- FLYING DISCS
     -- ========================================================
@@ -533,6 +574,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1481] = "Gearglider",    -- Cartel Master's Gearglider
     [1482] = "Gearglider",    -- Xy Trustee's Gearglider
     [1483] = "Gearglider",    -- Vandal's Gearglider
+    [1532] = "Soaring Spelltome",    -- Soaring Spelltome
     -- ========================================================
     -- FLYING ELDERHORNS
     -- ========================================================
@@ -542,12 +584,18 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     -- ========================================================
     -- FLYING FISHES
     -- ========================================================
-    [800] = "Brinedeep Bottom-Feeder",    -- Brinedeep Bottom-Feeder
     [2186] = "Underlight Behemoth",    -- [PH] Blue Old God Fish Mount
     [2187] = "Underlight Behemoth",    -- Underlight Shorestalker
     [2188] = "Underlight Behemoth",    -- Kah, Legend of the Deep
     [2189] = "Underlight Behemoth",    -- Underlight Corrupted Behemoth
     [1692] = "Wondrous Wavewhisker",    -- Wondrous Wavewhisker
+    -- ========================================================
+    -- FLYING FOXES
+    -- ========================================================
+    [1956] = "Sky Fox",    -- Fur-endship Fox
+    [1957] = "Sky Fox",    -- Soaring Sky Fox
+    [1958] = "Sky Fox",    -- Twilight Sky Prowler
+    [1222] = "Vulpine Familiar",    -- Vulpine Familiar
     -- ========================================================
     -- FLYING HORSES
     -- ========================================================
@@ -602,20 +650,26 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2067] = "Windsteed",    -- Forest Windsteed
     [2068] = "Windsteed",    -- Dashing Windsteed
     -- ========================================================
+    -- FLYING LIONS
+    -- ========================================================
+    [1404] = "Larion",    -- Silverwind Larion
+    [1423] = "Larion",    -- Highwind Darkmane
+    [1425] = "Larion",    -- Gilded Prowler
+    -- ========================================================
+    -- FLYING LUPINES
+    -- ========================================================
+    [1580] = "Heartbond Lupine",    -- Heartbond Lupine
+    [2804] = "Heartbond Lupine",    -- Crimson Lupine
+    -- ========================================================
     -- FLYING MACHINES
     -- ========================================================
     [1287] = "Explorer's Jungle Hopper",    -- Explorer's Jungle Hopper
     [205] = "Flying Machine",    -- Flying Machine
     [204] = "Turbo-Charged Flying Machine",    -- Turbo-Charged Flying Machine
+    [999] = "Xiwyllag ATV",    -- Xiwyllag ATV
     -- ========================================================
-    -- Flying Mechasuits
+    -- FLYING MECHASUITS
     -- ========================================================
-    [2286] = "Cartel Mechasuit",    -- Blackwater Shredder Deluxe Mk 2
-    [2287] = "Cartel Mechasuit",    -- Darkfuse Demolisher
-    [2288] = "Cartel Mechasuit",    -- Personalized Goblin S.C.R.A.P.per
-    [2289] = "Cartel Mechasuit",    -- Venture Co-ordinator
-    [2290] = "Cartel Mechasuit",    -- Asset Advocator
-    [2303] = "Cartel Mechasuit",    -- Violet Goblin Shredder
     [2244] = "Diamond Mechsuit",    -- Diamond Mechsuit
     [2608] = "Diamond Mechsuit",    -- Light-Forged Mechsuit
     [2119] = "Dwarven Mechsuit",    -- Stonevault Mechsuit
@@ -629,6 +683,11 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1698] = "Rocket Shredder 9001",    -- Rocket Shredder 9001
     [522] = "Sky Golem",    -- Sky Golem
     [845] = "Sky Golem",    -- Mechanized Lumber Extractor
+    -- ========================================================
+    -- FLYING QUILENS
+    -- ========================================================
+    [468] = "Winged Quilen",    -- Imperial Quilen
+    [2474] = "Winged Quilen",    -- Copper-Maned Quilen
     -- ========================================================
     -- FLYING SABERS
     -- ========================================================
@@ -656,34 +715,49 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1841] = "Glimmerfur",    -- Crimson Glimmerfur
     [2803] = "Glimmerfur",    -- Skypaw Glimmerfur
     [2815] = "Glimmerfur",    -- Snowpaw Glimmerfur Prowler
-    [1956] = "Sky Fox",    -- Fur-endship Fox
-    [1957] = "Sky Fox",    -- Soaring Sky Fox
-    [1958] = "Sky Fox",    -- Twilight Sky Prowler
     [945] = "Vicious War Fox (PVP)",    -- Vicious War Fox
     [946] = "Vicious War Fox (PVP)",    -- Vicious War Fox
-    [1222] = "Vulpine Familiar",    -- Vulpine Familiar
     -- ========================================================
     -- FURLINES
     -- ========================================================
     [2235] = "Startouched Furline",    -- Startouched Furline
     [1330] = "Sunwarmed Furline",    -- Sunwarmed Furline
     -- ========================================================
-    -- GARGONS
+    -- GIANTS
     -- ========================================================
-    [1298] = "Gargon",    -- Hopecrusher Gargon
-    [1299] = "Gargon",    -- Battle Gargon Vrednic
-    [1382] = "Gargon",    -- Inquisition Gargon
-    [1384] = "Gargon",    -- Sinfall Gargon
-    [1385] = "Gargon",    -- Crypt Gargon
-    [1387] = "Gargon",    -- Desire's Battle Gargon
-    [1388] = "Gargon",    -- Gravestone Battle Gargon
-    [1389] = "Gargon",    -- Battle Gargon Silessa
+    [633] = "Infernal",    -- Hellfire Infernal
+    [646] = "Infernal",    -- Coldflame Infernal
+    [791] = "Infernal",    -- Felblaze Infernal
+    [799] = "Infernal",    -- Flarecore Infernal
+    [1167] = "Infernal",    -- Frostshard Infernal
+    [1458] = "Wandering Ancient",    -- Wandering Ancient
+    -- ========================================================
+    -- GLOWMITE
+    -- ========================================================
+    [2161] = "Glowmite",    -- Elder Glowmite
+    [2162] = "Glowmite",    -- Cyan Glowmite
+    -- ========================================================
+    -- GOAT
+    -- ========================================================
+    [508] = "Goat",    -- Brown Riding Goat
+    [510] = "Goat",    -- White Riding Goat
+    [511] = "Goat",    -- Black Riding Goat
+    [2078] = "Goat",    -- Snowy Riding Goat
+    [2080] = "Goat",    -- Little Red Riding Goat
+    [2504] = "Goat",    -- Spotted Black Riding Goat
     -- ========================================================
     -- GOBLIN TRIKES
     -- ========================================================
     [388] = "Goblin Trike",    -- Goblin Trike
     [389] = "Goblin Turbo-Trike",    -- Goblin Turbo-Trike
+    [2849] = "Hypo-Speed X6000",    -- Hypo-Speed X6000
     [842] = "Vicious War Trike (PVP)",    -- Vicious War Trike
+    -- ========================================================
+    -- GORGER
+    -- ========================================================
+    [1391] = "Gorger",    -- Loyal Gorger
+    [1443] = "Gorger",    -- Voracious Gorger
+    [2602] = "Gorger",    -- Translocated Gorger
     -- ========================================================
     -- GORMS
     -- ========================================================
@@ -694,6 +768,15 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1476] = "Gorm",    -- Wild Hunt Legsplitter
     [1459] = "Vicious War Gorm (PVP)",    -- Vicious War Gorm
     [1460] = "Vicious War Gorm (PVP)",    -- Vicious War Gorm
+    -- ========================================================
+    -- GRIMCLAWS
+    -- ========================================================
+    [2614] = "Grimlynx",    -- Fierce Grimlynx
+    [2615] = "Grimlynx",    -- Rootstalker Grimlynx
+    [2616] = "Grimlynx",    -- Ivory Grimlynx
+    [2790] = "Shredclaw",    -- Insatiable Shredclaw
+    [2791] = "Shredclaw",    -- Prowling Shredclaw
+    [2792] = "Shredclaw",    -- Frenzied Shredclaw
     -- ========================================================
     -- GRINDERS
     -- ========================================================
@@ -708,8 +791,15 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [607] = "Gronnling",    -- Gorestrider Gronnling
     [655] = "Gronnling",    -- Sunhide Gronnling
     [762] = "Gronnling",    -- Coalfist Gronnling
+    [1312] = "Grrloc",    -- Gargantuan Grrloc
+    [1797] = "Grrloc",    -- Ginormous Grrloc
+    [2259] = "Grrloc",    -- Gigantic Grrloc
+    [2573] = "Grrloc",    -- Grandiose Grrloc
+    [654] = "Yeti",    -- Challenger's War Yeti
+    [769] = "Yeti",    -- Minion of Grumpus
+    [1176] = "Yeti",    -- Craghorn Chasm-Leaper
     -- ========================================================
-    -- Ground Ravens
+    -- GROUND RAVENS
     -- ========================================================
     [425] = "Elemental Raven",    -- Flametalon of Alysrazor
     [682] = "Elemental Raven",    -- Voidtalon of the Dark Star
@@ -730,8 +820,6 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [138] = "Armored Gryphon",    -- Swift Green Gryphon
     [139] = "Armored Gryphon",    -- Swift Purple Gryphon
     [276] = "Armored Gryphon",    -- Armored Snowy Gryphon
-    [238] = "Blacklisted",    -- Swift Spectral Gryphon
-    [1271] = "Blacklisted",    -- Swift Spectral Armored Gryphon
     [2304] = "Chaos-Forged Gryphon",    -- Chaos-Forged Gryphon
     [526] = "Grand Armored Gryphon",    -- Grand Armored Gryphon
     [1062] = "Grand Armored Gryphon",    -- Dusky Waycrest Gryphon
@@ -748,15 +836,27 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2496] = "Void-Scarred Gryphon",    -- Void-Scarred Gryphon
     [236] = "Winged Steed of the Ebon Blade",    -- Winged Steed of the Ebon Blade
     -- ========================================================
+    -- HARVESTHOG
+    -- ========================================================
+    [2520] = "Harvesthog",    -- Spring Harvesthog
+    [2521] = "Harvesthog",    -- Summer Harvesthog
+    [2522] = "Harvesthog",    -- Winter Harvesthog
+    [2523] = "Harvesthog",    -- Autumn Harvesthog
+    -- ========================================================
     -- HAWKS
     -- ========================================================
+    [2607] = "Ashes of Belo'ren",    -- Ashes of Belo'ren
     [2525] = "Great Raven",    -- Prophet's Great Raven
     [2529] = "Great Raven",    -- Archmage's Great Raven
+    [2786] = "Hexed Vilefeather Eagle",    -- Hexed Vilefeather Eagle
     [2035] = "Peafowl",    -- Majestic Azure Peafowl
     [2036] = "Peafowl",    -- Brilliant Sunburst Peafowl
     [1430] = "Progenitor Hawk",    -- Desertwing Hunter
     [1536] = "Progenitor Hawk",    -- Mawdapted Raptora
     [1537] = "Progenitor Hawk",    -- Raptora Swooper
+    [2693] = "Sharptalon",    -- Amani Sunfeather
+    [2694] = "Sharptalon",    -- Amani Windcaller
+    [2760] = "Sharptalon",    -- Amani Sharptalon
     [1456] = "Skyblazer",    -- Sapphire Skyblazer
     [2261] = "Skyblazer",    -- Coldflame Tempest
     -- ========================================================
@@ -776,12 +876,20 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [159] = "Hawkstrider",    -- Black Hawkstrider
     [877] = "Hawkstrider",    -- Ivory Hawkstrider
     [1600] = "Hawkstrider",    -- Elusive Emerald Hawkstrider
+    [2761] = "Midnight Hawkstrider",    -- Crimson Silvermoon Hawkstrider
+    [2762] = "Midnight Hawkstrider",    -- Cerulean Hawkstrider
+    [2817] = "Midnight Hawkstrider",    -- Lucent Hawkstrider
     [1009] = "Starcursed Voidstrider",    -- Starcursed Voidstrider
     [2696] = "Turkeys",    -- Highlands Gobbler
     [2697] = "Turkeys",    -- Quirky Turkey
     [2698] = "Turkeys",    -- Murky Turkey
     [2699] = "Turkeys",    -- Prized Turkey
     [843] = "Vicious Warstrider (PVP)",    -- Vicious Warstrider
+    -- ========================================================
+    -- HIGH PRIEST'S LIGHTSWORN SEEKER
+    -- ========================================================
+    [861] = "High Priest's Lightsworn Seeker",    -- High Priest's Lightsworn Seeker
+    [2727] = "High Priest's Lightsworn Seeker",    -- High Priest's Felscorned Seeker
     -- ========================================================
     -- HIPPOGRYPHS
     -- ========================================================
@@ -790,7 +898,6 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [329] = "Armored Hippogryph",    -- Silver Covenant Hippogryph
     [802] = "Armored Hippogryph",    -- Long-Forgotten Hippogryph
     [2224] = "Armored Hippogryph",    -- Frayfeather Hippogryph
-    [934] = "Blacklisted",    -- Swift Spectral Hippogryph
     [371] = "Blazing Hippogryph",    -- Blazing Hippogryph
     [2305] = "Chaos-Forged Hippogryph",    -- Chaos-Forged Hippogryph
     [433] = "Corrupted Hippogryph",    -- Corrupted Hippogryph
@@ -800,6 +907,10 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1521] = "Hippogryph",    -- Val'sharah Hippogryph
     [846] = "Leyfeather Hippogryph",    -- Leyfeather Hippogryph
     [1054] = "Teldrassil Hippogryph",    -- Teldrassil Hippogryph
+    -- ========================================================
+    -- HOGRUS
+    -- ========================================================
+    [1221] = "Hogrus",    -- Hogrus, Swine of Good Fortune
     -- ========================================================
     -- HORSES
     -- ========================================================
@@ -816,6 +927,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [767] = "Armored Warhorse",    -- Charger
     [786] = "Armored Warhorse",    -- Charger
     [825] = "Armored Warhorse",    -- Thalassian Charger
+    [2785] = "Armored Warhorse",    -- Relinquished Scarlet Charger
     [2572] = "Banshee's Charger",    -- Banshee's Chilling Charger
     [2579] = "Banshee's Charger",    -- Forsaken's Grotesque Charger
     [2580] = "Banshee's Charger",    -- Wailing Banshee's Charger
@@ -877,25 +989,40 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [926] = "Hyena",    -- Alabaster Hyena
     [928] = "Hyena",    -- Dune Scavenger
     -- ========================================================
-    -- Hymenoptera
+    -- HYMENOPTERA
     -- ========================================================
     [2148] = "Cinderbee",    -- Smoldering Cinderbee
     [2165] = "Cinderbee",    -- Soaring Meaderbee
     [2167] = "Cinderbee",    -- Raging Cinderbee
+    [1449] = "Corpsefly",    -- Lord of the Corpseflies
+    [1495] = "Corpsefly",    -- Maldraxxian Corpsefly
+    [1496] = "Corpsefly",    -- Regal Corpsefly
+    [1497] = "Corpsefly",    -- Battlefield Swarmer
+    [2797] = "Corpsefly",    -- Bronze Corpsefly
+    [1319] = "Drone",    -- Malevolent Drone
+    [1320] = "Drone",    -- Shadowbarb Drone
+    [1321] = "Drone",    -- Wicked Swarmer
+    [1784] = "Drone",    -- Royal Swarmer
     [1013] = "Honeyback",    -- Honeyback Harvester
     [1277] = "Honeyback",    -- Honeyback Hivemother
+    [1433] = "Progenitor Wasp",    -- Vespoid Flutterer
+    [1533] = "Progenitor Wasp",    -- Forged Spiteflyer
+    [1534] = "Progenitor Wasp",    -- Buzz
+    [1535] = "Progenitor Wasp",    -- Bronzewing Vespoid
     [2321] = "Timely Buzzbee",    -- Timely Buzzbee
+    -- ========================================================
+    -- JADE
+    -- ========================================================
+    [1594] = "Jade",    -- Jade, Bright Foreseer
     -- ========================================================
     -- JELLYFISHES
     -- ========================================================
-    [838] = "Jelly",    -- Fathom Dweller
-    [982] = "Jelly",    -- Pond Nettle
-    [1169] = "Jelly",    -- Surf Jelly
     [1293] = "Ny'alotha Allseer",    -- Ny'alotha Allseer
     [1434] = "Progenitor Aurelid",    -- Deepstar Aurelid
     [1549] = "Progenitor Aurelid",    -- Shimmering Aurelid
     [1550] = "Progenitor Aurelid",    -- Depthstalker
     [1551] = "Progenitor Aurelid",    -- Cryptic Aurelid
+    [1025] = "The Hivemind",    -- The Hivemind
     -- ========================================================
     -- KITE
     -- ========================================================
@@ -928,6 +1055,25 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [350] = "Sunwalker Kodo",    -- Sunwalker Kodo
     [756] = "Vicious War Kodo (PVP)",    -- Vicious War Kodo
     -- ========================================================
+    -- KROLUSK
+    -- ========================================================
+    [933] = "Krolusk",    -- Obsidian Krolusk
+    [1172] = "Krolusk",    -- Conqueror's Scythemaw
+    [1214] = "Krolusk",    -- Azureshell Krolusk
+    [1215] = "Krolusk",    -- Rubyshell Krolusk
+    [2601] = "Krolusk",    -- Pearlescent Krolusk
+    -- ========================================================
+    -- LEPIDOPTERA
+    -- ========================================================
+    [1332] = "Ardenmoth",    -- Silky Shimmermoth
+    [1361] = "Ardenmoth",    -- Duskflutter Ardenmoth
+    [1428] = "Ardenmoth",    -- Amber Ardenmoth
+    [1429] = "Ardenmoth",    -- Vibrant Flutterwing
+    [2489] = "Butterfly",    -- Pearlescent Butterfly
+    [2491] = "Butterfly",    -- Ruby Butterfly
+    [2492] = "Butterfly",    -- Spring Butterfly
+    [2494] = "Butterfly",    -- Midnight Butterfly
+    -- ========================================================
     -- LIONS
     -- ========================================================
     [1399] = "Eternal Phalynx",    -- Eternal Phalynx of Purity
@@ -935,9 +1081,6 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1401] = "Eternal Phalynx",    -- Eternal Phalynx of Loyalty
     [1402] = "Eternal Phalynx",    -- Eternal Phalynx of Humility
     [403] = "Golden King",    -- Golden King
-    [1404] = "Larion",    -- Silverwind Larion
-    [1423] = "Larion",    -- Highwind Darkmane
-    [1425] = "Larion",    -- Gilded Prowler
     [1394] = "Phalynx",    -- Phalynx of Loyalty
     [1395] = "Phalynx",    -- Phalynx of Humility
     [1396] = "Phalynx",    -- Phalynx of Courage
@@ -946,10 +1089,15 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     -- ========================================================
     -- LUPINES
     -- ========================================================
-    [1580] = "Heartbond Lupine",    -- Heartbond Lupine
-    [2804] = "Heartbond Lupine",    -- Crimson Lupine
     [1465] = "Vicious Warstalker (PVP)",    -- Vicious Warstalker
     [1466] = "Vicious Warstalker (PVP)",    -- Vicious Warstalker
+    -- ========================================================
+    -- MAGIC ROOSTER
+    -- ========================================================
+    [328] = "Magic Rooster",    -- Magic Rooster
+    [333] = "Magic Rooster",    -- Magic Rooster
+    [334] = "Magic Rooster",    -- Magic Rooster
+    [335] = "Magic Rooster",    -- Magic Rooster
     -- ========================================================
     -- MAMMOTHS
     -- ========================================================
@@ -975,6 +1123,35 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1633] = "Trawling Mammoth",    -- Bestowed Trawling Mammoth
     [1634] = "Trawling Mammoth",    -- Mossy Mammoth
     [1635] = "Trawling Mammoth",    -- Plainswalker Bearer
+    -- ========================================================
+    -- MANA RAY
+    -- ========================================================
+    [906] = "Mana Ray",    -- Darkspore Mana Ray
+    [973] = "Mana Ray",    -- Lambent Mana Ray
+    [974] = "Mana Ray",    -- Vibrant Mana Ray
+    [975] = "Mana Ray",    -- Felglow Mana Ray
+    [976] = "Mana Ray",    -- Scintillating Mana Ray
+    [1438] = "Mana Ray",    -- Bulbous Necroray
+    [1439] = "Mana Ray",    -- Infested Necroray
+    [1440] = "Mana Ray",    -- Pestilent Necroray
+    [1941] = "Mana Ray",    -- Heartseeker Mana Ray
+    [2671] = "Mana Ray",    -- Fel-scarred Mana Ray
+    [2672] = "Mana Ray",    -- Bloodtooth Mana Ray
+    [2673] = "Mana Ray",    -- Albino Mana Ray
+    [2674] = "Mana Ray",    -- Luminous Mana Ray
+    -- ========================================================
+    -- MAWGUARD HAND
+    -- ========================================================
+    [1417] = "Mawguard Hand",    -- Hand of Hrestimorak
+    [1475] = "Mawguard Hand",    -- Hand of Bahmethra
+    [1503] = "Mawguard Hand",    -- Hand of Nilganihmaht
+    [1504] = "Mawguard Hand",    -- Hand of Salaranga
+    [2249] = "Mawguard Hand",    -- Hand of Reshkigaal
+    -- ========================================================
+    -- MECHACYCLE
+    -- ========================================================
+    [1247] = "Mechacycle",    -- Mechacycle Model W
+    [1248] = "Mechacycle",    -- Junkheap Drifter
     -- ========================================================
     -- MECHAHEADS
     -- ========================================================
@@ -1010,27 +1187,40 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2480] = "Shreddertank",    -- Crimson Shreddertank
     [2508] = "Shreddertank",    -- Enterprising Shreddertank
     -- ========================================================
+    -- MECHASUITS
+    -- ========================================================
+    [2286] = "Cartel Mechasuit",    -- Blackwater Shredder Deluxe Mk 2
+    [2287] = "Cartel Mechasuit",    -- Darkfuse Demolisher
+    [2288] = "Cartel Mechasuit",    -- Personalized Goblin S.C.R.A.P.per
+    [2289] = "Cartel Mechasuit",    -- Venture Co-ordinator
+    [2290] = "Cartel Mechasuit",    -- Asset Advocator
+    [2303] = "Cartel Mechasuit",    -- Violet Goblin Shredder
+    -- ========================================================
     -- MOLES
     -- ========================================================
     [2204] = "Fancy Mole",    -- Wick
     [2205] = "Fancy Mole",    -- Ol' Mole Rufus
     [2209] = "Mole",    -- Crimson Mudnose
     -- ========================================================
-    -- MOONBEASTS
-    -- ========================================================
-    [1699] = "Gleaming Moonbeast",    -- Gleaming Moonbeast
-    [1819] = "Vicious Moonbeast (PVP)",    -- Vicious Moonbeast
-    [1820] = "Vicious Moonbeast (PVP)",    -- Vicious Moonbeast
-    -- ========================================================
-    -- MOTOCYCLES
+    -- MOTORCYCLES
     -- ========================================================
     [652] = "Champion's Treadblade",    -- Champion's Treadblade
+    [678] = "Chauffeured vehicle",    -- Chauffeured Mechano-Hog
+    [679] = "Chauffeured vehicle",    -- Chauffeured Mekgineer's Chopper
     [240] = "Mechano-Hog",    -- Mechano-Hog
     [275] = "Mechano-Hog",    -- Mekgineer's Chopper
     [1943] = "Reaver Motorcycle",    -- Incognitro, the Indecipherable Felcycle
     [1947] = "Reaver Motorcycle",    -- Hateforged Blazecycle
     [1948] = "Reaver Motorcycle",    -- Voidfire Deathcycle
     [651] = "Warlord's Deathwheel",    -- Warlord's Deathwheel
+    -- ========================================================
+    -- MUSHAN BEAST
+    -- ========================================================
+    [515] = "Mushan Beast",    -- Son of Galleon
+    [550] = "Mushan Beast",    -- Brawler's Burly Mushan Beast
+    [560] = "Mushan Beast",    -- Ashhide Mushan Beast
+    [2088] = "Mushan Beast",    -- Riverwalker Mushan
+    [2089] = "Mushan Beast",    -- Palehide Mushan Beast
     -- ========================================================
     -- NETHER DRAKES
     -- ========================================================
@@ -1049,6 +1239,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [207] = "Nether Drake (PVP)",    -- Merciless Nether Drake
     [223] = "Nether Drake (PVP)",    -- Vengeful Nether Drake
     [241] = "Nether Drake (PVP)",    -- Brutal Nether Drake
+    [2719] = "Starspark Netherdrake",    -- Starspark Netherdrake
     -- ========================================================
     -- OHUNAS
     -- ========================================================
@@ -1070,6 +1261,16 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1659] = "Ottuk",    -- Yellow Scouting Ottuk
     [1837] = "Ottuk",    -- Delugen
     -- ========================================================
+    -- OUTLAND RAYS
+    -- ========================================================
+    [176] = "Nether Ray",    -- Green Riding Nether Ray
+    [177] = "Nether Ray",    -- Red Riding Nether Ray
+    [178] = "Nether Ray",    -- Purple Riding Nether Ray
+    [179] = "Nether Ray",    -- Silver Riding Nether Ray
+    [180] = "Nether Ray",    -- Blue Riding Nether Ray
+    [2751] = "Stormray",    -- Augmented Stormray
+    [2829] = "Stormray",    -- Lab-grown Stormray
+    -- ========================================================
     -- OWLS
     -- ========================================================
     [1818] = "Anui",    -- Anu'relos, Flame's Guidance
@@ -1080,6 +1281,12 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     -- ========================================================
     [2632] = "Astral Aurochs",    -- Astral Aurochs
     [1291] = "Lucky Yun",    -- Lucky Yun
+    -- ========================================================
+    -- PANGOLIN
+    -- ========================================================
+    [2772] = "Pangolin",    -- Blessed Amani Burrower
+    [2773] = "Pangolin",    -- Giganto Manis
+    [2775] = "Pangolin",    -- Witherbark Pango
     -- ========================================================
     -- PHOENIXES
     -- ========================================================
@@ -1109,6 +1316,15 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2218] = "Gladiator's Fel Bat (PVP)",    -- Forged Gladiator's Fel Bat
     [2298] = "Gladiator's Fel Bat (PVP)",    -- Prized Gladiator's Fel Bat
     [2326] = "Gladiator's Fel Bat (PVP)",    -- Astral Gladiator's Fel Bat
+    [803] = "Gravewing",    -- Mastercraft Gravewing
+    [1489] = "Gravewing",    -- Obsidian Gravewing
+    [1490] = "Gravewing",    -- Sinfall Gravewing
+    [1491] = "Gravewing",    -- Pale Gravewing
+    [2798] = "Gravewing",    -- Bronze Gravewing
+    [2764] = "Harrower",    -- Duskbrute Harrower
+    [2767] = "Harrower",    -- Contained Stormarion Defender
+    [2827] = "Harrower",    -- Sanguine Harrower
+    [2831] = "Harrower",    -- Tenebrous Harrower
     [2532] = "Herald of Sa'bak",    -- Herald of Sa'bak
     [2219] = "Skyrazor",    -- Sureki Skyrazor
     [2220] = "Skyrazor",    -- Retrained Skyrazor
@@ -1122,6 +1338,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [867] = "Battlelord's Bloodthirsty War Wyrm",    -- Battlelord's Bloodthirsty War Wyrm
     [2731] = "Battlelord's Bloodthirsty War Wyrm",    -- Felscorned War Wyrm
     [1679] = "Frostbrood Proto-Wyrm",    -- Frostbrood Proto-Wyrm
+    [2801] = "Galactic Gladiator's Goredrake",    -- Galactic Gladiator's Goredrake
     [1030] = "Gladiator's Proto-Drake (PVP)",    -- Dread Gladiator's Proto-Drake
     [1031] = "Gladiator's Proto-Drake (PVP)",    -- Sinister Gladiator's Proto-Drake
     [1032] = "Gladiator's Proto-Drake (PVP)",    -- Notorious Gladiator's Proto-Drake
@@ -1149,7 +1366,6 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1218] = "Battle Pterrordax",    -- Dazar'alor Windreaver
     [1586] = "Battle Pterrordax",    -- Armored Golden Pterrordax
     [1772] = "Battle Pterrordax",    -- Scarlet Pterrordax
-    [1272] = "Blacklisted",    -- Swift Spectral Pterrordax
     [530] = "Thunder Pterrordax",    -- Armored Skyscreamer
     [2081] = "Thunder Pterrordax",    -- Bloody Skyscreamer
     [2083] = "Thunder Pterrordax",    -- Night Pterrorwing
@@ -1180,8 +1396,6 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1328] = "Quilen",    -- Xinlao
     [2070] = "Quilen",    -- Guardian Quilen
     [2071] = "Quilen",    -- Marble Quilen
-    [468] = "Winged Quilen",    -- Imperial Quilen
-    [2474] = "Winged Quilen",    -- Copper-Maned Quilen
     -- ========================================================
     -- RAMS
     -- ========================================================
@@ -1227,6 +1441,10 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1834] = "Dreamtalon",    -- Ochre Dreamtalon
     [1835] = "Dreamtalon",    -- Snowfluff Dreamtalon
     [1838] = "Dreamtalon",    -- Talont
+    [793] = "Falcosaur",    -- Predatory Bloodgazer
+    [794] = "Falcosaur",    -- Brilliant Direbeak
+    [795] = "Falcosaur",    -- Snowfeather Hunter
+    [796] = "Falcosaur",    -- Viridian Sharptalon
     [386] = "Fossilized Raptor",    -- Fossilized Raptor
     [2587] = "Ivory Savagemane",    -- Ivory Savagemane
     [2339] = "Jani's Trashpile",    -- Jani's Trashpile
@@ -1251,7 +1469,13 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     -- ========================================================
     [804] = "Ratstallion",    -- Ratstallion
     [1513] = "Sarge's Tale",    -- Sarge's Tale
-    [1290] = "Squeakers, the Trickster",    -- Squeakers, the Trickster
+    -- ========================================================
+    -- RIVERWALLOW
+    -- ========================================================
+    [629] = "Riverwallow",    -- Trained Riverwallow
+    [630] = "Riverwallow",    -- Sapphire Riverbeast
+    [631] = "Riverwallow",    -- Mudback Riverbeast
+    [632] = "Riverwallow",    -- Mosshide Riverwallow
     -- ========================================================
     -- ROCKETS
     -- ========================================================
@@ -1323,8 +1547,17 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [554] = "Vicious Warsaber (PVP)",    -- Vicious Kaldorei Warsaber
     [1194] = "Vicious Warsaber (PVP)",    -- Vicious White Warsaber
     [1195] = "Vicious Warsaber (PVP)",    -- Vicious Black Warsaber
-    [2535] = "Void-Scarred Lynx",    -- Void-Scarred Lynx
+    [2498] = "Void-Scarred Pack Mother",    -- Void-Scarred Pack Mother
     [1239] = "X-995 Mechanocat",    -- X-995 Mechanocat
+    -- ========================================================
+    -- SALAMANTHES
+    -- ========================================================
+    [1619] = "Salamanther",    -- Ancient Salamanther
+    [1621] = "Salamanther",    -- Coralscale Salamanther
+    [1622] = "Salamanther",    -- Stormhide Salamanther
+    [1940] = "Salamanther",    -- Salatrancer
+    [1444] = "Viridian Phase-Hunter",    -- Viridian Phase-Hunter
+    [2732] = "Viridian Phase-Hunter",    -- Cerulean Phase-Hunter
     -- ========================================================
     -- SCARABS
     -- ========================================================
@@ -1345,6 +1578,11 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [463] = "Scorpion",    -- Amber Scorpion
     [1742] = "Scorpion",    -- Felcrystal Scorpion
     [882] = "Vicious War Scorpion (PVP)",    -- Vicious War Scorpion
+    -- ========================================================
+    -- SEA RAY
+    -- ========================================================
+    [855] = "Sea Ray",    -- Darkwater Skate
+    [1166] = "Sea Ray",    -- Great Sea Ray
     -- ========================================================
     -- SEAHORSES
     -- ========================================================
@@ -1369,7 +1607,27 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1057] = "Serpent",    -- Nazjatar Blood Serpent
     [2500] = "Serpent",    -- Ny'alothan Shadow Worm
     [1445] = "Slime Serpent",    -- Slime Serpent
+    [2845] = "Snapvine",    -- Vicious Snapvine
+    [2846] = "Snapvine",    -- Ferocious Snapvine
+    [2847] = "Snapvine",    -- Blooded Snapvine
+    [2848] = "Snapvine",    -- Savage Snapvine
     [2315] = "Timbered Sky Snake",    -- Timbered Sky Snake
+    -- ========================================================
+    -- SHALEWING
+    -- ========================================================
+    [1730] = "Shalewing",    -- Igneous Shalewing
+    [1732] = "Shalewing",    -- Cobalt Shalewing
+    [1733] = "Shalewing",    -- Calescent Shalewing
+    [1734] = "Shalewing",    -- Shadowflame Shalewing
+    [1735] = "Shalewing",    -- Cataloged Shalewing
+    [1736] = "Shalewing",    -- Boulder Hauler
+    [1737] = "Shalewing",    -- Sandy Shalewing
+    [1738] = "Shalewing",    -- Morsel Sniffer
+    [1939] = "Shalewing",    -- Imagiwing
+    -- ========================================================
+    -- SHU-ZEN
+    -- ========================================================
+    [1011] = "Shu-Zen",    -- Shu-Zen, the Divine Sentinel
     -- ========================================================
     -- SKELETAL HORSES
     -- ========================================================
@@ -1402,12 +1660,19 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2332] = "The Breaker's Song",    -- The Breaker's Song
     [1051] = "The Dreadwake",    -- The Dreadwake
     -- ========================================================
+    -- SKITTERFLY
+    -- ========================================================
+    [1468] = "Skitterfly",    -- Amber Skitterfly
+    [1615] = "Skitterfly",    -- Tamed Skitterfly
+    [1616] = "Skitterfly",    -- Azure Skitterfly
+    [1617] = "Skitterfly",    -- Verdant Skitterfly
+    [1618] = "Skitterfly",    -- Bestowed Sandskimmer
+    -- ========================================================
     -- SKYREAVERS
     -- ========================================================
     [571] = "Armored Chimera",    -- Iron Skyreaver
     [2470] = "Armored Chimera",    -- Nightfall Skyreaver
     [1200] = "Ashenvale Chimaera",    -- Ashenvale Chimaera
-    [776] = "Blacklisted",    -- Swift Spectral Rylak
     [772] = "Chimera",    -- Soaring Skyterror
     [2524] = "Cormaera",    -- Coldflame Cormaera
     [2526] = "Cormaera",    -- Felborn Cormaera
@@ -1416,6 +1681,12 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1406] = "Flayedwing",    -- Marrowfang
     [1407] = "Flayedwing",    -- Callow Flayedwing
     [1408] = "Flayedwing",    -- Gruesome Flayedwing
+    -- ========================================================
+    -- SLATEBACK
+    -- ========================================================
+    [2560] = "Slateback",    -- Blue Barry
+    [2561] = "Slateback",    -- Curious Slateback
+    [2655] = "Slateback",    -- Phase-Lost Slateback
     -- ========================================================
     -- SLITHERDRAKES
     -- ========================================================
@@ -1431,6 +1702,10 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1538] = "Progenitor Snail",    -- Bronze Helicid
     [1539] = "Progenitor Snail",    -- Unsuccessful Prototype Fleetpod
     [1540] = "Progenitor Snail",    -- Scarlet Helicid
+    [2833] = "Pseudoshell",    -- Arboreal Pseudoshell
+    [2834] = "Pseudoshell",    -- Cabbage Pseudoshell
+    [2835] = "Pseudoshell",    -- Lavender Pseudoshell
+    [2836] = "Pseudoshell",    -- Accented Pseudoshell
     [1623] = "Seething Slug",    -- Seething Slug
     [1729] = "Snail",    -- Big Slick in the City
     [2495] = "Snail",    -- Emerald Snail
@@ -1438,6 +1713,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1626] = "Snailemental",    -- Shellack
     [1627] = "Snailemental",    -- Gooey Snailemental
     [1629] = "Snailemental",    -- Scrappy Worldsnail
+    [2843] = "Snailemental",    -- Ghastropod
     [1740] = "Vicious War Snail (PVP)",    -- Vicious War Snail
     [1741] = "Vicious War Snail (PVP)",    -- Vicious War Snail
     -- ========================================================
@@ -1447,6 +1723,12 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1237] = "Snapdragon",    -- Royal Snapdragon
     [1255] = "Snapdragon",    -- Deepcoral Snapdragon
     [1256] = "Snapdragon",    -- Snapdragon Kelpstalker
+    -- ========================================================
+    -- SOAR
+    -- ========================================================
+    [1608] = "Soar",    -- Soar
+    [1952] = "Soar",    -- Soar
+    [2115] = "Soar",    -- Soar
     -- ========================================================
     -- SOUL EATERS
     -- ========================================================
@@ -1468,6 +1750,15 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1351] = "Vicious War Spider (PVP)",    -- Vicious War Spider
     [1352] = "Vicious War Spider (PVP)",    -- Vicious War Spider
     -- ========================================================
+    -- SPOREGLIDER
+    -- ========================================================
+    [2710] = "Sporeglider",    -- Cerulean Sporeglider
+    [2713] = "Sporeglider",    -- Ruddy Sporeglider
+    -- ========================================================
+    -- SQUEAKERS, THE TRICKSTER
+    -- ========================================================
+    [1290] = "Squeakers, the Trickster",    -- Squeakers, the Trickster
+    -- ========================================================
     -- STAGS
     -- ========================================================
     [1808] = "Dreamstag",    -- Blossoming Dreamstag
@@ -1487,223 +1778,6 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1354] = "Runestag",    -- Shadeleaf Runestag
     [1355] = "Runestag",    -- Wakener's Runestag
     [1356] = "Runestag",    -- Winterborn Runestag
-    -- ========================================================
-    -- STANDALONE
-    -- ========================================================
-    [1250] = "Alpaca",    -- Mollie
-    [1324] = "Alpaca",    -- Elusive Quickhoof
-    [1329] = "Alpaca",    -- Springfur Alpaca
-    [1794] = "Alpaca",    -- Pattie
-    [1436] = "Aquilon",    -- Battle-Hardened Aquilon
-    [1492] = "Aquilon",    -- Elysian Aquilon
-    [1493] = "Aquilon",    -- Forsworn Aquilon
-    [1494] = "Aquilon",    -- Ascendant's Aquilon
-    [2796] = "Aquilon",    -- Bronze Aquilon
-    [1332] = "Ardenmoth",    -- Silky Shimmermoth
-    [1361] = "Ardenmoth",    -- Duskflutter Ardenmoth
-    [1428] = "Ardenmoth",    -- Amber Ardenmoth
-    [1429] = "Ardenmoth",    -- Vibrant Flutterwing
-    [1681] = "Armoredon",    -- Hailstorm Armoredon
-    [1725] = "Armoredon",    -- Inferno Armoredon
-    [1801] = "Armoredon",    -- Verdant Armoredon
-    [2055] = "Armoredon",    -- Infinite Armoredon
-    [1269] = "Blacklisted",    -- Swift Spectral Fathom Ray
-    [1690] = "Blacklisted",    -- Whelpling
-    [1796] = "Blacklisted",    -- Whelpling
-    [1467] = "Bruffalon",    -- Noble Bruffalon
-    [1614] = "Bruffalon",    -- Stormtouched Bruffalon
-    [2489] = "Butterfly",    -- Pearlescent Butterfly
-    [2491] = "Butterfly",    -- Ruby Butterfly
-    [2492] = "Butterfly",    -- Spring Butterfly
-    [2494] = "Butterfly",    -- Midnight Butterfly
-    [678] = "Chauffeured vehicle",    -- Chauffeured Mechano-Hog
-    [679] = "Chauffeured vehicle",    -- Chauffeured Mekgineer's Chopper
-    [606] = "Core Hound",    -- Core Hound
-    [797] = "Core Hound",    -- Steelbound Devourer
-    [1781] = "Core Hound",    -- Sulfur Hound
-    [1449] = "Corpsefly",    -- Lord of the Corpseflies
-    [1495] = "Corpsefly",    -- Maldraxxian Corpsefly
-    [1496] = "Corpsefly",    -- Regal Corpsefly
-    [1497] = "Corpsefly",    -- Battlefield Swarmer
-    [2797] = "Corpsefly",    -- Bronze Corpsefly
-    [479] = "Crane",    -- Azure Riding Crane
-    [480] = "Crane",    -- Golden Riding Crane
-    [481] = "Crane",    -- Regal Riding Crane
-    [482] = "Crane",    -- Jungle Riding Crane
-    [2072] = "Crane",    -- Gilded Riding Crane
-    [2073] = "Crane",    -- Pale Riding Crane
-    [2074] = "Crane",    -- Rose Riding Crane
-    [2075] = "Crane",    -- Silver Riding Crane
-    [2076] = "Crane",    -- Luxurious Riding Crane
-    [2077] = "Crane",    -- Tropical Riding Crane
-    [963] = "Crawg",    -- Bloodgorged Crawg
-    [1053] = "Crawg",    -- Underrot Crawg
-    [1238] = "Crawler",    -- Snapback Scuttler
-    [1574] = "Crawler",    -- Crusty Crawler
-    [1454] = "Devouring Mauler",    -- Tamed Mauler
-    [1514] = "Devouring Mauler",    -- Rampaging Mauler
-    [2603] = "Devouring Mauler",    -- Sthaarbs's Last Lunch
-    [1319] = "Drone",    -- Malevolent Drone
-    [1320] = "Drone",    -- Shadowbarb Drone
-    [1321] = "Drone",    -- Wicked Swarmer
-    [1784] = "Drone",    -- Royal Swarmer
-    [793] = "Falcosaur",    -- Predatory Bloodgazer
-    [794] = "Falcosaur",    -- Brilliant Direbeak
-    [795] = "Falcosaur",    -- Snowfeather Hunter
-    [796] = "Falcosaur",    -- Viridian Sharptalon
-    [2184] = "Ferocious Jawcrawler",    -- Ferocious Jawcrawler
-    [2278] = "Flarendo the Furious",    -- Flarendo the Furious
-    [2161] = "Glowmite",    -- Elder Glowmite
-    [2162] = "Glowmite",    -- Cyan Glowmite
-    [508] = "Goat",    -- Brown Riding Goat
-    [510] = "Goat",    -- White Riding Goat
-    [511] = "Goat",    -- Black Riding Goat
-    [2078] = "Goat",    -- Snowy Riding Goat
-    [2080] = "Goat",    -- Little Red Riding Goat
-    [2504] = "Goat",    -- Spotted Black Riding Goat
-    [1391] = "Gorger",    -- Loyal Gorger
-    [1443] = "Gorger",    -- Voracious Gorger
-    [2602] = "Gorger",    -- Translocated Gorger
-    [803] = "Gravewing",    -- Mastercraft Gravewing
-    [1489] = "Gravewing",    -- Obsidian Gravewing
-    [1490] = "Gravewing",    -- Sinfall Gravewing
-    [1491] = "Gravewing",    -- Pale Gravewing
-    [2798] = "Gravewing",    -- Bronze Gravewing
-    [1312] = "Grrloc",    -- Gargantuan Grrloc
-    [1797] = "Grrloc",    -- Ginormous Grrloc
-    [2259] = "Grrloc",    -- Gigantic Grrloc
-    [2573] = "Grrloc",    -- Grandiose Grrloc
-    [2520] = "Harvesthog",    -- Spring Harvesthog
-    [2521] = "Harvesthog",    -- Summer Harvesthog
-    [2522] = "Harvesthog",    -- Winter Harvesthog
-    [2523] = "Harvesthog",    -- Autumn Harvesthog
-    [861] = "High Priest's Lightsworn Seeker",    -- High Priest's Lightsworn Seeker
-    [2727] = "High Priest's Lightsworn Seeker",    -- High Priest's Felscorned Seeker
-    [1221] = "Hogrus",    -- Hogrus, Swine of Good Fortune
-    [865] = "Huntmaster's Wolfhawk",    -- Huntmaster's Loyal Wolfhawk
-    [870] = "Huntmaster's Wolfhawk",    -- Huntmaster's Fierce Wolfhawk
-    [872] = "Huntmaster's Wolfhawk",    -- Huntmaster's Dire Wolfhawk
-    [2723] = "Huntmaster's Wolfhawk",    -- Felscorned Wolfhawk
-    [633] = "Infernal",    -- Hellfire Infernal
-    [646] = "Infernal",    -- Coldflame Infernal
-    [791] = "Infernal",    -- Felblaze Infernal
-    [799] = "Infernal",    -- Flarecore Infernal
-    [1167] = "Infernal",    -- Frostshard Infernal
-    [1594] = "Jade",    -- Jade, Bright Foreseer
-    [933] = "Krolusk",    -- Obsidian Krolusk
-    [1172] = "Krolusk",    -- Conqueror's Scythemaw
-    [1214] = "Krolusk",    -- Azureshell Krolusk
-    [1215] = "Krolusk",    -- Rubyshell Krolusk
-    [2601] = "Krolusk",    -- Pearlescent Krolusk
-    [328] = "Magic Rooster",    -- Magic Rooster
-    [333] = "Magic Rooster",    -- Magic Rooster
-    [334] = "Magic Rooster",    -- Magic Rooster
-    [335] = "Magic Rooster",    -- Magic Rooster
-    [906] = "Mana Ray",    -- Darkspore Mana Ray
-    [973] = "Mana Ray",    -- Lambent Mana Ray
-    [974] = "Mana Ray",    -- Vibrant Mana Ray
-    [975] = "Mana Ray",    -- Felglow Mana Ray
-    [976] = "Mana Ray",    -- Scintillating Mana Ray
-    [1438] = "Mana Ray",    -- Bulbous Necroray
-    [1439] = "Mana Ray",    -- Infested Necroray
-    [1440] = "Mana Ray",    -- Pestilent Necroray
-    [1941] = "Mana Ray",    -- Heartseeker Mana Ray
-    [2671] = "Mana Ray",    -- Fel-scarred Mana Ray
-    [2672] = "Mana Ray",    -- Bloodtooth Mana Ray
-    [2673] = "Mana Ray",    -- Albino Mana Ray
-    [2674] = "Mana Ray",    -- Luminous Mana Ray
-    [1417] = "Mawguard Hand",    -- Hand of Hrestimorak
-    [1475] = "Mawguard Hand",    -- Hand of Bahmethra
-    [1503] = "Mawguard Hand",    -- Hand of Nilganihmaht
-    [1504] = "Mawguard Hand",    -- Hand of Salaranga
-    [2249] = "Mawguard Hand",    -- Hand of Reshkigaal
-    [1247] = "Mechacycle",    -- Mechacycle Model W
-    [1248] = "Mechacycle",    -- Junkheap Drifter
-    [2342] = "Meeksi",    -- Meeksi Rufflefur
-    [2343] = "Meeksi",    -- Meeksi Softpaw
-    [2344] = "Meeksi",    -- Meeksi Rollingpaw
-    [2345] = "Meeksi",    -- Meeksi Teatuft
-    [2346] = "Meeksi",    -- Meeksi Brewthief
-    [515] = "Mushan Beast",    -- Son of Galleon
-    [550] = "Mushan Beast",    -- Brawler's Burly Mushan Beast
-    [560] = "Mushan Beast",    -- Ashhide Mushan Beast
-    [2088] = "Mushan Beast",    -- Riverwalker Mushan
-    [2089] = "Mushan Beast",    -- Palehide Mushan Beast
-    [176] = "Nether Ray",    -- Green Riding Nether Ray
-    [177] = "Nether Ray",    -- Red Riding Nether Ray
-    [178] = "Nether Ray",    -- Purple Riding Nether Ray
-    [179] = "Nether Ray",    -- Silver Riding Nether Ray
-    [180] = "Nether Ray",    -- Blue Riding Nether Ray
-    [1433] = "Progenitor Wasp",    -- Vespoid Flutterer
-    [1533] = "Progenitor Wasp",    -- Forged Spiteflyer
-    [1534] = "Progenitor Wasp",    -- Buzz
-    [1535] = "Progenitor Wasp",    -- Bronzewing Vespoid
-    [1450] = "Razorwing",    -- Soaring Razorwing
-    [1508] = "Razorwing",    -- Fierce Razorwing
-    [1509] = "Razorwing",    -- Garnet Razorwing
-    [1510] = "Razorwing",    -- Dusklight Razorwing
-    [2825] = "Razorwing",    -- Cloudborn Razorwing
-    [629] = "Riverwallow",    -- Trained Riverwallow
-    [630] = "Riverwallow",    -- Sapphire Riverbeast
-    [631] = "Riverwallow",    -- Mudback Riverbeast
-    [632] = "Riverwallow",    -- Mosshide Riverwallow
-    [1619] = "Salamanther",    -- Ancient Salamanther
-    [1621] = "Salamanther",    -- Coralscale Salamanther
-    [1622] = "Salamanther",    -- Stormhide Salamanther
-    [1940] = "Salamanther",    -- Salatrancer
-    [855] = "Sea Ray",    -- Darkwater Skate
-    [1166] = "Sea Ray",    -- Great Sea Ray
-    [1730] = "Shalewing",    -- Igneous Shalewing
-    [1732] = "Shalewing",    -- Cobalt Shalewing
-    [1733] = "Shalewing",    -- Calescent Shalewing
-    [1734] = "Shalewing",    -- Shadowflame Shalewing
-    [1735] = "Shalewing",    -- Cataloged Shalewing
-    [1736] = "Shalewing",    -- Boulder Hauler
-    [1737] = "Shalewing",    -- Sandy Shalewing
-    [1738] = "Shalewing",    -- Morsel Sniffer
-    [1939] = "Shalewing",    -- Imagiwing
-    [1011] = "Shu-Zen",    -- Shu-Zen, the Divine Sentinel
-    [1468] = "Skitterfly",    -- Amber Skitterfly
-    [1615] = "Skitterfly",    -- Tamed Skitterfly
-    [1616] = "Skitterfly",    -- Azure Skitterfly
-    [1617] = "Skitterfly",    -- Verdant Skitterfly
-    [1618] = "Skitterfly",    -- Bestowed Sandskimmer
-    [2560] = "Slateback",    -- Blue Barry
-    [2561] = "Slateback",    -- Curious Slateback
-    [2655] = "Slateback",    -- Phase-Lost Slateback
-    [1553] = "Slyvern",    -- Liberated Slyvern
-    [1674] = "Slyvern",    -- Temperamental Skyclaw
-    [1608] = "Soar",    -- Soar
-    [1952] = "Soar",    -- Soar
-    [2115] = "Soar",    -- Soar
-    [1532] = "Soaring Spelltome",    -- Soaring Spelltome
-    [1025] = "The Hivemind",    -- The Hivemind
-    [1474] = "Thunderspine",    -- Bestowed Thunderspine Packleader
-    [1638] = "Thunderspine",    -- Explorer's Stonehide Packbeast
-    [1639] = "Thunderspine",    -- Lizi, Thunderspine Tramper
-    [954] = "Ur'zul",    -- Shackled Ur'zul
-    [2471] = "Ur'zul",    -- Ur'zul Fleshripper
-    [2652] = "Ur'zul",    -- Bilebound Ur'zul
-    [2653] = "Ur'zul",    -- Ghastly Ur'zul
-    [2299] = "Vicious Electro Eel (PVP)",    -- Vicious Electro Eel
-    [2300] = "Vicious Electro Eel (PVP)",    -- Vicious Electro Eel
-    [1050] = "Vicious War Riverbeast (PVP)",    -- Vicious War Riverbeast
-    [1444] = "Viridian Phase-Hunter",    -- Viridian Phase-Hunter
-    [2732] = "Viridian Phase-Hunter",    -- Cerulean Phase-Hunter
-    [1458] = "Wandering Ancient",    -- Wandering Ancient
-    [449] = "Water Strider",    -- Azure Water Strider
-    [488] = "Water Strider",    -- Crimson Water Strider
-    [1230] = "Waveray",    -- Unshackled Waveray
-    [1231] = "Waveray",    -- Ankoan Waveray
-    [1232] = "Waveray",    -- Azshari Bloatray
-    [1257] = "Waveray",    -- Silent Glider
-    [1579] = "Waveray",    -- Coral-Stalker Waveray
-    [1397] = "Wildseed Cradle",    -- Wildseed Cradle
-    [372] = "Wooly White Rhino",    -- Wooly White Rhino
-    [999] = "Xiwyllag ATV",    -- Xiwyllag ATV
-    [654] = "Yeti",    -- Challenger's War Yeti
-    [769] = "Yeti",    -- Minion of Grumpus
-    [1176] = "Yeti",    -- Craghorn Chasm-Leaper
     -- ========================================================
     -- STORM DRAGONS
     -- ========================================================
@@ -1727,6 +1801,22 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [429] = "Strider",    -- Swift Forest Strider
     [430] = "Strider",    -- Swift Springstrider
     [431] = "Strider",    -- Swift Lovebird
+    -- ========================================================
+    -- SUBAQUATIC JELLYFISHES
+    -- ========================================================
+    [838] = "Jelly",    -- Fathom Dweller
+    [982] = "Jelly",    -- Pond Nettle
+    [1169] = "Jelly",    -- Surf Jelly
+    -- ========================================================
+    -- SUBAQUATIC TURTLES
+    -- ========================================================
+    [1582] = "Savage Battle Turtle",    -- Savage Green Battle Turtle
+    [2039] = "Savage Battle Turtle",    -- Savage Blue Battle Turtle
+    [2232] = "Savage Battle Turtle",    -- Savage Ebony Battle Turtle
+    [2347] = "Savage Battle Turtle",    -- Savage Alabaster Battle Turtle
+    [2823] = "Savage Battle Turtle",    -- Savage Crimson Battle Turtle
+    [125] = "Sea Turtle",    -- Riding Turtle
+    [312] = "Sea Turtle",    -- Sea Turtle
     -- ========================================================
     -- SWARMITES
     -- ========================================================
@@ -1795,6 +1885,12 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1366] = "Tauralus",    -- Bonehoof Tauralus
     [1367] = "Tauralus",    -- Chosen Tauralus
     -- ========================================================
+    -- THUNDERSPINE
+    -- ========================================================
+    [1474] = "Thunderspine",    -- Bestowed Thunderspine Packleader
+    [1638] = "Thunderspine",    -- Explorer's Stonehide Packbeast
+    [1639] = "Thunderspine",    -- Lizi, Thunderspine Tramper
+    -- ========================================================
     -- TOADS
     -- ========================================================
     [1415] = "Arboreal Gulper",    -- Arboreal Gulper
@@ -1823,17 +1919,21 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [499] = "Great Dragon Turtle",    -- Great Blue Dragon Turtle
     [500] = "Great Dragon Turtle",    -- Great Brown Dragon Turtle
     [501] = "Great Dragon Turtle",    -- Great Purple Dragon Turtle
-    [1582] = "Savage Battle Turtle",    -- Savage Green Battle Turtle
-    [2039] = "Savage Battle Turtle",    -- Savage Blue Battle Turtle
-    [2232] = "Savage Battle Turtle",    -- Savage Ebony Battle Turtle
-    [2347] = "Savage Battle Turtle",    -- Savage Alabaster Battle Turtle
-    [2823] = "Savage Battle Turtle",    -- Savage Crimson Battle Turtle
-    [125] = "Sea Turtle",    -- Riding Turtle
-    [312] = "Sea Turtle",    -- Sea Turtle
     [847] = "Super Armored Turtle",    -- Arcadian War Turtle
     [2531] = "Super Armored Turtle",    -- Tyrannotort
     [900] = "Vicious War Turtle (PVP)",    -- Vicious War Turtle
     [901] = "Vicious War Turtle (PVP)",    -- Vicious War Turtle
+    -- ========================================================
+    -- UNTAINTED GROVE CRAWLER
+    -- ========================================================
+    [2747] = "Untainted Grove Crawler",    -- Untainted Grove Crawler
+    -- ========================================================
+    -- UR'ZUL
+    -- ========================================================
+    [954] = "Ur'zul",    -- Shackled Ur'zul
+    [2471] = "Ur'zul",    -- Ur'zul Fleshripper
+    [2652] = "Ur'zul",    -- Bilebound Ur'zul
+    [2653] = "Ur'zul",    -- Ghastly Ur'zul
     -- ========================================================
     -- VANQUISHER WYRMS
     -- ========================================================
@@ -1847,6 +1947,31 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [365] = "Vanquisher",    -- Bloodbathed Frostbrood Vanquisher
     [1783] = "Vanquisher",    -- Scourgebound Vanquisher
     -- ========================================================
+    -- VIBRANT PETALWING
+    -- ========================================================
+    [2708] = "Vibrant Petalwing",    -- Vibrant Petalwing
+    -- ========================================================
+    -- VICIOUS SNAPLIZARD
+    -- ========================================================
+    [2793] = "Vicious Snaplizard",    -- Vicious Snaplizard
+    [2794] = "Vicious Snaplizard",    -- Vicious Snaplizard
+    -- ========================================================
+    -- VICIOUS WAR RIVERBEAST (PVP)
+    -- ========================================================
+    [1050] = "Vicious War Riverbeast (PVP)",    -- Vicious War Riverbeast
+    -- ========================================================
+    -- VIVACIOUS CHLOROCEROS
+    -- ========================================================
+    [2912] = "Vivacious Chloroceros",    -- Vivacious Chloroceros
+    -- ========================================================
+    -- VIVID CHLOROCEROS
+    -- ========================================================
+    [2913] = "Vivid Chloroceros",    -- Vivid Chloroceros
+    -- ========================================================
+    -- VOID-SCARRED LYNX
+    -- ========================================================
+    [2535] = "Void-Scarred Lynx",    -- Void-Scarred Lynx
+    -- ========================================================
     -- VORQUINS
     -- ========================================================
     [1664] = "Armored Vorquin",    -- Guardian Vorquin
@@ -1858,6 +1983,23 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1685] = "Vorquin",    -- Bronze Vorquin
     [1686] = "Vorquin",    -- Obsidian Vorquin
     -- ========================================================
+    -- WATER STRIDER
+    -- ========================================================
+    [449] = "Water Strider",    -- Azure Water Strider
+    [488] = "Water Strider",    -- Crimson Water Strider
+    -- ========================================================
+    -- WAVERAY
+    -- ========================================================
+    [1230] = "Waveray",    -- Unshackled Waveray
+    [1231] = "Waveray",    -- Ankoan Waveray
+    [1232] = "Waveray",    -- Azshari Bloatray
+    [1257] = "Waveray",    -- Silent Glider
+    [1579] = "Waveray",    -- Coral-Stalker Waveray
+    -- ========================================================
+    -- WILDSEED CRADLE
+    -- ========================================================
+    [1397] = "Wildseed Cradle",    -- Wildseed Cradle
+    -- ========================================================
     -- WINGED FLYING HORSES
     -- ========================================================
     [376] = "Celestial Steed",    -- Celestial Steed
@@ -1866,8 +2008,22 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1168] = "Hearthsteed",    -- Fiery Hearthsteed
     [2605] = "Inarius' Charger",    -- Inarius' Charger
     [363] = "Invincible",    -- Invincible
-    [439] = "Tyrael's Charger",    -- Tyrael's Charger
 		[2634] = "Scorching Valor",    -- Scorching Valor
+    [439] = "Tyrael's Charger",    -- Tyrael's Charger
+    -- ========================================================
+    -- WOLFHAWKS
+    -- ========================================================
+    [865] = "Huntmaster's Wolfhawk",    -- Huntmaster's Loyal Wolfhawk
+    [870] = "Huntmaster's Wolfhawk",    -- Huntmaster's Fierce Wolfhawk
+    [872] = "Huntmaster's Wolfhawk",    -- Huntmaster's Dire Wolfhawk
+    [2723] = "Huntmaster's Wolfhawk",    -- Felscorned Wolfhawk
+    [1450] = "Razorwing",    -- Soaring Razorwing
+    [1508] = "Razorwing",    -- Fierce Razorwing
+    [1509] = "Razorwing",    -- Garnet Razorwing
+    [1510] = "Razorwing",    -- Dusklight Razorwing
+    [2825] = "Razorwing",    -- Cloudborn Razorwing
+    [1553] = "Slyvern",    -- Liberated Slyvern
+    [1674] = "Slyvern",    -- Temperamental Skyclaw
     -- ========================================================
     -- WOLVES
     -- ========================================================
@@ -1899,7 +2055,6 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [558] = "Kor'kron War Wolf",    -- Kor'kron War Wolf
     [1044] = "Mag'har Direwolf",    -- Mag'har Direwolf
     [406] = "Spectral Wolf",    -- Spectral Wolf
-    [2498] = "Void-Scarred Pack Mother",    -- Void-Scarred Pack Mother
     [423] = "War Wolf (PVP)",    -- Vicious War Wolf
     [784] = "War Wolf (PVP)",    -- Prestigious War Wolf
     [7] = "Wolf",    -- Gray Wolf
@@ -1912,6 +2067,10 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [50] = "Wolf",    -- Red Wolf
     [51] = "Wolf",    -- Arctic Wolf
     [310] = "Wolf",    -- Black Wolf
+    -- ========================================================
+    -- WOOLY WHITE RHINO
+    -- ========================================================
+    [372] = "Wooly White Rhino",    -- Wooly White Rhino
     -- ========================================================
     -- WYVERNS
     -- ========================================================
@@ -1953,40 +2112,9 @@ RandomMountBuddy_PreloadData.MountToFamily = {
 -- ============================================================
 
 RandomMountBuddy_PreloadData.FamilyDefinitions = {
-		["Vibrant Petalwing"] = {
-        superGroup = nil,
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-    },
-    ["Vicious Snaplizard"] = {
-        superGroup = nil,
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-    },
-    ["Sporeglider"] = {
-        superGroup = nil,
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-    },
-		["Pangolin"] = {
-        superGroup = nil,
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-    },
-    ["Untainted Grove Crawler"] = {
-        superGroup = nil,
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-    },
-    ["Galactic Gladiator's Goredrake"] = {
-        superGroup = "Proto-Drakes",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
-    },
-    ["Shredclaw"] = {
-        superGroup = "Grimclaws",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-    },
-    ["Grimlynx"] = {
-        superGroup = "Grimclaws",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-    },
-    ["Hypo-Speed X6000"] = {
-        superGroup = "Goblin Trikes",
+    -- Aerial Units
+    ["Aerial Unit"] = {
+        superGroup = "Aerial Units",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
 
@@ -1999,76 +2127,19 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         superGroup = "Defenders",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
-		["Chloroceros"] = {
-        superGroup = "Armoredons",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
-    },
 
-		["Hexed Vilefeather Eagle"] = {
-        superGroup = "Hawks",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
-    },
-    ["Starspark Netherdrake"] = {
-        superGroup = "Nether Drakes",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
-    },
-    ["Pseudoshell"] = {
-        superGroup = "Snails",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-    },
-    ["Preyseeker"] = {
-        superGroup = "Eels",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-    },
-    ["Midnight Bear"] = {
-        superGroup = "Bears",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-    },
 		["Ashes of Belo'ren"] = {
         superGroup = "Hawks",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
     },
-    ["Sharptalon"] = {
-        superGroup = "Hawks",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
-    },
-    ["Carrion"] = {
-        superGroup = "Dread ravens",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-    },
-    ["Midnight Hawkstrider"] = {
-        superGroup = "Hawkstriders",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-		},
-    ["Midnight Dragonhawk"] = {
-        superGroup = "Dragonhawks",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-		},
-    ["Quilt"] = {
-        superGroup = "Flying Carpets",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-		},
-    ["Snapvine"] = {
-        superGroup = "Serpents",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-		},
-    ["Stormray"] = {
-        superGroup = "Outland Rays",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-		},
-    ["Harrower"] = {
-        superGroup = "Plaguebats",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-    },
-
-    -- Aerial Units
-    ["Aerial Unit"] = {
-        superGroup = "Aerial Units",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-    },
 
     ["Brewfest Barrel Bomber"] = {
         superGroup = "Aerial Units",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["Carrion"] = {
+        superGroup = "Dread ravens",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
 
@@ -2077,9 +2148,119 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
+		["Chloroceros"] = {
+        superGroup = "Armoredons",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+
+    ["Galactic Gladiator's Goredrake"] = {
+        superGroup = "Proto-Drakes",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+
+    ["Grimlynx"] = {
+        superGroup = "Grimclaws",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["Harrower"] = {
+        superGroup = "Plaguebats",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+		["Hexed Vilefeather Eagle"] = {
+        superGroup = "Hawks",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+
+    ["Hypo-Speed X6000"] = {
+        superGroup = "Goblin Trikes",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["Midnight Bear"] = {
+        superGroup = "Bears",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["Midnight Dragonhawk"] = {
+        superGroup = "Dragonhawks",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		},
+
+    ["Midnight Hawkstrider"] = {
+        superGroup = "Hawkstriders",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		},
+
+		["Pangolin"] = {
+        superGroup = nil,
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["Preyseeker"] = {
+        superGroup = "Eels",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
     ["Prototype A.S.M.R."] = {
         superGroup = "Aerial Units",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+    },
+
+    ["Pseudoshell"] = {
+        superGroup = "Snails",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["Quilt"] = {
+        superGroup = "Flying Carpets",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		},
+
+    ["Sharptalon"] = {
+        superGroup = "Hawks",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+
+    ["Shredclaw"] = {
+        superGroup = "Grimclaws",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["Snapvine"] = {
+        superGroup = "Serpents",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		},
+
+    ["Sporeglider"] = {
+        superGroup = nil,
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["Starspark Netherdrake"] = {
+        superGroup = "Nether Drakes",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+
+    ["Stormray"] = {
+        superGroup = "Outland Rays",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+		},
+
+    ["Untainted Grove Crawler"] = {
+        superGroup = nil,
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+		["Vibrant Petalwing"] = {
+        superGroup = nil,
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["Vicious Snaplizard"] = {
+        superGroup = nil,
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
 
     -- Antoran Hound
@@ -4787,14 +4968,16 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
-    ["Tyrael's Charger"] = {
-        superGroup = "Winged Flying Horses",
-        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
-    },
     ["Scorching Valor"] = {
         superGroup = "Winged Flying Horses",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
     },
+
+    ["Tyrael's Charger"] = {
+        superGroup = "Winged Flying Horses",
+        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
+    },
+
     -- Wolves
     ["Alliance Wolf Mount"] = {
         superGroup = "Wolves",
