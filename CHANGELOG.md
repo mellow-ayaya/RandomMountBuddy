@@ -1,5 +1,5 @@
 # 1.1.72 - 2026-03-03
-- Fixed Sporegliders being in differrernt families and added them to Dragonhawks group.
+- Fixed Sporegliders being in different families and added them to Dragonhawks group.
 - Updated script for easier organization of mounts in the data files.
 - Organized the mounts in the data files.
 
