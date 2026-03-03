@@ -46,15 +46,37 @@ def sort_mount_data(input_file, output_file=None):
     with open(input_file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
+    # Pre-pass: build family -> superGroup lookup from FamilyDefinitions
+    family_to_supergroup = {}
+    in_prepass_families = False
+    current_prepass_family = None
+    for line in lines:
+        if 'RandomMountBuddy_PreloadData.FamilyDefinitions' in line:
+            in_prepass_families = True
+            continue
+        if not in_prepass_families:
+            continue
+        family_match = re.match(r'\s*\["([^"]+)"\]\s*=\s*{', line)
+        if family_match:
+            current_prepass_family = family_match.group(1)
+        elif current_prepass_family:
+            sg_match = re.search(r'superGroup\s*=\s*"([^"]+)"', line)
+            if sg_match:
+                family_to_supergroup[current_prepass_family] = sg_match.group(1)
+            if line.strip() == '},':
+                current_prepass_family = None
+
     result_lines = []
     in_mount_to_family = False
     in_family_definitions = False
+    in_section_header = False  # True when we're between an opening and closing === line
 
     # For MountToFamily: collect all sections
-    all_mount_sections = []  # [(section_name, section_header, section_mounts), ...]
+    all_mount_sections = []  # [(section_name, section_header, mounts_dict), ...]
+    all_mounts_pool = defaultdict(list)  # family_name -> [(mount_id, line), ...] — global pool
     current_section_name = None
     current_section_header = []
-    current_section_mounts = defaultdict(list)
+    current_section_mounts = defaultdict(list)  # unused for mounts; kept for open/close logic
 
     # For FamilyDefinitions: collect all sections
     all_family_sections = []  # [(section_name, section_header, section_families), ...]
@@ -88,19 +110,26 @@ def sort_mount_data(input_file, output_file=None):
             if line.strip().startswith('--'):
                 # Check if this is a separator line (contains ===)
                 if '=' in line:
-                    # If we already have a section with mounts, this is a new section starting
-                    if current_section_name and current_section_mounts:
-                        all_mount_sections.append((current_section_name, current_section_header, current_section_mounts))
+                    if not in_section_header:
+                        # This is an OPENING separator — save the previous section and start fresh
+                        if current_section_name and current_section_mounts:
+                            all_mount_sections.append((current_section_name, current_section_header, current_section_mounts))
+                        elif current_section_mounts:
+                            # Orphan mounts before the first section header — put in a placeholder
+                            all_mount_sections.append(('__orphan__', [], current_section_mounts))
                         current_section_header = []
                         current_section_mounts = defaultdict(list)
                         current_section_name = None
-
-                    # Start/continue building header
-                    current_section_header.append(line)
+                        in_section_header = True
+                        current_section_header.append(line)
+                    else:
+                        # This is the CLOSING separator — just append it to header, done with header
+                        current_section_header.append(line)
+                        in_section_header = False
                 # Or if it's a section name line (no ===)
                 else:
                     # Extract section name
-                    match = re.search(r'--\s+([A-Za-z][A-Za-z\s&\(\)]+)', line)
+                    match = re.search(r'--\s+(.+)', line)
                     if match and not current_section_name:
                         current_section_name = match.group(1).strip()
                     current_section_header.append(line)
@@ -110,26 +139,52 @@ def sort_mount_data(input_file, output_file=None):
                 parsed = parse_mount_assignment(line)
                 if parsed:
                     mount_id, family_name, full_line = parsed
-                    current_section_mounts[family_name].append((mount_id, full_line))
+                    # Always accumulate into a global pool — section headers are just labels,
+                    # the family name is the source of truth for where a mount belongs
+                    all_mounts_pool[family_name].append((mount_id, full_line))
                 else:
                     current_section_header.append(line)
 
             # Check for end of section
             elif line.strip() == '...' or (line.strip().startswith('}') and not in_family_definitions):
-                # Save current section
-                if current_section_name and (current_section_header or current_section_mounts):
-                    all_mount_sections.append((current_section_name, current_section_header, current_section_mounts))
+                # Save the last section header (headers are kept for their names/structure)
+                if current_section_name and current_section_header:
+                    all_mount_sections.append((current_section_name, current_section_header, defaultdict(list)))
 
-                # Sort all sections alphabetically and output
-                all_mount_sections.sort(key=lambda x: x[0].lower())
-                for section_name, section_header, section_mounts in all_mount_sections:
-                    flush_mount_section(result_lines, section_header, section_mounts)
+                # Build section index from existing named sections (headers only, no mounts yet)
+                # Use case-insensitive keys; preserve first-seen header for each name
+                sections_by_name = {}  # lower_name -> [section_name, section_header, mounts_dict]
+                for section_name, section_header, _ in all_mount_sections:
+                    key = section_name.lower()
+                    if key not in sections_by_name:
+                        sections_by_name[key] = [section_name, section_header, defaultdict(list)]
+
+                # Assign every mount to its correct section via family -> superGroup lookup
+                for family_name, mounts in all_mounts_pool.items():
+                    section_name = family_to_supergroup.get(family_name) or family_name
+                    key = section_name.lower()
+                    if key not in sections_by_name:
+                        # No existing section — create one
+                        section_header = [
+                            '    -- ========================================================\n',
+                            f'    -- {section_name.upper()}\n',
+                            '    -- ========================================================\n',
+                        ]
+                        sections_by_name[key] = [section_name, section_header, defaultdict(list)]
+                    sections_by_name[key][2][family_name].extend(mounts)
+
+                # Sort sections and emit
+                sorted_sections = sorted(sections_by_name.values(), key=lambda x: x[0].lower())
+                for section_name, section_header, section_mounts in sorted_sections:
+                    if section_mounts:  # skip any sections that ended up empty
+                        flush_mount_section(result_lines, section_header, section_mounts)
 
                 # Reset
                 all_mount_sections = []
                 current_section_name = None
                 current_section_header = []
                 current_section_mounts = defaultdict(list)
+                in_section_header = False
 
                 in_mount_to_family = False
                 result_lines.append(line)
@@ -144,7 +199,7 @@ def sort_mount_data(input_file, output_file=None):
             # Check for section header comment (like "-- Bears")
             if line.strip().startswith('--') and not line.strip().startswith('----'):
                 # Extract section name
-                section_name_match = re.search(r'--\s+([A-Za-z][A-Za-z\s]+)', line)
+                section_name_match = re.search(r'--\s+(.+)', line)
                 if section_name_match:
                     # Save previous section if exists
                     if current_family_section_name and (current_family_section_header or current_section_families):
