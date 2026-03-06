@@ -1602,5 +1602,9 @@ MountIDtoMountTypeID = {
     [2838] = 437,    -- Fantastical Goblin Waveshredder
     [2616] = 230,    -- Ivory Grimlynx
     [2912] = 230,    -- Vivacious Chloroceros
+		[2700] = 424,    -- Frostfall Groveglider
+    [2701] = 424,    -- Cindertuft Groveglider
+    [2702] = 424,    -- Gloombough Groveglider
+    [2703] = 424,    -- Blossombranch Groveglider
 }
 return MountIDtoMountTypeID

@@ -776,6 +776,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2614] = "Grimlynx",    -- Fierce Grimlynx
     [2615] = "Grimlynx",    -- Rootstalker Grimlynx
     [2616] = "Grimlynx",    -- Ivory Grimlynx
+    [2789] = "Shredclaw",    -- Ravenous Shredclaw
     [2790] = "Shredclaw",    -- Insatiable Shredclaw
     [2791] = "Shredclaw",    -- Prowling Shredclaw
     [2792] = "Shredclaw",    -- Frenzied Shredclaw
@@ -807,6 +808,13 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [682] = "Elemental Raven",    -- Voidtalon of the Dark Star
     [1191] = "Elemental Raven",    -- Frenzied Feltalon
     [185] = "Raven Lord",    -- Raven Lord
+    -- ========================================================
+    -- GROVEGLIDER
+    -- ========================================================
+    [2700] = "Groveglider",    -- Frostfall Groveglider
+    [2701] = "Groveglider",    -- Cindertuft Groveglider
+    [2702] = "Groveglider",    -- Gloombough Groveglider
+    [2703] = "Groveglider",    -- Blossombranch Groveglider
     -- ========================================================
     -- GRYPHONS
     -- ========================================================
@@ -1271,6 +1279,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [179] = "Nether Ray",    -- Silver Riding Nether Ray
     [180] = "Nether Ray",    -- Blue Riding Nether Ray
     [2751] = "Stormray",    -- Augmented Stormray
+    [2828] = "Stormray",    -- Voidbound Stormray
     [2829] = "Stormray",    -- Lab-grown Stormray
     -- ========================================================
     -- OWLS
@@ -1289,6 +1298,11 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2772] = "Pangolin",    -- Blessed Amani Burrower
     [2773] = "Pangolin",    -- Giganto Manis
     [2775] = "Pangolin",    -- Witherbark Pango
+    -- ========================================================
+    -- PETALWING
+    -- ========================================================
+    [2707] = "Petalwing",    -- Brilliant Petalwing
+    [2708] = "Petalwing",    -- Vibrant Petalwing
     -- ========================================================
     -- PHOENIXES
     -- ========================================================
@@ -1740,6 +1754,10 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1599] = "Gladiator's Soul Eater (PVP)",    -- Eternal Gladiator's Soul Eater
     [2114] = "Zovaal's Soul Eater",    -- Zovaal's Soul Eater
     -- ========================================================
+    -- SPECTRAL HAWKSTRIDER
+    -- ========================================================
+    [2805] = "Spectral Hawkstrider",    -- Spectral Hawkstrider
+    -- ========================================================
     -- SPIDERS
     -- ========================================================
     [663] = "Bloodfang Widow",    -- Bloodfang Widow
@@ -1943,10 +1961,6 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [364] = "Vanquisher",    -- Icebound Frostbrood Vanquisher
     [365] = "Vanquisher",    -- Bloodbathed Frostbrood Vanquisher
     [1783] = "Vanquisher",    -- Scourgebound Vanquisher
-    -- ========================================================
-    -- VIBRANT PETALWING
-    -- ========================================================
-    [2708] = "Vibrant Petalwing",    -- Vibrant Petalwing
     -- ========================================================
     -- VICIOUS SNAPLIZARD
     -- ========================================================

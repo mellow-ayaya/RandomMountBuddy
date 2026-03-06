@@ -1,3 +1,6 @@
+# 1.1.73 - 2026-03-06
+- Added the new shop mounts and other mounts that have been recently made avilable.
+
 # 1.1.72 - 2026-03-03
 - Fixed Sporegliders being in different families and added them to Dragonhawks group.
 - Updated script for easier organization of mounts in the data files.
