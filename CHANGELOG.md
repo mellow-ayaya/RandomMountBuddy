@@ -1,3 +1,6 @@
+# 1.1.74 - 2026-04-01
+- Added the new campaign mount.
+
 # 1.1.73 - 2026-03-06
 - Added the new shop mounts and other mounts that have been recently made avilable.
 

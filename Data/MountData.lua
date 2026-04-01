@@ -889,6 +889,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2761] = "Midnight Hawkstrider",    -- Crimson Silvermoon Hawkstrider
     [2762] = "Midnight Hawkstrider",    -- Cerulean Hawkstrider
     [2817] = "Midnight Hawkstrider",    -- Lucent Hawkstrider
+    [2818] = "Midnight Hawkstrider",    -- Emerald Hawkstrider
     [1009] = "Starcursed Voidstrider",    -- Starcursed Voidstrider
     [2696] = "Turkeys",    -- Highlands Gobbler
     [2697] = "Turkeys",    -- Quirky Turkey

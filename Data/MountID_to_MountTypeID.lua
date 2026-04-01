@@ -1567,6 +1567,7 @@ MountIDtoMountTypeID = {
     [2807] = 230,    -- Brawlin' Bruno
     [2808] = 424,    -- Ballistic Bronco
     [2815] = 230,    -- Snowpaw Glimmerfur Prowler
+		[2818] = 230,    -- Emerald Hawkstrider
     [2823] = 231,    -- Savage Crimson Battle Turtle
     [2825] = 424,    -- Cloudborn Razorwing
     [2827] = 424,    -- Sanguine Harrower
