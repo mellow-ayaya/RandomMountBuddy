@@ -1,3 +1,8 @@
+# 1.1.75 - 2026-04-02
+- Fixed several issues with new mounts categorizations that accumulated recently.
+- Added check on login to catch such issues as soon as they occur. (dev only)
+- Updated tooltip set text.
+
 # 1.1.74 - 2026-04-01
 - Added the new campaign mount.
 

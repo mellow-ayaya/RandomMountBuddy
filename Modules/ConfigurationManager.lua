@@ -484,6 +484,7 @@ function ConfigurationManager:RunDataValidation(autoFix)
 		weightSyncIssues = {},
 		orphanedSettings = {},
 		nameConflicts = {},
+		partialRegistrations = {},
 		totalIssues = 0,
 		totalFixed = 0,
 	}
@@ -491,10 +492,48 @@ function ConfigurationManager:RunDataValidation(autoFix)
 	self:ValidateWeightSynchronization(report, autoFix)
 	self:ValidateOrphanedSettings(report, autoFix)
 	self:ValidateSeparatedFamilyNames(report, autoFix)
+	self:ValidatePartialRegistrations(report)
 	local endTime = debugprofilestop()
 	addon:DebugValidation(string.format(" Completed in %.2fms - %d issues found, %d fixed",
 		endTime - startTime, report.totalIssues, report.totalFixed))
 	return true, report
+end
+
+-- ============================================================================
+-- PARTIAL REGISTRATION VALIDATION
+-- ============================================================================
+function ConfigurationManager:ValidatePartialRegistrations(report)
+	addon:DebugValidation("Checking for partial mount registrations...")
+	local preloadData = RandomMountBuddy_PreloadData
+	if not (preloadData and preloadData.MountToFamily and preloadData.FamilyDefinitions) then
+		return
+	end
+
+	local issuesFound = 0
+	for mountID, familyName in pairs(preloadData.MountToFamily) do
+		if not preloadData.FamilyDefinitions[familyName] then
+			issuesFound = issuesFound + 1
+			local mountName = C_MountJournal and C_MountJournal.GetMountInfoByID(tonumber(mountID)) or "Unknown"
+			local issue = {
+				type = "partial_registration",
+				mountID = tonumber(mountID),
+				mountName = mountName or "Unknown",
+				familyName = familyName,
+			}
+			table.insert(report.partialRegistrations, issue)
+			addon:DebugValidation("Partial registration: mount " ..
+				tostring(mountID) .. " (" .. tostring(mountName) ..
+				") -> family '" .. familyName .. "' not in FamilyDefinitions")
+		end
+	end
+
+	report.totalIssues = report.totalIssues + issuesFound
+	if issuesFound > 0 then
+		addon:DebugValidation("Partial registration check: " ..
+			issuesFound .. " issue(s) found (requires data file fix - run /rmb export)")
+	else
+		addon:DebugValidation("Partial registration check: clean")
+	end
 end
 
 -- ADD: Helper method to check if validation can run
@@ -1066,6 +1105,18 @@ function ConfigurationManager:FormatValidationReport(report)
 					table.insert(lines, string.format("    -> Renamed to '%s'", issue.newName))
 				end
 			end
+		end
+
+		table.insert(lines, "")
+	end
+
+	-- Partial Registrations
+	if report.partialRegistrations and #report.partialRegistrations > 0 then
+		table.insert(lines, "|cffff6600Partial Registrations:|r")
+		table.insert(lines, "|cff888888(in MountToFamily but missing FamilyDefinitions - run /rmb export to fix)|r")
+		for _, issue in ipairs(report.partialRegistrations) do
+			table.insert(lines, string.format("  |cffff0000[DATA FILE]|r Mount %d (%s) -> family '%s' has no definition",
+				issue.mountID, issue.mountName, issue.familyName))
 		end
 
 		table.insert(lines, "")

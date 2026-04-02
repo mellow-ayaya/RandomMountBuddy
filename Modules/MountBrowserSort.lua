@@ -44,7 +44,7 @@ function MountBrowserSort:CreateSortButton(parent)
 	-- Tooltip
 	button:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_TOP")
-		GameTooltip:SetText("Sort Order")
+		GameTooltip:SetText("Sort Order", 1, 1, 1, 1, false)
 		-- Show current mode
 		local currentMode = MountBrowserSort:GetCurrentModeInfo()
 		if currentMode then

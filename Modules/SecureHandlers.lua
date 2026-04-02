@@ -482,7 +482,7 @@ function addonTable:createVisibleButton()
 	-- Tooltip handlers
 	visibleButton:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:SetText("Random Mount Buddy")
+		GameTooltip:SetText("Random Mount Buddy", 1, 1, 1, 1, false)
 		GameTooltip:AddLine("Click to summon a mount or cast shapeshift form", 1, 1, 1)
 		GameTooltip:Show()
 	end)

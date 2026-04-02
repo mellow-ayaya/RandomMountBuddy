@@ -107,7 +107,7 @@ function MountBrowserFilters:CreateFilterButton(parent)
 	-- Tooltip
 	button:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_TOP")
-		GameTooltip:SetText("Filter")
+		GameTooltip:SetText("Filter", 1, 1, 1, 1, false)
 		GameTooltip:AddLine("Click to open filter menu", 1, 1, 1)
 		-- Show right-click hint only when filters are active
 		if MountBrowserFilters:GetTotalActiveFilterCount() > 0 then

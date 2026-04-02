@@ -1972,13 +1972,10 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     -- ========================================================
     [1050] = "Vicious War Riverbeast (PVP)",    -- Vicious War Riverbeast
     -- ========================================================
-    -- VIVACIOUS CHLOROCEROS
+    -- CHLOROCEROS
     -- ========================================================
-    [2912] = "Vivacious Chloroceros",    -- Vivacious Chloroceros
-    -- ========================================================
-    -- VIVID CHLOROCEROS
-    -- ========================================================
-    [2913] = "Vivid Chloroceros",    -- Vivid Chloroceros
+    [2912] = "Chloroceros",    -- Vivacious Chloroceros
+    [2913] = "Chloroceros",    -- Vivid Chloroceros
     -- ========================================================
     -- VOID-SCARRED LYNX
     -- ========================================================
@@ -2124,6 +2121,10 @@ RandomMountBuddy_PreloadData.MountToFamily = {
 -- ============================================================
 
 RandomMountBuddy_PreloadData.FamilyDefinitions = {
+	    ["Groveglider"] = {
+        superGroup = nil,
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
     -- Aerial Units
     ["Aerial Unit"] = {
         superGroup = "Aerial Units",
@@ -2149,7 +2150,10 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         superGroup = "Aerial Units",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
-
+    ["Blacklisted"] = {
+        superGroup = nil,
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
     ["Carrion"] = {
         superGroup = "Dread ravens",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
@@ -2204,6 +2208,11 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         superGroup = "Hawkstriders",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		},
+
+    ["Spectral Hawkstrider"] = {
+        superGroup = "Hawkstriders",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
 
 		["Pangolin"] = {
         superGroup = nil,
@@ -2265,7 +2274,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
 
-		["Vibrant Petalwing"] = {
+		["Petalwing"] = {
         superGroup = nil,
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
@@ -3368,6 +3377,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = false, isUniqueEffect = false },
     },
 
+
     -- Hippogryphs
     ["Armored Hippogryph"] = {
         superGroup = "Hippogryphs",
@@ -4141,6 +4151,11 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     },
 
     ["Lynx"] = {
+        superGroup = "Sabers",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+    },
+
+    ["Void-Scarred Lynx"] = {
         superGroup = "Sabers",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
     },

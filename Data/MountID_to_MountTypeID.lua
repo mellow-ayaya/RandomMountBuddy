@@ -182,7 +182,6 @@ MountIDtoMountTypeID = {
     [230] = 230,     -- Big Battle Bear
     [236] = 424,     -- Winged Steed of the Ebon Blade
     [237] = 230,     -- White Polar Bear
-    [238] = 242,     -- Swift Spectral Gryphon
     [240] = 230,     -- Mechano-Hog
     [241] = 424,     -- Brutal Nether Drake
     [243] = 230,     -- Big Blizzard Bear
@@ -1577,6 +1576,7 @@ MountIDtoMountTypeID = {
     [2833] = 230,    -- Arboreal Pseudoshell
     [2834] = 230,    -- Cabbage Pseudoshell
     [2835] = 230,    -- Lavender Pseudoshell
+
     [2836] = 230,    -- Accented Pseudoshell
     [2839] = 424,    -- Delver's Arcane Golem
     [2840] = 424,    -- Silvermoon's Arcane Defender
@@ -1588,6 +1588,7 @@ MountIDtoMountTypeID = {
     [2848] = 424,    -- Savage Snapvine
     [2850] = 424,    -- Fluffy Comfy Flying Carpet
     [2851] = 424,    -- Gruffy Comfy Flying Carpet
+
     [2852] = 424,    -- Huffy Comfy Flying Carpet
     [2853] = 424,    -- Stuffy Comfy Flying Carpet
     [2913] = 230,    -- Vivid Chloroceros
@@ -1607,5 +1608,6 @@ MountIDtoMountTypeID = {
     [2701] = 424,    -- Cindertuft Groveglider
     [2702] = 424,    -- Gloombough Groveglider
     [2703] = 424,    -- Blossombranch Groveglider
+    [238] = 242,    -- Swift Spectral Gryphon
 }
 return MountIDtoMountTypeID

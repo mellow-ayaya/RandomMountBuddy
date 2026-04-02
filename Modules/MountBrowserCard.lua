@@ -154,7 +154,7 @@ local CameraOverrides = {
 	["Grimclaws"] = { x = 7.80, y = -4.20, z = 4.30, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
 	["Pangolin"] = { x = 5.80, y = -2.80, z = 3.10, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
 	["Untainted Grove Crawler"] = { x = 3.50, y = -1.60, z = 1.80, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
-	["Vibrant Petalwing"] = { x = 5.80, y = -3.10, z = 3.50, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
+	["Petalwing"] = { x = 5.80, y = -3.10, z = 3.50, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
 	["Vicious Snaplizard"] = { x = 7.00, y = -3.30, z = 3.30, yaw = 2.6400, pitch = 0.2000, roll = 0.0000 },
 	-- Add more calibrated settings here...
 }

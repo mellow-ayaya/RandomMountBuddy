@@ -3255,55 +3255,91 @@ function addon:DetectAndProcessNewMounts()
 	end
 
 	local newMountsFound = 0
+	local partialMountsFound = 0
 	local processedCount = 0
 	addon:DebugData("Scanning " .. #allMountIDs .. " mounts for auto-detection...")
 	for _, mountID in ipairs(allMountIDs) do
 		processedCount = processedCount + 1
-		-- Check if mount is NOT in our manual data
-		if not (self.MountToFamily and self.MountToFamily[mountID]) then
-			-- Get mount info
-			local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar =
+		local mappedFamily = self.MountToFamily and self.MountToFamily[mountID]
+		local familyIsDefined = mappedFamily and self.FamilyDefinitions and self.FamilyDefinitions[mappedFamily]
+		if not mappedFamily then
+			-- Fully missing: not in MountToFamily at all
+			local name, spellID, icon, isActive, isUsable, sourceType =
 					C_MountJournal.GetMountInfoByID(mountID)
-			-- Process all mounts with valid names, regardless of collection status
-			-- Detection should catch any mount missing from manual data, not just collected ones
 			if name and type(name) == "string" and name ~= "" then
-				-- Get extended mount info for better defaults
-				local creatureDisplayInfoID, description, source, isSelfMount, mountTypeID, uiModelSceneID = C_MountJournal
-						.GetMountInfoExtraByID(mountID)
-				-- Use clean mount name as family name
+				local creatureDisplayInfoID, description, source, isSelfMount, mountTypeID, uiModelSceneID =
+						C_MountJournal.GetMountInfoExtraByID(mountID)
 				local familyName = name
-				-- Generate minimal traits (no special traits)
 				local traits = self:GenerateMinimalTraitsForNewMount(mountID)
-				-- Store temporary data - each mount becomes its own standalone family
 				self.autoDetectedMounts.mountToFamily[mountID] = familyName
 				self.autoDetectedMounts.familyDefinitions[familyName] = {
-					superGroup = nil, -- No supergroup - standalone family
+					superGroup = nil,
 					traits = traits,
 					isAutoDetected = true,
 					originalName = name,
 					mountTypeID = mountTypeID,
 					sourceType = sourceType,
-					detectedVersion = GetBuildInfo(), -- Track when this was detected
+					detectedVersion = GetBuildInfo(),
 				}
 				newMountsFound = newMountsFound + 1
-				-- Log first few detections for debugging
 				if newMountsFound <= 5 then
 					addon:DebugData("New mount detected: " ..
 						name .. " (ID: " .. mountID .. ", Type: " .. tostring(mountTypeID) .. ")")
 				end
+			end
+		elseif not familyIsDefined then
+			-- Partially registered: MountToFamily entry exists but family has no FamilyDefinitions entry
+			local name, spellID, icon, isActive, isUsable, sourceType =
+					C_MountJournal.GetMountInfoByID(mountID)
+			if name and type(name) == "string" and name ~= "" then
+				local creatureDisplayInfoID, description, source, isSelfMount, mountTypeID, uiModelSceneID =
+						C_MountJournal.GetMountInfoExtraByID(mountID)
+				local traits = self:GenerateMinimalTraitsForNewMount(mountID)
+				-- Use the existing mapped family name so mounts sharing that missing family stay grouped
+				self.autoDetectedMounts.mountToFamily[mountID] = mappedFamily
+				if not self.autoDetectedMounts.familyDefinitions[mappedFamily] then
+					self.autoDetectedMounts.familyDefinitions[mappedFamily] = {
+						superGroup = nil,
+						traits = traits,
+						isAutoDetected = true,
+						isPartialRegistration = true,
+						originalName = name,
+						mountTypeID = mountTypeID,
+						sourceType = sourceType,
+						detectedVersion = GetBuildInfo(),
+					}
+					-- Only count the first time we see each missing family
+					partialMountsFound = partialMountsFound + 1
+				end
+
+				addon:DebugData("Partial registration detected: " ..
+					name .. " (ID: " .. mountID .. ", family '" .. mappedFamily .. "' missing from FamilyDefinitions)")
 			end
 		end
 	end
 
 	-- Update stats
 	self.autoDetectedMounts.detectionStats.totalDetected = newMountsFound
+	self.autoDetectedMounts.detectionStats.partialDetected = partialMountsFound
 	self.autoDetectedMounts.detectionStats.lastScanTime = GetTime()
 	local endTime = debugprofilestop()
 	local elapsed = endTime - startTime
-	if newMountsFound > 0 then
-		addon:DebugCore("Detected " .. newMountsFound .. " new mounts in " .. string.format("%.2f", elapsed) .. "ms")
+	if newMountsFound > 0 or partialMountsFound > 0 then
+		addon:DebugCore("Detected " .. newMountsFound .. " new mounts, " ..
+			partialMountsFound .. " partial registrations in " .. string.format("%.2f", elapsed) .. "ms")
 		--@debug@
-		addon:AlwaysPrint("Detected " .. newMountsFound .. " new mounts and added them as standalone families")
+		local parts = {}
+		if newMountsFound > 0 then
+			table.insert(parts, newMountsFound .. " new mount" .. (newMountsFound == 1 and "" or "s"))
+		end
+
+		if partialMountsFound > 0 then
+			table.insert(parts, partialMountsFound ..
+				" partially registered mount" .. (partialMountsFound == 1 and "" or "s") ..
+				" (in MountToFamily but missing FamilyDefinitions entry)")
+		end
+
+		addon:AlwaysPrint("Detected " .. table.concat(parts, " and ") .. " - use /rmb export")
 		--@end-debug@
 		-- Invalidate MountDataManager cache since we added new mounts
 		if self.MountDataManager then
@@ -3329,51 +3365,48 @@ function addon:ExportAutoDetectedMounts()
 		return
 	end
 
-	local exportData = {
-		mountToFamily = {},
-		familyDefinitions = {},
-		mountIDtoMountTypeID = {}, -- NEW: Mount type mapping
-	}
-	-- Iterate through auto-detected mounts
+	-- Separate fully-missing mounts from partially-registered ones
+	local newData = { mountToFamily = {}, familyDefinitions = {}, mountIDtoMountTypeID = {} }
+	local partialData = { familyDefinitions = {}, mountIDtoMountTypeID = {} }
 	for familyName, familyDef in pairs(self.autoDetectedMounts.familyDefinitions) do
 		if familyDef.isAutoDetected then
-			-- Add to FamilyDefinitions
-			exportData.familyDefinitions[familyName] = {
-				superGroup = nil,
-				traits = familyDef.traits,
-			}
+			local defEntry = { superGroup = nil, traits = familyDef.traits }
+			if familyDef.isPartialRegistration then
+				partialData.familyDefinitions[familyName] = defEntry
+			else
+				newData.familyDefinitions[familyName] = defEntry
+			end
 		end
 	end
 
-	-- Get mount assignments and type IDs
 	for mountID, familyName in pairs(self.autoDetectedMounts.mountToFamily) do
-		exportData.mountToFamily[mountID] = familyName
-		-- Get mountTypeID for this mount
 		local familyDef = self.autoDetectedMounts.familyDefinitions[familyName]
-		if familyDef and familyDef.mountTypeID then
-			exportData.mountIDtoMountTypeID[mountID] = familyDef.mountTypeID
+		if familyDef then
+			if familyDef.isPartialRegistration then
+				-- MountToFamily entry already exists in the data file; only export MountIDtoMountTypeID
+				if familyDef.mountTypeID then
+					partialData.mountIDtoMountTypeID[mountID] = familyDef.mountTypeID
+				end
+			else
+				newData.mountToFamily[mountID] = familyName
+				if familyDef.mountTypeID then
+					newData.mountIDtoMountTypeID[mountID] = familyDef.mountTypeID
+				end
+			end
 		end
 	end
 
-	local count = 0
-	for _ in pairs(exportData.mountToFamily) do count = count + 1 end
+	local newCount = 0
+	for _ in pairs(newData.mountToFamily) do newCount = newCount + 1 end
 
-	if count > 0 then
-		-- Build export string for popup display
+	local partialCount = 0
+	for _ in pairs(partialData.familyDefinitions) do partialCount = partialCount + 1 end
+
+	local totalCount = newCount + partialCount
+	if totalCount > 0 then
 		local exportLines = {}
-		table.insert(exportLines, "=== NEW MOUNTS EXPORT (New Two-Table Format) ===")
-		table.insert(exportLines, "")
-		-- MountToFamily section
-		table.insert(exportLines, "-- Add to MountToFamily table:")
-		for mountID, familyName in pairs(exportData.mountToFamily) do
-			local mountName = C_MountJournal.GetMountInfoByID(mountID)
-			table.insert(exportLines, "    [" .. mountID .. "] = \"" .. familyName .. "\",    -- " .. (mountName or "Unknown"))
-		end
-
-		table.insert(exportLines, "")
-		-- FamilyDefinitions section
-		table.insert(exportLines, "-- Add to FamilyDefinitions table:")
-		for familyName, familyDef in pairs(exportData.familyDefinitions) do
+		-- Helper to write a FamilyDefinitions block
+		local function writeFamilyDef(familyName, familyDef)
 			table.insert(exportLines, "    [\"" .. familyName .. "\"] = {")
 			table.insert(exportLines, "        superGroup = " ..
 				(familyDef.superGroup and ("\"" .. familyDef.superGroup .. "\"") or "nil") .. ",")
@@ -3389,31 +3422,76 @@ function addon:ExportAutoDetectedMounts()
 			table.insert(exportLines, "    },")
 		end
 
-		table.insert(exportLines, "")
-		-- MountIDtoMountTypeID section
-		table.insert(exportLines, "-- Add to MountIDtoMountTypeID table:")
-		for mountID, mountTypeID in pairs(exportData.mountIDtoMountTypeID) do
-			local mountName = C_MountJournal.GetMountInfoByID(mountID)
-			table.insert(exportLines, "    [" .. mountID .. "] = " .. mountTypeID .. ",    -- " .. (mountName or "Unknown"))
+		table.insert(exportLines, "=== RMB MOUNT DATA EXPORT ===")
+		-- Section 1: Fully new mounts (all three tables needed)
+		if newCount > 0 then
+			table.insert(exportLines, "")
+			table.insert(exportLines, "--- NEW MOUNTS (" .. newCount .. ") - add entries to all three tables ---")
+			table.insert(exportLines, "")
+			table.insert(exportLines, "-- MountToFamily:")
+			for mountID, familyName in pairs(newData.mountToFamily) do
+				local mountName = C_MountJournal.GetMountInfoByID(mountID)
+				table.insert(exportLines, "    [" .. mountID .. "] = \"" .. familyName ..
+					"\",    -- " .. (mountName or "Unknown"))
+			end
+
+			table.insert(exportLines, "")
+			table.insert(exportLines, "-- FamilyDefinitions:")
+			for familyName, familyDef in pairs(newData.familyDefinitions) do
+				writeFamilyDef(familyName, familyDef)
+			end
+
+			table.insert(exportLines, "")
+			table.insert(exportLines, "-- MountIDtoMountTypeID:")
+			for mountID, mountTypeID in pairs(newData.mountIDtoMountTypeID) do
+				local mountName = C_MountJournal.GetMountInfoByID(mountID)
+				table.insert(exportLines, "    [" .. mountID .. "] = " .. mountTypeID ..
+					",    -- " .. (mountName or "Unknown"))
+			end
+		end
+
+		-- Section 2: Partial registrations (only FamilyDefinitions missing)
+		if partialCount > 0 then
+			table.insert(exportLines, "")
+			table.insert(exportLines,
+				"--- PARTIAL REGISTRATIONS (" ..
+				partialCount .. ") - MountToFamily entry already exists, add only FamilyDefinitions ---")
+			table.insert(exportLines, "")
+			table.insert(exportLines, "-- FamilyDefinitions:")
+			for familyName, familyDef in pairs(partialData.familyDefinitions) do
+				writeFamilyDef(familyName, familyDef)
+			end
+
+			if next(partialData.mountIDtoMountTypeID) then
+				table.insert(exportLines, "")
+				table.insert(exportLines, "-- MountIDtoMountTypeID (verify these are not already present):")
+				for mountID, mountTypeID in pairs(partialData.mountIDtoMountTypeID) do
+					local mountName = C_MountJournal.GetMountInfoByID(mountID)
+					table.insert(exportLines, "    [" .. mountID .. "] = " .. mountTypeID ..
+						",    -- " .. (mountName or "Unknown"))
+				end
+			end
 		end
 
 		table.insert(exportLines, "")
 		table.insert(exportLines, "=== END EXPORT ===")
-		-- Join all lines into a single string
 		local exportString = table.concat(exportLines, "\n")
-		-- Show popup with export data
 		StaticPopup_Show("RMB_EXPORT_MOUNTS_POPUP", nil, nil, {
 			exportString = exportString,
-			mountCount = count,
+			mountCount = totalCount,
 		})
-		addon:AlwaysPrint("Found " .. count .. " new mounts. Export popup opened - copy the text from the dialog")
-		-- Also log to debug if enabled
-		addon:DebugCore("Exported " .. count .. " new mounts to popup")
+		local summary = {}
+		if newCount > 0 then table.insert(summary, newCount .. " new") end
+
+		if partialCount > 0 then table.insert(summary, partialCount .. " partial") end
+
+		addon:AlwaysPrint("Found " .. table.concat(summary, ", ") ..
+			" mount(s) to export. Popup opened - copy the text from the dialog")
+		addon:DebugCore("Exported " .. totalCount .. " mounts to popup (" ..
+			newCount .. " new, " .. partialCount .. " partial)")
 	else
 		addon:AlwaysPrint("No new mounts to export")
 	end
-
-	return exportData
 end
 
 -- ============================================================================
