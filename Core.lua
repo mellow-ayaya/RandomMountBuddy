@@ -999,6 +999,15 @@ end
 -- Event handler methods
 function addon:OnNewMountAdded(eventName, mountID)
 	addon:DebugEvent("NEW_MOUNT_ADDED - Mount ID: " .. tostring(mountID))
+	-- Record collection timestamp (forward-tracking only; no retroactive data)
+	if not self.db.profile.mountCollectionDates then
+		self.db.profile.mountCollectionDates = {}
+	end
+
+	if not self.db.profile.mountCollectionDates[mountID] then
+		self.db.profile.mountCollectionDates[mountID] = time()
+	end
+
 	self:HandleMountCollectionChange("new_mount", mountID)
 end
 

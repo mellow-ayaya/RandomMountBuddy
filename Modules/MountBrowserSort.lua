@@ -15,6 +15,8 @@ MountBrowserSort.sortModes = {
 	{ key = "name_desc", label = "Za", tooltip = "Sort by Name (Z-A)" },
 	{ key = "weight_asc", label = "06", tooltip = "Sort by Weight (0-6)" },
 	{ key = "weight_desc", label = "60", tooltip = "Sort by Weight (6-0)" },
+	{ key = "collected_asc", label = "C+", tooltip = "Sort by Collect Date (Old)" },
+	{ key = "collected_desc", label = "C-", tooltip = "Sort by Collect Date (New)" },
 }
 -- ============================================================================
 -- INITIALIZATION
@@ -67,7 +69,7 @@ end
 -- ============================================================================
 function MountBrowserSort:CreateSortMenu(parent)
 	local frame = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-	frame:SetSize(150, #self.sortModes * 24 + 8)
+	frame:SetSize(185, #self.sortModes * 24 + 8)
 	frame:SetFrameStrata("DIALOG")
 	frame:SetFrameLevel(parent:GetFrameLevel() + 10)
 	-- Backdrop - solid gray background (matching filter style)
@@ -84,7 +86,7 @@ function MountBrowserSort:CreateSortMenu(parent)
 	frame.modeButtons = {}
 	for i, mode in ipairs(self.sortModes) do
 		local btn = CreateFrame("Button", nil, frame)
-		btn:SetSize(142, 20)
+		btn:SetSize(177, 20)
 		btn:SetPoint("TOP", frame, "TOP", 0, -4 - ((i - 1) * 24))
 		-- Background
 		btn.bg = btn:CreateTexture(nil, "BACKGROUND")
@@ -203,6 +205,36 @@ function MountBrowserSort:GetCurrentSortMode()
 end
 
 -- ============================================================================
+-- TIMESTAMP HELPER
+-- ============================================================================
+function MountBrowserSort:GetGroupNewestTimestamp(item)
+	local dates = addon.db and addon.db.profile and addon.db.profile.mountCollectionDates
+	if not dates then return 0 end
+
+	if item.type == "mount" then
+		local mountID = item.mountID or (item.mountData and item.mountData.mountID)
+		return mountID and (dates[mountID] or 0) or 0
+	end
+
+	local mountIDs = {}
+	if item.type == "familyName" then
+		mountIDs = (addon.processedData and addon.processedData.familyToMountIDsMap and
+			addon.processedData.familyToMountIDsMap[item.key]) or {}
+	elseif item.type == "supergroup" then
+		mountIDs = (addon.processedData and addon.processedData.superGroupToMountIDsMap and
+			addon.processedData.superGroupToMountIDsMap[item.key]) or {}
+	end
+
+	local newest = 0
+	for _, mountID in ipairs(mountIDs) do
+		local ts = dates[mountID] or 0
+		if ts > newest then newest = ts end
+	end
+
+	return newest
+end
+
+-- ============================================================================
 -- SORT COMPARISON FUNCTIONS
 -- ============================================================================
 function MountBrowserSort:SortItems(items)
@@ -241,6 +273,28 @@ function MountBrowserSort:SortItems(items)
 			end
 
 			return weightA > weightB
+		end)
+	elseif sortMode == "collected_desc" then
+		-- Sort by most recently collected first (then by name for ties / untracked mounts)
+		table.sort(items, function(a, b)
+			local tsA = MountBrowserSort:GetGroupNewestTimestamp(a)
+			local tsB = MountBrowserSort:GetGroupNewestTimestamp(b)
+			if tsA == tsB then
+				return (a.displayName or a.key) < (b.displayName or b.key)
+			end
+
+			return tsA > tsB
+		end)
+	elseif sortMode == "collected_asc" then
+		-- Sort by oldest collected first (then by name for ties / untracked mounts)
+		table.sort(items, function(a, b)
+			local tsA = MountBrowserSort:GetGroupNewestTimestamp(a)
+			local tsB = MountBrowserSort:GetGroupNewestTimestamp(b)
+			if tsA == tsB then
+				return (a.displayName or a.key) < (b.displayName or b.key)
+			end
+
+			return tsA < tsB
 		end)
 	end
 

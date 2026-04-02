@@ -1,3 +1,6 @@
+# 1.1.77 - 2026-04-02
+- Added new sorting method for Mount Browser: Collect Date (Old) & Collect Date (New). Due to technical limitations, it only works for mounts acquired after installing this update.
+
 # 1.1.76 - 2026-04-02
 - Added a new feature "RMB Keybind while Mounted" in Mount Browser -> Summon Settings with the options: Dismount (default), Remount (summon another mount), Nothing.
 - Moved "Show Uniques in Groups" from Summoning Settings to Browser Config.
