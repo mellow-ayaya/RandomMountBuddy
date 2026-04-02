@@ -72,7 +72,7 @@ local rootOptionsTable = {
 					addon.MinimapButton:UpdateMinimapButtonVisibility()
 				end
 			end,
-			width = 1.4,
+			width = 1.2,
 
 		},
 
@@ -119,7 +119,7 @@ local rootOptionsTable = {
 					addon.UtilityMounts:RefreshDisplay()
 				end
 			end,
-			width = 1.4,
+			width = 1.2,
 		},
 
 		generalHeader = {
@@ -141,7 +141,7 @@ local rootOptionsTable = {
 					addon:DebugOptions("Refreshed mount pools after contextual summoning change")
 				end
 			end,
-			width = 1.4,
+			width = 1.2,
 		},
 
 		useDeterministicSummoning = {
@@ -178,6 +178,24 @@ local rootOptionsTable = {
 				end
 			end,
 			width = 1.2,
+		},
+
+		mountedKeyBehavior = {
+			order = 32.1,
+			type = "select",
+			name = "RMB Keybind while Mounted",
+			desc =
+			"What happens when you press the mount key while already mounted.\n\n|cffffd700Dismount|r - Default behavior.\n|cffffd700Remount|r - Summon another mount.\n|cffffd700Do Nothing|r - The key does nothing while mounted.",
+			values = {
+				dismount = "Dismount",
+				remount = "Remount",
+				nothing = "Do Nothing",
+			},
+			get = function() return RandomMountBuddy:GetSetting("mountedKeyBehavior") or "dismount" end,
+			set = function(_, val)
+				RandomMountBuddy:SetSetting("mountedKeyBehavior", val)
+				RandomMountBuddy.SecureHandlers:OnSettingChanged("mountedKeyBehavior", val)
+			end,
 		},
 
 		summonTargetMount = {
@@ -283,7 +301,7 @@ local rootOptionsTable = {
 					disabled = function()
 						return not (addon.FavoriteSync and addon.FavoriteSync:GetSetting("enableFavoriteSync"))
 					end,
-					width = 1.4,
+					width = 1.2,
 				},
 
 				syncFamilyWeights = {

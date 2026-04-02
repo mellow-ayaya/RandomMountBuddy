@@ -331,6 +331,20 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 			end
 		end
 	)
+	frame.groupFamiliesCB = CreateCheckbox(
+		"groupFamilies",
+		"Show Uniques in Groups",
+		"browserGroupFamiliesTogether",
+		"Displays mounts in their assigned groups regardless whether you enabled the 'Favor Unique Mounts' setting.\n|cff00ff00Recommended to keep Enabled|r",
+		false, -- Don't refresh immediately (will refresh on tab switch)
+		200,
+		function(isChecked)
+			-- Set flag to refresh when returning to browse tab
+			if mountBrowser then
+				mountBrowser.needsGridRefresh = true
+			end
+		end
+	)
 	NewRow()
 	yOffset = yOffset - sectionSpacing
 	-- ========== SUMMON SETTINGS ==========
@@ -363,21 +377,54 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 		"Mounts labelled as Unique get their own independent chance to be summoned instead of sharing chances with similar mounts.\n|cff1eff00You can toggle which mounts are unique via the gem icon in Mount Browser (expand groups to see it).|r",
 		true
 	)
-	frame.groupFamiliesCB = CreateCheckbox(
-		"groupFamilies",
-		"Show Uniques in Groups",
-		"browserGroupFamiliesTogether",
-		"Displays mounts in their assigned groups regardless whether you enabled the 'Favor Unique Mounts' setting.\n|cff00ff00Recommended to keep Enabled|r",
-		false, -- Don't refresh immediately (will refresh on tab switch)
-		200,
-		function(isChecked)
-			-- Set flag to refresh when returning to browse tab
-			if mountBrowser then
-				mountBrowser.needsGridRefresh = true
+	-- RMB Keybind while Mounted dropdown
+	local mountedBehaviorLabel = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	mountedBehaviorLabel:SetPoint("TOPLEFT", xOffset, yOffset + 20)
+	mountedBehaviorLabel:SetText("RMB Keybind while Mounted:")
+	local mountedBehaviorDropdown = CreateFrame("Frame", "RMB_MountedBehaviorDropdown", scrollChild,
+		"UIDropDownMenuTemplate")
+	mountedBehaviorDropdown:SetPoint("TOPLEFT", xOffset - 17, yOffset)
+	UIDropDownMenu_SetWidth(mountedBehaviorDropdown, 160)
+	local mountedBehaviorOptions = {
+		{ value = "dismount", text = "Dismount" },
+		{ value = "remount", text = "Remount" },
+		{ value = "nothing", text = "Do Nothing" },
+	}
+	UIDropDownMenu_Initialize(mountedBehaviorDropdown, function(self, level)
+		for _, option in ipairs(mountedBehaviorOptions) do
+			local info = UIDropDownMenu_CreateInfo()
+			info.text = option.text
+			info.value = option.value
+			info.func = function()
+				addon:SetSetting("mountedKeyBehavior", option.value)
+				UIDropDownMenu_SetText(mountedBehaviorDropdown, option.text)
+				if addon.SecureHandlers then
+					addon.SecureHandlers:OnSettingChanged("mountedKeyBehavior", option.value)
+				end
 			end
+			UIDropDownMenu_AddButton(info, level)
 		end
-	)
-	NewRow()
+	end)
+	-- Set initial value
+	local currentBehavior = addon:GetSetting("mountedKeyBehavior") or "dismount"
+	for _, opt in ipairs(mountedBehaviorOptions) do
+		if opt.value == currentBehavior then
+			UIDropDownMenu_SetText(mountedBehaviorDropdown, opt.text)
+			break
+		end
+	end
+
+	-- Tooltip
+	if mountBrowser and mountBrowser.SetupSimpleTooltip then
+		mountBrowser:SetupSimpleTooltip(mountedBehaviorDropdown, {
+			text = "RMB Keybind while Mounted",
+			desc =
+			"|cffffd700Dismount|r |cffffffff- Default behavior.|r\n|cffffd700Remount|r |cffffffff- Summon another mount.|r\n|cffffd700Do Nothing|r |cffffffff- The key does nothing while mounted.|r",
+			anchor = "ANCHOR_TOP",
+		})
+	end
+
+	yOffset = yOffset - 55
 	yOffset = yOffset - sectionSpacing
 	-- ========== FAVORITE SYNC SETTINGS ==========
 	CreateHeader("Weight Sync Settings")

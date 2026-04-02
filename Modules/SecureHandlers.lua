@@ -87,6 +87,33 @@ local function getCachedSetting(key)
 	return settingsCache[key]
 end
 
+-- Returns the mounted-behavior-aware SRM prefix block for class-specific macros (druid/shaman/etc).
+-- "nothing"  → /stopmacro [mounted] fires BEFORE SRM so pressing the key while mounted does nothing.
+-- "dismount" / "remount" → SRM runs first (SRM itself decides the action); stopmacro after prevents
+--   class-form lines from also executing while the player is still in the mounted state.
+local function buildMountedPrefix(buttonNumber)
+	local behavior = getCachedSetting("mountedKeyBehavior") or "dismount"
+	local run = string.format(
+		"/run RMB.activeKeybind=%d;RMB:SRM(true);UIErrorsFrame:SuppressMessagesThisFrame()",
+		buttonNumber)
+	if behavior == "nothing" then
+		return "/stopmacro [mounted]\n" .. run .. "\n/stopmacro [mounted]"
+	else
+		-- "dismount" and "remount" share the same macro; SRM handles the distinction internally.
+		return run .. "\n/stopmacro [mounted]"
+	end
+end
+
+-- Returns a simple leading stopmacro for non-class-specific (regularZone/Undermine) macros.
+local function getMountedPrefix()
+	local behavior = getCachedSetting("mountedKeyBehavior") or "dismount"
+	if behavior == "nothing" then
+		return "/stopmacro [mounted]\n"
+	end
+
+	return ""
+end
+
 -- Function to safely get spell info with caching
 local function getCachedSpellInfo(spellID, defaultName)
 	if not spellCache[spellID] then
@@ -137,14 +164,15 @@ addonTable.isUpdatingMacros = false
 local function getMountMacroForCurrentZone(buttonNumber)
 	buttonNumber = buttonNumber or 1
 	local locationID = C_Map.GetBestMapForUnit("player")
+	local mountedPrefix = getMountedPrefix()
 	local macro
 	-- Undermine zones: Try G99 first, then regular mount
 	if locationID == 2346 or locationID == 2406 then
 		addonTable:DebugCore("Mount macro: Using Undermine macro (G99 + fallback)")
-		macro = getUndermineZoneMacro(buttonNumber)
+		macro = mountedPrefix .. getUndermineZoneMacro(buttonNumber)
 	else
 		addonTable:DebugCore("Mount macro: Using regular zone macro")
-		macro = string.format(MACRO_TEMPLATES.regularZone, buttonNumber)
+		macro = mountedPrefix .. string.format(MACRO_TEMPLATES.regularZone, buttonNumber)
 	end
 
 	-- Prepend druid pre-prefix if player is a druid
@@ -160,8 +188,8 @@ end
 local function buildDruidMacro(travelFormName, catFormName, useSmartFormSwitching, keepTravelFormActive, buttonNumber)
 	buttonNumber = buttonNumber or 1
 	local parts = {
-		MACRO_TEMPLATES.druidPrePrefix,                    -- Druid form handling first
-		string.format(MACRO_TEMPLATES.prefix, buttonNumber), -- Then regular prefix
+		MACRO_TEMPLATES.druidPrePrefix, -- Druid form handling first
+		buildMountedPrefix(buttonNumber), -- Then mounted-aware SRM prefix
 	}
 	if useSmartFormSwitching then
 		local template = keepTravelFormActive and MACRO_TEMPLATES.druidSmart.keepActive or MACRO_TEMPLATES.druidSmart.normal
@@ -177,7 +205,7 @@ end
 
 local function buildShamanMacro(ghostWolfName, keepGhostWolfActive, buttonNumber)
 	buttonNumber = buttonNumber or 1
-	local parts = { string.format(MACRO_TEMPLATES.prefix, buttonNumber) }
+	local parts = { buildMountedPrefix(buttonNumber) }
 	local template = keepGhostWolfActive and MACRO_TEMPLATES.shaman.keepActive or MACRO_TEMPLATES.shaman.normal
 	table.insert(parts, string.format(template, ghostWolfName))
 	return buildMacro(parts)
@@ -185,7 +213,7 @@ end
 
 local function buildFallingMacro(spellName, keepActive, targetLogic, buttonNumber)
 	buttonNumber = buttonNumber or 1
-	local parts = { string.format(MACRO_TEMPLATES.prefix, buttonNumber) }
+	local parts = { buildMountedPrefix(buttonNumber) }
 	if targetLogic then
 		table.insert(parts, string.format(MACRO_TEMPLATES.falling.withTarget, targetLogic, spellName))
 	else
@@ -640,6 +668,7 @@ function SecureHandlers:OnSettingChanged(key, value)
 		useLevitateWhileFalling = true,
 		useLevitateOnOthers = true,
 		useSmartFormSwitching = true,
+		mountedKeyBehavior = true,
 	}
 	if relevantSettings[key] then
 		addonTable:DebugCore("Setting changed notification received for:", key, "->", value)

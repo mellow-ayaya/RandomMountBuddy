@@ -1,3 +1,10 @@
+# 1.1.76 - 2026-04-02
+- Added a new feature "RMB Keybind while Mounted" in Mount Browser -> Summon Settings with the options: Dismount (default), Remount (summon another mount), Nothing.
+- Moved "Show Uniques in Groups" from Summoning Settings to Browser Config.
+- Blacklisted mounts (fake mounts that you automatically summon when dead) have been banished back to the shadowlands.
+- Fixed search not working correctly in some cases.
+- Reordered mount data again for easier maintenance
+
 # 1.1.75 - 2026-04-02
 - Fixed several issues with new mounts categorizations that accumulated recently.
 - Added check on login to catch such issues as soon as they occur. (dev only)

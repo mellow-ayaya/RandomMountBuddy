@@ -40,6 +40,7 @@ local dbDefaults = {
 		contextualSummoning = true,
 		useDeterministicSummoning = true,
 		summonTargetMount = true,
+		mountedKeyBehavior = "dismount",
 		-- Class Spells
 		-- Druid
 		useTravelFormWhileMoving = true,
@@ -361,7 +362,7 @@ function addon:InitializeProcessedData()
 			end
 
 			local familyInfo = self:GetFamilyInfoForMountID(mountID)
-			if familyInfo and familyInfo.familyName then
+			if familyInfo and familyInfo.familyName and familyInfo.familyName ~= "Blacklisted" then
 				processedCount = processedCount + 1
 				-- Create common mount info
 				local mountFamilyInfo = {

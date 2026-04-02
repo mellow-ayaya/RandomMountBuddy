@@ -92,30 +92,50 @@ end
 function MountBrowserSearch:BuildHierarchicalResults(searchTerm)
 	if not addon.processedData then return end
 
+	-- Mirror the same groupTogether logic used by LoadMainGrid so search results
+	-- are consistent with what the browser actually renders.
+	local groupTogether = addon:GetSetting("browserGroupFamiliesTogether")
+	if groupTogether == nil then groupTogether = false end
+
 	-- Search through all supergroups
 	if addon.SuperGroupManager then
 		local supergroups = addon.SuperGroupManager:GetAllSuperGroups()
 		for _, sg in ipairs(supergroups) do
-			self:ProcessSupergroup(sg, searchTerm)
+			self:ProcessSupergroup(sg, searchTerm, groupTogether)
 		end
 	end
 
-	-- Search through standalone families
-	local standaloneFamilies = addon.processedData.dynamicStandaloneFamilies or
-			addon.processedData.standaloneFamilyNames or {}
+	-- Search through standalone families using the same map LoadMainGrid uses
+	local standaloneFamilies
+	if not groupTogether then
+		standaloneFamilies = addon.processedData.dynamicStandaloneFamilies or
+				addon.processedData.standaloneFamilyNames or {}
+	else
+		standaloneFamilies = addon.processedData.standaloneFamilyNames or {}
+	end
+
 	for familyName, _ in pairs(standaloneFamilies) do
 		self:ProcessFamily(familyName, nil, searchTerm)
 	end
 end
 
-function MountBrowserSearch:ProcessSupergroup(supergroup, searchTerm)
+function MountBrowserSearch:ProcessSupergroup(supergroup, searchTerm, groupTogether)
 	local sgName = supergroup.name
 	local sgDisplayName = (supergroup.displayName or sgName):lower()
 	-- Track matching families and mounts in this supergroup
 	local matchingFamilies = {}
 	local matchingMounts = {}
-	-- Get families in this supergroup
-	local families = addon:GetSuperGroupFamilies(sgName)
+	-- Get families in this supergroup, using the same map LoadMainGrid/LoadFamilyGrid use.
+	-- When groupTogether=true the browser renders families from the original superGroupMap
+	-- (no trait separation), so search must do the same or trait-separated families like
+	-- "Lynx", "Phalynx", etc. will be invisible to both the render list and the search.
+	local families
+	if not groupTogether then
+		families = addon:GetSuperGroupFamilies(sgName) -- dynamicSuperGroupMap (trait-separated)
+	else
+		families = (addon.processedData.superGroupMap and addon.processedData.superGroupMap[sgName]) or {}
+	end
+
 	-- Check each family
 	for _, familyName in ipairs(families) do
 		local familyMatches = self:ProcessFamily(familyName, sgName, searchTerm)

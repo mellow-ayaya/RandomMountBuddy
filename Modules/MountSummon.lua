@@ -1534,9 +1534,15 @@ function MountSummon:SummonRandomMount(useContext)
 	addon:DebugSummon("SummonRandomMount called with useContext:", useContext)
 	-- Check if player is already mounted - if so, just dismount and return
 	if IsMounted() then
-		addon:DebugSummon("Player is mounted, dismounting instead of summoning new mount")
-		Dismount() -- or C_MountJournal.Dismiss() in newer versions
-		return true -- Return true to indicate successful action (dismounting)
+		local behavior = RandomMountBuddy:GetSetting("mountedKeyBehavior") or "dismount"
+		if behavior == "nothing" then
+			return -- macro already blocked this, but safety net
+		elseif behavior == "dismount" then
+			Dismount()
+			return
+		end
+
+		-- "remount": fall through — let the normal mount selection and summoning run
 	end
 
 	-- TARGET MOUNT: Check if we should summon target's mount
