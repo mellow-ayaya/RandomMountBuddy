@@ -1,3 +1,6 @@
+# 1.1.78 - 2026-04-09
+- Added the latest campaign mount
+
 # 1.1.77 - 2026-04-02
 - Added new sorting method for Mount Browser: Collect Date (Old) & Collect Date (New). Due to technical limitations, it only works for mounts acquired after installing this update.
 

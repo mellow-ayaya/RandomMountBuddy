@@ -373,6 +373,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2755] = "Midnight Dragonhawk",    -- Umbral Dragonhawk
     [2756] = "Midnight Dragonhawk",    -- Crimson Dragonhawk
     [2758] = "Midnight Dragonhawk",    -- Cobalt Dragonhawk
+    [2754] = "Midnight Dragonhawk",    -- Peridot Dragonhawk
     [2710] = "Sporeglider",    -- Cerulean Sporeglider
     [2713] = "Sporeglider",    -- Ruddy Sporeglider
     [1471] = "Vengeance",    -- Vengeance

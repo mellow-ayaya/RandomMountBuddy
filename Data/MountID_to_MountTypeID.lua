@@ -1609,5 +1609,6 @@ MountIDtoMountTypeID = {
     [2702] = 424,    -- Gloombough Groveglider
     [2703] = 424,    -- Blossombranch Groveglider
     [238] = 242,    -- Swift Spectral Gryphon
+		[2754] = 424,    -- Peridot Dragonhawk
 }
 return MountIDtoMountTypeID
