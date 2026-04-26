@@ -115,6 +115,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2262] = "Harmonious Salutations Bear",    -- Harmonious Salutations Bear
     [2776] = "Midnight Bear",    -- Amani Blessed Bear
     [2778] = "Midnight Bear",    -- Ancestral War Bear
+    [2779] = "Midnight Bear",    -- Witherbark Warbear Mother
     [1304] = "Shadehound",    -- Mawsworn Soulhunter
     [1441] = "Shadehound",    -- Bound Shadehound
     [1442] = "Shadehound",    -- Corridor Creeper
@@ -222,6 +223,11 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [400] = "Camel",    -- Grey Riding Camel
     [432] = "Camel",    -- White Riding Camel
     [1288] = "Explorer's Dunetrekker",    -- Explorer's Dunetrekker
+    -- ========================================================
+    -- CELESTIAL KIRIN
+    -- ========================================================
+    [2742] = "Celestial Kirin",    -- Thunderhoof Celestial
+    [2743] = "Celestial Kirin",    -- Stormgilded Celestial
     -- ========================================================
     -- CHROMATIC DRAGON
     -- ========================================================
@@ -370,10 +376,10 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2568] = "Infused Dragonhawk",    -- Lightwing Dragonhawk
     [2598] = "Infused Dragonhawk",    -- Voidlight Surger
     [2753] = "Midnight Dragonhawk",    -- Fiery Dragonhawk
+    [2754] = "Midnight Dragonhawk",    -- Peridot Dragonhawk
     [2755] = "Midnight Dragonhawk",    -- Umbral Dragonhawk
     [2756] = "Midnight Dragonhawk",    -- Crimson Dragonhawk
     [2758] = "Midnight Dragonhawk",    -- Cobalt Dragonhawk
-    [2754] = "Midnight Dragonhawk",    -- Peridot Dragonhawk
     [2710] = "Sporeglider",    -- Cerulean Sporeglider
     [2713] = "Sporeglider",    -- Ruddy Sporeglider
     [1471] = "Vengeance",    -- Vengeance
@@ -429,6 +435,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2606] = "Voidwing",    -- Royal Voidwing
     [1240] = "World Drake",    -- Obsidian Worldbreaker
     [1798] = "World Drake",    -- Azure Worldchiller
+    [2948] = "World Drake",    -- Golden Ashened Cataclysm
     -- ========================================================
     -- DREAD RAVENS
     -- ========================================================
@@ -510,6 +517,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1419] = "Deathwalker",    -- Sintouched Deathwalker
     [1520] = "Deathwalker",    -- Soultwisted Deathwalker
     [1544] = "Deathwalker",    -- Wastewarped Deathwalker
+    [3005] = "Deathwalker",    -- Cerulean Deathwalker
     [888] = "Farseer's Raging Tempest",    -- Farseer's Raging Tempest
     [2729] = "Farseer's Raging Tempest",    -- Farseer's Felscorned Tempest
     [1219] = "Glacial Tidestorm",    -- Glacial Tidestorm
@@ -675,8 +683,6 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     -- ========================================================
     -- FLYING MECHASUITS
     -- ========================================================
-    [2244] = "Diamond Mechsuit",    -- Diamond Mechsuit
-    [2608] = "Diamond Mechsuit",    -- Light-Forged Mechsuit
     [2119] = "Dwarven Mechsuit",    -- Stonevault Mechsuit
     [2158] = "Dwarven Mechsuit",    -- Crowd Pummeler 2-30
     [2159] = "Dwarven Mechsuit",    -- Machine Defense Unit 1-11
@@ -685,6 +691,9 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [932] = "Lightforged Warframe",    -- Lightforged Warframe
     [2313] = "Magnetomech",    -- Junkmaestro's Magnetomech
     [2604] = "OC91 Chariot",    -- OC91 Chariot
+    [2244] = "Oreforged Mechsuit",    -- Diamond Mechsuit
+    [2608] = "Oreforged Mechsuit",    -- Light-Forged Mechsuit
+		[3006] = "Oreforged Mechsuit",    -- Amethyst Mechsuit
     [1698] = "Rocket Shredder 9001",    -- Rocket Shredder 9001
     [522] = "Sky Golem",    -- Sky Golem
     [845] = "Sky Golem",    -- Mechanized Lumber Extractor
@@ -707,8 +716,10 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [459] = "Jeweled Panther",    -- Sunstone Panther
     [2502] = "Jeweled Panther",    -- Void-Crystal Panther
     [949] = "Luminous Starseeker",    -- Luminous Starseeker
+    [2717] = "Mechanical Prototype Panther MK-0",    -- Mechanical Prototype Panther MK-0
     [741] = "Mystic Runesaber",    -- Mystic Runesaber
     [455] = "Obsidian Nightwing",    -- Obsidian Nightwing
+    [2718] = "Steel Prototype Panther MK-0",    -- Steel Prototype Panther MK-0
     [1531] = "Wen Lo",    -- Wen Lo, the River's Edge
     [421] = "Winged Guardian",    -- Winged Guardian
     -- ========================================================
@@ -736,6 +747,13 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [799] = "Infernal",    -- Flarecore Infernal
     [1167] = "Infernal",    -- Frostshard Infernal
     [1458] = "Wandering Ancient",    -- Wandering Ancient
+    -- ========================================================
+    -- GILNEAN CHARGER
+    -- ========================================================
+    [2926] = "Gilnean Charger",    -- Gilnean Iron Charger
+		[2927] = "Gilnean Charger",    -- Gilnean Copper Charger
+    [2928] = "Gilnean Charger",    -- Pyrewood Rebel's Rouncey
+    [2929] = "Gilnean Charger",    -- Gilneas Loyalist's Rouncey
     -- ========================================================
     -- GLOWMITE
     -- ========================================================
@@ -872,6 +890,11 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2760] = "Sharptalon",    -- Amani Sharptalon
     [1456] = "Skyblazer",    -- Sapphire Skyblazer
     [2261] = "Skyblazer",    -- Coldflame Tempest
+    [2939] = "Sun Roc",    -- [PH] Giant Eagle Sunwalker Mount Blue
+    [2940] = "Sun Roc",    -- Dusk-Painted Sun Roc
+    [2941] = "Sun Roc",    -- Flame-Painted Sun Roc
+    [2942] = "Sun Roc",    -- [PH] Giant Eagle Sunwalker Mount White
+    [2961] = "Void-Corrupted Hex Eagle",    -- Void-Corrupted Hex Eagle
     -- ========================================================
     -- HAWKSTRIDERS
     -- ========================================================
@@ -900,6 +923,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2698] = "Turkeys",    -- Murky Turkey
     [2699] = "Turkeys",    -- Prized Turkey
     [843] = "Vicious Warstrider (PVP)",    -- Vicious Warstrider
+    [2935] = "Void-Touched Hawkstrider",    -- Void-Touched Hawkstrider
     -- ========================================================
     -- HIGH PRIEST'S LIGHTSWORN SEEKER
     -- ========================================================
@@ -1009,6 +1033,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2148] = "Cinderbee",    -- Smoldering Cinderbee
     [2165] = "Cinderbee",    -- Soaring Meaderbee
     [2167] = "Cinderbee",    -- Raging Cinderbee
+		[2933] = "Cinderbee",    -- Magister's Spell Bee
     [1449] = "Corpsefly",    -- Lord of the Corpseflies
     [1495] = "Corpsefly",    -- Maldraxxian Corpsefly
     [1496] = "Corpsefly",    -- Regal Corpsefly
@@ -1201,6 +1226,10 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1253] = "Mechaspider",    -- Scrapforged Mechaspider
     [2480] = "Shreddertank",    -- Crimson Shreddertank
     [2508] = "Shreddertank",    -- Enterprising Shreddertank
+    [3007] = "Shreddertank",    -- Blue-Chip Shreddertank
+    [3008] = "Shreddertank",    -- Profit-Green Shreddertank
+    [3009] = "Shreddertank",    -- Speculative Shreddertank
+    [3010] = "Shreddertank",    -- High-Yield Shreddertank
     -- ========================================================
     -- MECHASUITS
     -- ========================================================
@@ -1325,6 +1354,8 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     -- PLAGUEBATS
     -- ========================================================
     [1596] = "Amalgam of Rage",    -- Amalgam of Rage
+    [2930] = "Arboon",    -- Blossomback Arboon
+		[2931] = "Arboon",    -- Amberback Arboon
     [2540] = "Demonic Fel Bat (Legion Remix)",    -- Bloodguard Fel Bat
     [2543] = "Demonic Fel Bat (Legion Remix)",    -- Risen Fel Bat
     [2545] = "Demonic Fel Bat (Legion Remix)",    -- Forgotten Fel Bat
@@ -1568,6 +1599,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [554] = "Vicious Warsaber (PVP)",    -- Vicious Kaldorei Warsaber
     [1194] = "Vicious Warsaber (PVP)",    -- Vicious White Warsaber
     [1195] = "Vicious Warsaber (PVP)",    -- Vicious Black Warsaber
+    [2965] = "Void-Corrupted Lynx",    -- Void-Corrupted Lynx
     [2535] = "Void-Scarred Lynx",    -- Void-Scarred Lynx
     [2498] = "Void-Scarred Pack Mother",    -- Void-Scarred Pack Mother
     [1239] = "X-995 Mechanocat",    -- X-995 Mechanocat
@@ -1619,11 +1651,12 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     -- SERPENTS
     -- ========================================================
     [1289] = "Ensorcelled Everwyrm",    -- Ensorcelled Everwyrm
+    [1581] = "Manawyrm",    -- Nether-Gorged Greatwyrm
+    [2915] = "Manawyrm",    -- Unbound Manawyrm
     [1282] = "N'Zoth serpent",    -- Black Serpent of N'Zoth
     [1315] = "N'Zoth serpent",    -- Mail Muncher
     [1322] = "N'Zoth serpent",    -- Wriggling Parasite
     [1326] = "N'Zoth serpent",    -- Awakened Mindborer
-    [1581] = "Nether-Gorged Greatwyrm",    -- Nether-Gorged Greatwyrm
     [899] = "Serpent",    -- Abyss Worm
     [947] = "Serpent",    -- Riddler's Mind-Worm
     [1057] = "Serpent",    -- Nazjatar Blood Serpent
@@ -1745,6 +1778,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1237] = "Snapdragon",    -- Royal Snapdragon
     [1255] = "Snapdragon",    -- Deepcoral Snapdragon
     [1256] = "Snapdragon",    -- Snapdragon Kelpstalker
+    [2964] = "Void-Touched Snapdragon",    -- Void-Touched Snapdragon
     -- ========================================================
     -- SOAR
     -- ========================================================
@@ -2119,6 +2153,11 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
 
+	  ["Arboon"] = {
+        superGroup = "Plaguebats",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+
     ["Arcane Defender"] = {
         superGroup = "Defenders",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
@@ -2154,6 +2193,11 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
+    ["Celestial Kirin"] = {
+        superGroup = nil,
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
 		["Chloroceros"] = {
         superGroup = "Armoredons",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
@@ -2187,6 +2231,11 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     ["Hypo-Speed X6000"] = {
         superGroup = "Goblin Trikes",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["Mechanical Prototype Panther MK-0"] = {
+        superGroup = "Flying Sabers",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
     },
 
     ["Midnight Bear"] = {
@@ -2264,10 +2313,20 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
     },
 
+    ["Steel Prototype Panther MK-0"] = {
+        superGroup = "Flying Sabers",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+
     ["Stormray"] = {
         superGroup = "Outland Rays",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
 		},
+
+    ["Sun Roc"] = {
+        superGroup = "Hawks",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
 
     ["Untainted Grove Crawler"] = {
         superGroup = nil,
@@ -2277,6 +2336,16 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     ["Vicious Snaplizard"] = {
         superGroup = nil,
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["Void-Corrupted Hex Eagle"] = {
+        superGroup = "Hawks",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+
+    ["Void-Corrupted Lynx"] = {
+        superGroup = "Sabers",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
     },
 
     -- Antoran Hound
@@ -3066,11 +3135,6 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
-    ["Diamond Mechsuit"] = {
-        superGroup = "Flying Mechasuits",
-        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
-    },
-
     ["Dwarven Mechsuit"] = {
         superGroup = "Flying Mechasuits",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
@@ -3097,6 +3161,11 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     },
 
     ["OC91 Chariot"] = {
+        superGroup = "Flying Mechasuits",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+    },
+
+    ["Oreforged Mechsuit"] = {
         superGroup = "Flying Mechasuits",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
@@ -3372,6 +3441,11 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = false, isUniqueEffect = false },
     },
 
+    ["Void-Touched Hawkstrider"] = {
+        superGroup = "Hawkstriders",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+
     -- Hippogryphs
     ["Armored Hippogryph"] = {
         superGroup = "Hippogryphs",
@@ -3462,6 +3536,11 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     ["Felsteed"] = {
         superGroup = "Horses",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+    },
+
+    ["Gilnean Charger"] = {
+        superGroup = nil,
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
 
     ["Horse"] = {
@@ -4278,14 +4357,14 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
     },
 
+    ["Manawyrm"] = {
+        superGroup = "Serpents",
+        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
+    },
+
     ["N'Zoth serpent"] = {
         superGroup = "Serpents",
         traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
-    },
-
-    ["Nether-Gorged Greatwyrm"] = {
-        superGroup = "Serpents",
-        traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
     },
 
     ["Serpent"] = {
@@ -4417,6 +4496,11 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     ["Snapdragon"] = {
         superGroup = "Snapdragons",
         traits = { hasMinorArmor = true, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+
+		["Void-Touched Snapdragon"] = {
+        superGroup = "Snapdragons",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
     },
 
     -- Soul Eaters

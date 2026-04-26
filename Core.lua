@@ -804,7 +804,6 @@ function addon:SlashCommandHandler(input)
 		self:AlwaysPrint("/rmb s - Summon a random mount")
 		self:AlwaysPrint("/rmb browser or /rmb b - open Mount Browser")
 		self:AlwaysPrint("/rmb config - Open configuration")
-		self:AlwaysPrint("/rmb diag - Diagnostic info")
 		self:AlwaysPrint("/rmb detect - Re-scan for new mounts")
 		self:AlwaysPrint("/rmb export - Export new mount data")
 		self:AlwaysPrint("/rmb kbnotification - Toggle login notification for missing RMB keybind")
@@ -815,8 +814,6 @@ function addon:SlashCommandHandler(input)
 		end
 	elseif input == "s" then
 		self:SummonRandomMount(true)
-	elseif input == "diag" then
-		self:DiagnoseZoneChangeIssue()
 	elseif input == "detect" then
 		self:DetectAndProcessNewMounts()
 		self:InitializeProcessedData()
@@ -838,7 +835,6 @@ function addon:SlashCommandHandler(input)
 		else
 			self:AlwaysPrint("Camera Calibrator not available")
 		end
-	elseif input == "d" then
 	elseif input == "kbnotification" then
 		-- Toggle the keybind notification setting
 		self.db.profile.showKeybindNotification = not self.db.profile.showKeybindNotification

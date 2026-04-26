@@ -1,3 +1,8 @@
+# 1.1.79 - 2026-04-22
+- TOC Update
+- Added all the 28 new mounts to their respective families and groups
+- Renamed Diamond Mechsuit family to Oreforged Mecchsuit and Nether-gorged Greatwyrm family to Manawyrm
+
 # 1.1.78 - 2026-04-09
 - Added the latest campaign mount
 
