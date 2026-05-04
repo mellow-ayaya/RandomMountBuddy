@@ -1,3 +1,6 @@
+# 1.1.81 - 2026-05-04
+- Improved Contextual summoning description in the Mount browser
+
 # 1.1.80 - 2026-05-04
 - Fixed Contextual summoning: it will no longer summon flying mounts in non flying areas
 

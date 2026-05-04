@@ -353,7 +353,7 @@ function Settings:CreateSettingsFrame(parentFrame, mountBrowser)
 		"contextual",
 		"Contextual Summoning",
 		"contextualSummoning",
-		"Automatically filter mounts based on location/situation.",
+		"Summon based on context: swimming mounts underwater, ground mounts when on land and unable to fly, and flying mounts if flying is availabble.",
 		true
 	)
 	CreateCheckbox(
