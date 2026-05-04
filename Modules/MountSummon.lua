@@ -275,8 +275,13 @@ function MountSummon:GetCurrentContext()
 		end
 	end
 
-	if IsAdvancedFlyableArea then
+	-- Only check dragonride if regular flying is allowed first
+	-- IsAdvancedFlyableArea() returns true in instances/scenarios that reuse outdoor maps,
+	-- while IsFlyableArea() correctly returns false in those cases.
+	if context.canFly and IsAdvancedFlyableArea then
 		context.canDragonride = IsAdvancedFlyableArea()
+	else
+		context.canDragonride = false
 	end
 
 	local mapID = C_Map.GetBestMapForUnit("player")

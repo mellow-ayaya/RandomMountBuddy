@@ -1,4 +1,7 @@
 # 1.1.79 - 2026-04-26
+- Fixed Contextual summoning: it will no longer summon flying mounts in non flying areas
+
+# 1.1.79 - 2026-04-26
 - TOC Update
 - Added all the 28 new mounts to their respective families and groups
 - Renamed Diamond Mechsuit family to Oreforged Mecchsuit and Nether-gorged Greatwyrm family to Manawyrm
