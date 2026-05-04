@@ -1,4 +1,4 @@
-# 1.1.79 - 2026-04-26
+# 1.1.80 - 2026-05-04
 - Fixed Contextual summoning: it will no longer summon flying mounts in non flying areas
 
 # 1.1.79 - 2026-04-26
