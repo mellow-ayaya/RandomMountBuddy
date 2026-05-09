@@ -1,3 +1,6 @@
+# 1.1.82 - 2026-09-04
+- Fixed a bug introduced in 1.1.80: you can now mount again in Tindral Amidrassil fight
+
 # 1.1.81 - 2026-05-04
 - Improved Contextual summoning description in the Mount browser
 

@@ -27,6 +27,12 @@ function MountSummon:Initialize()
 		[2406] = 1215279, -- Undermine raid - Raid zone
 		-- Add more location IDs here as needed
 	}
+	-- Instance map IDs where dragonriding is intentionally allowed despite IsFlyableArea() = false
+	-- Use GetInstanceInfo() map ID (arg 8), not the UI map ID.
+	-- Verify in-game: /run print(select(8, GetInstanceInfo()))
+	self.DRAGONRIDE_ONLY_INSTANCES = {
+		[2549] = true, -- Amirdrassil, the Dream's Hope (Tindral Sageswift encounter)
+	}
 	-- Cache system for zone abilities
 	self.zoneAbilityCache = {
 		currentLocationID = nil,
@@ -278,10 +284,19 @@ function MountSummon:GetCurrentContext()
 	-- Only check dragonride if regular flying is allowed first
 	-- IsAdvancedFlyableArea() returns true in instances/scenarios that reuse outdoor maps,
 	-- while IsFlyableArea() correctly returns false in those cases.
-	if context.canFly and IsAdvancedFlyableArea then
-		context.canDragonride = IsAdvancedFlyableArea()
-	else
-		context.canDragonride = false
+	-- Exception: specific raid instances that intentionally enable dragonriding
+	-- (e.g. Amirdrassil - Tindral Sageswift) also have IsFlyableArea() = false.
+	if IsAdvancedFlyableArea then
+		if context.canFly then
+			context.canDragonride = IsAdvancedFlyableArea()
+		else
+			local _, _, _, _, _, _, _, instanceMapID = GetInstanceInfo()
+			if self.DRAGONRIDE_ONLY_INSTANCES and instanceMapID and self.DRAGONRIDE_ONLY_INSTANCES[instanceMapID] and IsAdvancedFlyableArea() then
+				context.canDragonride = true
+				addon:DebugSummon("Dragonride-only instance detected (instanceMapID: " ..
+					instanceMapID .. "), allowing dragonride without regular flight")
+			end
+		end
 	end
 
 	local mapID = C_Map.GetBestMapForUnit("player")
