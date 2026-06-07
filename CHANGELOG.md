@@ -1,3 +1,6 @@
+# 1.1.83 - 2026-07-06
+- Fixed a bug with Summon target mount breaking the addon and causing lua errors in M+
+
 # 1.1.82 - 2026-09-04
 - Fixed a bug introduced in 1.1.80: you can now mount again in Tindral Amidrassil fight
 
