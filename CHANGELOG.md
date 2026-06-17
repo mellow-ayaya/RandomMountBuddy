@@ -1,17 +1,17 @@
-# 1.1.84 - 2026-17-06
+# 1.1.84 - 2026-06-17
 - Added the 12.0.7 mounts to their respective families and groups
 - TOC Update
 
-# 1.1.83 - 2026-07-06
+# 1.1.83 - 2026-06-07
 - Fixed a bug with Summon target mount breaking the addon and causing lua errors in M+
 
-# 1.1.82 - 2026-09-04
+# 1.1.82 - 2026-04-09
 - Fixed a bug introduced in 1.1.80: you can now mount again in Tindral Amidrassil fight
 
-# 1.1.81 - 2026-05-04
+# 1.1.81 - 2026-04-05
 - Improved Contextual summoning description in the Mount browser
 
-# 1.1.80 - 2026-05-04
+# 1.1.80 - 2026-04-05
 - Fixed Contextual summoning: it will no longer summon flying mounts in non flying areas
 
 # 1.1.79 - 2026-04-26
