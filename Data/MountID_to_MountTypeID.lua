@@ -1636,5 +1636,22 @@ MountIDtoMountTypeID = {
     [2964] = 230,    -- Void-Touched Snapdragon
     [2965] = 230,    -- Void-Corrupted Lynx
     [2961] = 424,    -- Void-Corrupted Hex Eagle
+
+		[2611] = 230,    -- Dusk Grimlynx
+    [2994] = 424,    -- Badlands Buzzard
+    [1470] = 230,    -- Liquid Hot Magma Slug
+    [2950] = 424,    -- Luminous Sporeglider
+    [2973] = 424,    -- Blackwater X-TREME Firework Rocket
+    [2806] = 424,    -- Spawn of Vyranoth
+    [2974] = 424,    -- Green Rocket Mount [PH]
+    [2976] = 424,    -- Pink Rocket Mount [PH]
+    [2990] = 424,    -- Netherforged Nullframe
+    [1710] = 230,    -- Black-Furred Bakar
+    [3036] = 424,    -- Sun Festival's Painted Roc
+    [2781] = 230,    -- Amani Hex Bear
+    [2975] = 424,    -- Bilgewater X-TREME Firework Rocket
+    [3033] = 230,    -- Tortured Gorger
+    [2988] = 437,    -- Voidmancer's Starcarver
+		[2992] = 230,    -- [PH] Horse with Hat
 }
 return MountIDtoMountTypeID

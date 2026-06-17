@@ -58,6 +58,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     -- BAKARS
     -- ========================================================
     [1824] = "Spiky Bakar",    -- Brown-Furred Spiky Bakar
+    [1710] = "Medium-sized Bakar",    -- Black-Furred Bakar
     [1825] = "Taivan",    -- Taivan
     -- ========================================================
     -- BASILISKS
@@ -116,6 +117,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2776] = "Midnight Bear",    -- Amani Blessed Bear
     [2778] = "Midnight Bear",    -- Ancestral War Bear
     [2779] = "Midnight Bear",    -- Witherbark Warbear Mother
+    [2781] = "Midnight Bear",    -- Amani Hex Bear
     [1304] = "Shadehound",    -- Mawsworn Soulhunter
     [1441] = "Shadehound",    -- Bound Shadehound
     [1442] = "Shadehound",    -- Corridor Creeper
@@ -135,6 +137,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1317] = "Albatross",    -- Waste Marauder
     [1318] = "Albatross",    -- Wastewander Skyterror
     [1778] = "Albatross",    -- Gold-Toed Albatross
+    [2994] = "Albatross",    -- Badlands Buzzard
     [2574] = "Eagle",    -- Snowy Highmountain Eagle
     [2666] = "Eagle",    -- Treetop Highmountain Eagle
     [1224] = "Mechanical Parrot",    -- Wonderwing 2.0
@@ -181,6 +184,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2333] = "Surfboard",    -- Soweezi's Vintage Waveshredder
     [2334] = "Surfboard",    -- Bronze Goblin Waveshredder
     [2838] = "Surfboard",    -- Fantastical Goblin Waveshredder
+    [2988] = "Voidmancer's Starcarver",    -- Voidmancer's Starcarver
     -- ========================================================
     -- BOARS
     -- ========================================================
@@ -382,6 +386,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2758] = "Midnight Dragonhawk",    -- Cobalt Dragonhawk
     [2710] = "Sporeglider",    -- Cerulean Sporeglider
     [2713] = "Sporeglider",    -- Ruddy Sporeglider
+    [2950] = "Sporeglider",    -- Luminous Sporeglider
     [1471] = "Vengeance",    -- Vengeance
     -- ========================================================
     -- DRAKES
@@ -688,7 +693,8 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2159] = "Dwarven Mechsuit",    -- Machine Defense Unit 1-11
     [751] = "Felsteel Annihilator",    -- Felsteel Annihilator
     [1217] = "G.M.O.D.",    -- G.M.O.D.
-    [932] = "Lightforged Warframe",    -- Lightforged Warframe
+    [932] = "Warframe",    -- Lightforged Warframe
+    [2990] = "Warframe",    -- Netherforged Nullframe
     [2313] = "Magnetomech",    -- Junkmaestro's Magnetomech
     [2604] = "OC91 Chariot",    -- OC91 Chariot
     [2244] = "Oreforged Mechsuit",    -- Diamond Mechsuit
@@ -781,6 +787,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1391] = "Gorger",    -- Loyal Gorger
     [1443] = "Gorger",    -- Voracious Gorger
     [2602] = "Gorger",    -- Translocated Gorger
+    [3033] = "Gorger",    -- Tortured Gorger
     -- ========================================================
     -- GORMS
     -- ========================================================
@@ -797,6 +804,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2614] = "Grimlynx",    -- Fierce Grimlynx
     [2615] = "Grimlynx",    -- Rootstalker Grimlynx
     [2616] = "Grimlynx",    -- Ivory Grimlynx
+    [2611] = "Grimlynx",    -- Dusk Grimlynx
     [2789] = "Shredclaw",    -- Ravenous Shredclaw
     [2790] = "Shredclaw",    -- Insatiable Shredclaw
     [2791] = "Shredclaw",    -- Prowling Shredclaw
@@ -894,6 +902,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2940] = "Sun Roc",    -- Dusk-Painted Sun Roc
     [2941] = "Sun Roc",    -- Flame-Painted Sun Roc
     [2942] = "Sun Roc",    -- [PH] Giant Eagle Sunwalker Mount White
+    [3036] = "Sun Roc",    -- Sun Festival's Painted Roc
     [2961] = "Void-Corrupted Hex Eagle",    -- Void-Corrupted Hex Eagle
     -- ========================================================
     -- HAWKSTRIDERS
@@ -1017,6 +1026,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [222] = "Zhevra",    -- Swift Zhevra
     [224] = "Zhevra",    -- Swift Zhevra
     [331] = "Zhevra",    -- Quel'dorei Steed
+		[2992] = "Horse with Hat",    -- [PH] Horse with Hat
     -- ========================================================
     -- HYENAS
     -- ========================================================
@@ -1407,6 +1417,7 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [1589] = "Renewed Proto-Drake",    -- Renewed Proto-Drake
     [1786] = "Renewed Proto-Drake",    -- Renewed Proto-Drake
     [557] = "Spawn of Galakras",    -- Spawn of Galakras
+    [2806] = "Spawn of Vyranoth",    -- Spawn of Vyranoth
     -- ========================================================
     -- PTERRORDAX
     -- ========================================================
@@ -1546,6 +1557,10 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2301] = "Rocket",    -- Unstable Rocket
     [2302] = "Rocket",    -- Unstable Rocket
     [382] = "X-53 Touring Rocket",    -- X-53 Touring Rocket
+    [2973] = "X-TREME Firework Rocket",    -- Blackwater X-TREME Firework Rocket
+    [2974] = "X-TREME Firework Rocket",    -- Green Rocket Mount [PH]
+    [2976] = "X-TREME Firework Rocket",    -- Pink Rocket Mount [PH]
+    [2975] = "X-TREME Firework Rocket",    -- Bilgewater X-TREME Firework Rocket
     -- ========================================================
     -- SABERS
     -- ========================================================
@@ -1761,7 +1776,8 @@ RandomMountBuddy_PreloadData.MountToFamily = {
     [2834] = "Pseudoshell",    -- Cabbage Pseudoshell
     [2835] = "Pseudoshell",    -- Lavender Pseudoshell
     [2836] = "Pseudoshell",    -- Accented Pseudoshell
-    [1623] = "Seething Slug",    -- Seething Slug
+    [1623] = "Slug",    -- Seething Slug
+    [1470] = "Slug",    -- Liquid Hot Magma Slug
     [1729] = "Snail",    -- Big Slick in the City
     [2495] = "Snail",    -- Emerald Snail
     [1469] = "Snailemental",    -- Magmashell
@@ -2360,6 +2376,11 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
+    ["Medium-sized Bakar"] = {
+        superGroup = "Bakars",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
+    },
+
     ["Taivan"] = {
         superGroup = "Bakars",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
@@ -2513,6 +2534,11 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     ["Surfboard"] = {
         superGroup = "Boards",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["Voidmancer's Starcarver"] = {
+        superGroup = "Boards",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
     },
 
     -- Boars
@@ -3150,7 +3176,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
-    ["Lightforged Warframe"] = {
+    ["Warframe"] = {
         superGroup = "Flying Mechasuits",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
@@ -3598,6 +3624,11 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = false },
     },
 
+    ["Horse with Hat"] = {
+        superGroup = "Horses",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
+    },
+
     -- Hyenas
     ["Caravan Hyena"] = {
         superGroup = "Hyenas",
@@ -4020,6 +4051,11 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
     },
 
+    ["Spawn of Vyranoth"] = {
+        superGroup = "Proto-Drakes",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = true },
+    },
+
     -- Pterrordax
     ["Battle Pterrordax"] = {
         superGroup = "Pterrordax",
@@ -4193,6 +4229,11 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
     },
 
     ["X-53 Touring Rocket"] = {
+        superGroup = "Rockets",
+        traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
+    },
+
+    ["X-TREME Firework Rocket"] = {
         superGroup = "Rockets",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = false, isUniqueEffect = false },
     },
@@ -4467,7 +4508,7 @@ RandomMountBuddy_PreloadData.FamilyDefinitions = {
         traits = { hasMinorArmor = false, hasMajorArmor = true, hasModelVariant = true, isUniqueEffect = true },
     },
 
-    ["Seething Slug"] = {
+    ["Slug"] = {
         superGroup = "Snails",
         traits = { hasMinorArmor = false, hasMajorArmor = false, hasModelVariant = true, isUniqueEffect = true },
     },
