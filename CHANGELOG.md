@@ -1,5 +1,6 @@
 # 1.1.84 - 2026-17-06
 - Added the 12.0.7 mounts to their respective families and groups
+- TOC Update
 
 # 1.1.83 - 2026-07-06
 - Fixed a bug with Summon target mount breaking the addon and causing lua errors in M+
